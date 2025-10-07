@@ -100,7 +100,7 @@ fn main() -> Result<()> {
         })
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber)?;
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set tracing subscriber");
 
     match cli.command {
         // === DATASET MANAGEMENT COMMANDS ===
