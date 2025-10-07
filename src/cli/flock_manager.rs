@@ -156,7 +156,7 @@ impl FlockManager {
             info!("✅ Created Ollama secret");
         }
 
-        // Create models with user-specified names
+        // Create models with user-specified names and proper Ollama configuration
         let models = [
             ("text_generator", text_model),
             ("embedder", embedding_model),
@@ -164,7 +164,7 @@ impl FlockManager {
 
         for (model_alias, model_spec) in &models {
             let model_result = self.conn.execute(
-                "CREATE MODEL(?, ?, 'ollama')",
+                "CREATE MODEL(?, ?, 'ollama', {'tuple_format': 'json', 'batch_size': 32, 'model_parameters': {'temperature': 0.7}})",
                 [&model_alias, &model_spec],
             );
 
@@ -223,7 +223,7 @@ impl FlockManager {
         prompt: &str,
         model: &str,
     ) -> Result<String> {
-        info!("🤖 Generating text completion for prompt: {}", prompt);
+        info!("🤖 Generating text completion for prompt: {} using model: {}", prompt, model);
 
         // Verify Flock is ready before proceeding
         if !self.is_flock_ready()? {
@@ -239,10 +239,10 @@ impl FlockManager {
             [&prompt_name, &prompt_content],
         )?;
 
-        // Generate completion using the specified model (use "text_generator" as the model alias)
+        // Generate completion using the specified model
         let result: String = self.conn.query_row(
-            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt_name': ?})",
-            [&prompt_name],
+            "SELECT llm_complete({'model_name': ?}, {'prompt_name': ?})",
+            [model, &prompt_name],
             |row| row.get(0),
         )
         .context("Failed to generate text completion - check if Ollama is running and models are available")?;
@@ -327,9 +327,9 @@ impl FlockManager {
             &format!(
                 "CREATE TABLE {} AS
                  SELECT id, content,
-                        llm_embedding({{'model_name': 'embedder'}}, {{'context_columns': [{{'data': content}}]}}, {}) as embedding
+                        llm_embedding({{'model_name': '{}'}}, {{'context_columns': [{{'data': content}}]}}, {}) as embedding
                  FROM {}",
-                embedding_table, normalize_clause, table_name
+                embedding_table, model, normalize_clause, table_name
             ),
             [],
         ).context("Failed to generate embeddings - check if embedder model is available in Ollama")?;
@@ -513,7 +513,7 @@ impl FlockManager {
         model: &str,
         positive_only: bool,
     ) -> Result<Vec<(String, bool)>> {
-        info!("🎯 Filtering data with criteria: {}", criteria);
+        info!("🎯 Filtering data with criteria: {} using model: {}", criteria, model);
 
         // Verify Flock is ready before proceeding
         if !self.is_flock_ready()? {
@@ -525,14 +525,54 @@ impl FlockManager {
             .context("Failed to read input file for filtering")?;
 
         let items: Vec<&str> = content.lines().collect();
+        let mut results = Vec::new();
 
-        // For now, return error indicating this needs proper implementation
-        // Real implementation would use llm_filter() function for each item
-        Err(anyhow::anyhow!(
-            "LLM filtering not implemented - requires llm_filter() function from Flock extension. \
-             This would classify each of the {} items in {} using the criteria: {}",
-            items.len(), input_file, criteria
-        ))
+        // Create a temporary table for filtering
+        let table_name = format!("temp_filter_{}", chrono::Utc::now().timestamp());
+        
+        self.conn.execute(
+            &format!("CREATE TABLE {} (id INTEGER, content TEXT)", table_name),
+            [],
+        )?;
+
+        // Insert items to filter
+        for (i, item) in items.iter().enumerate() {
+            self.conn.execute(
+                &format!("INSERT INTO {} VALUES (?, ?)", table_name),
+                [&(i as i32).to_string(), &item.to_string()],
+            )?;
+        }
+
+        // Create filter prompt
+        let prompt_name = format!("filter_prompt_{}", chrono::Utc::now().timestamp());
+        let prompt_content = format!("Classify this text based on the criteria: {}. Return only 'true' or 'false'.", criteria);
+        
+        self.conn.execute(
+            "CREATE PROMPT(?, ?)",
+            [&prompt_name, &prompt_content],
+        )?;
+
+        // Filter each item using the specified model
+        for (_i, item) in items.iter().enumerate() {
+            let result: String = self.conn.query_row(
+                "SELECT llm_complete({'model_name': ?}, {'prompt_name': ?, 'context_columns': [{'data': ?}]})",
+                [model, &prompt_name, &item.to_string()],
+                |row| row.get(0),
+            ).unwrap_or_else(|_| "false".to_string());
+
+            let matches = result.to_lowercase().contains("true");
+            
+            if !positive_only || matches {
+                results.push((item.to_string(), matches));
+            }
+        }
+
+        // Clean up temporary tables
+        let _ = self.conn.execute(&format!("DROP TABLE IF EXISTS {}", table_name), []);
+        let _ = self.conn.execute("DROP PROMPT IF EXISTS ?", [&prompt_name]);
+
+        info!("✅ Filtered {} items, {} matches found", items.len(), results.len());
+        Ok(results)
     }
 
     /// Generate summaries using LLM aggregation.
@@ -582,7 +622,7 @@ impl FlockManager {
         max_length: usize,
         model: &str,
     ) -> Result<String> {
-        info!("📝 Generating summary using {} strategy", strategy);
+        info!("📝 Generating summary using {} strategy with model: {}", strategy, model);
 
         // Verify Flock is ready before proceeding
         if !self.is_flock_ready()? {
@@ -593,13 +633,72 @@ impl FlockManager {
             return Err(anyhow::anyhow!("Cannot summarize empty text collection"));
         }
 
-        // For now, return error indicating this needs proper implementation
-        // Real implementation would use llm_reduce() function for hierarchical summarization
-        Err(anyhow::anyhow!(
-            "Text summarization not implemented - requires llm_reduce() function from Flock extension. \
-             This would summarize {} texts using {} strategy with max length {} words.",
-            texts.len(), strategy, max_length
-        ))
+        // Create a temporary table for texts
+        let table_name = format!("temp_summary_{}", chrono::Utc::now().timestamp());
+        
+        self.conn.execute(
+            &format!("CREATE TABLE {} (id INTEGER, content TEXT)", table_name),
+            [],
+        )?;
+
+        // Insert texts to summarize
+        for (i, text) in texts.iter().enumerate() {
+            self.conn.execute(
+                &format!("INSERT INTO {} VALUES (?, ?)", table_name),
+                [&(i as i32).to_string(), text],
+            )?;
+        }
+
+        // Create summary prompt
+        let prompt_name = format!("summary_prompt_{}", chrono::Utc::now().timestamp());
+        let prompt_content = format!("Summarize the following text in {} words or less. Focus on the key points and main ideas.", max_length);
+        
+        self.conn.execute(
+            "CREATE PROMPT(?, ?)",
+            [&prompt_name, &prompt_content],
+        )?;
+
+        let summary = match strategy {
+            "reduce" => {
+                // Use llm_reduce for hierarchical summarization
+                let result: String = self.conn.query_row(
+                    "SELECT llm_reduce({'model_name': ?}, {'prompt_name': ?, 'context_columns': [{'data': content}]}) FROM ?",
+                    [model, &prompt_name, &table_name],
+                    |row| row.get(0),
+                ).context("Failed to generate hierarchical summary")?;
+                result
+            },
+            "map" => {
+                // Generate individual summaries then combine
+                let mut summaries = Vec::new();
+                for text in &texts {
+                    let summary: String = self.conn.query_row(
+                        "SELECT llm_complete({'model_name': ?}, {'prompt_name': ?, 'context_columns': [{'data': ?}]})",
+                        [model, &prompt_name, text.as_str()],
+                        |row| row.get(0),
+                    ).unwrap_or_else(|_| text.clone());
+                    summaries.push(summary);
+                }
+                summaries.join(" ")
+            },
+            _ => {
+                // Default to simple concatenation and summary
+                let combined_text = texts.join(" ");
+                let result: String = self.conn.query_row(
+                    "SELECT llm_complete({'model_name': ?}, {'prompt_name': ?, 'context_columns': [{'data': ?}]})",
+                    [model, &prompt_name, combined_text.as_str()],
+                    |row| row.get(0),
+                ).context("Failed to generate summary")?;
+                result
+            }
+        };
+
+        // Clean up temporary tables
+        let _ = self.conn.execute(&format!("DROP TABLE IF EXISTS {}", table_name), []);
+        let _ = self.conn.execute("DROP PROMPT IF EXISTS ?", [&prompt_name]);
+
+        info!("✅ Generated summary ({} chars)", summary.len());
+        Ok(summary)
     }
 
     /// Check if Flock extension is available and working.

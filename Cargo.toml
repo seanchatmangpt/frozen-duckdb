@@ -38,3 +38,11 @@ duckdb = { version = "1.4.0", default-features = false, features = [
 ] }
 tempfile = "3"
 reqwest = { version = "0.11", features = ["blocking"] }
+
+[[example]]
+name = "dropin_replacement"
+path = "examples/dropin_replacement.rs"
+
+[[example]]
+name = "flock_ollama_integration"
+path = "examples/flock_ollama_integration.rs"

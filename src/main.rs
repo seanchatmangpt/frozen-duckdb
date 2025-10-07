@@ -82,9 +82,9 @@ use frozen_duckdb::cli::commands::{Cli, Commands};
 use frozen_duckdb::cli::dataset_manager::DatasetManager;
 use frozen_duckdb::cli::flock_manager::FlockManager;
 use serde_json::{self, Value};
-use std::io::{self, Write};
+use std::io;
 use std::path::Path;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 
 fn main() -> Result<()> {
@@ -164,8 +164,8 @@ fn main() -> Result<()> {
             input,
             output,
             model,
-            max_tokens,
-            temperature,
+            max_tokens: _,
+            temperature: _,
         } => {
             let flock_manager = FlockManager::new()?;
 
