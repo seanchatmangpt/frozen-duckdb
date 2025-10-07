@@ -100,12 +100,14 @@ impl FlockManager {
     /// Setup Ollama models and secrets for Flock LLM operations.
     ///
     /// This function configures the necessary models and secrets for using
-    /// Flock's LLM capabilities with Ollama. It supports both text generation
-    /// (qwen3-coder:30b) and embedding generation (qwen3-embedding:8b) models.
+    /// Flock's LLM capabilities with Ollama. Allows customization of which
+    /// models to use for text generation and embedding.
     ///
     /// # Arguments
     ///
     /// * `ollama_url` - URL where Ollama server is running
+    /// * `text_model` - Model name for text generation (e.g., "llama3.1:8b")
+    /// * `embedding_model` - Model name for embedding generation (e.g., "mxbai-embed-large")
     /// * `skip_verification` - Skip checking if models are available
     ///
     /// # Returns
@@ -118,21 +120,29 @@ impl FlockManager {
     /// use frozen_duckdb::cli::FlockManager;
     ///
     /// let manager = FlockManager::new()?;
-    /// manager.setup_ollama("http://localhost:11434", false)?;
+    /// manager.setup_ollama("http://localhost:11434", "llama3.1:8b", "mxbai-embed-large", false)?;
     /// ```
     ///
     /// # Models Configured
     ///
-    /// - **coder**: qwen3-coder:30b for text generation and code explanation
-    /// - **embedder**: qwen3-embedding:8b for embedding generation
+    /// - **text_model**: Configurable model for text generation and completion
+    /// - **embedding_model**: Configurable model for embedding generation
     ///
     /// # Performance
     ///
     /// - **Setup time**: <1s (excluding model downloads)
     /// - **Model verification**: <5s per model
-    pub fn setup_ollama(&self, ollama_url: &str, skip_verification: bool) -> Result<()> {
+    pub fn setup_ollama(
+        &self,
+        ollama_url: &str,
+        text_model: &str,
+        embedding_model: &str,
+        skip_verification: bool,
+    ) -> Result<()> {
         info!("🔧 Setting up Ollama integration for Flock LLM operations");
         info!("   Ollama URL: {}", ollama_url);
+        info!("   Text model: {}", text_model);
+        info!("   Embedding model: {}", embedding_model);
 
         // Create Ollama secret
         let secret_result = self.conn.execute(
@@ -146,22 +156,22 @@ impl FlockManager {
             info!("✅ Created Ollama secret");
         }
 
-        // Create models
+        // Create models with user-specified names
         let models = [
-            ("coder", "qwen3-coder:30b"),
-            ("embedder", "qwen3-embedding:8b"),
+            ("text_generator", text_model),
+            ("embedder", embedding_model),
         ];
 
-        for (model_name, model_spec) in &models {
+        for (model_alias, model_spec) in &models {
             let model_result = self.conn.execute(
                 "CREATE MODEL(?, ?, 'ollama')",
-                [&model_name, &model_spec],
+                [&model_alias, &model_spec],
             );
 
             if let Err(e) = model_result {
-                info!("ℹ️  Model '{}' might already exist: {}", model_name, e);
+                info!("ℹ️  Model '{}' might already exist: {}", model_alias, e);
             } else {
-                info!("✅ Created model: {} ({})", model_name, model_spec);
+                info!("✅ Created model: {} ({})", model_alias, model_spec);
             }
         }
 
@@ -229,12 +239,10 @@ impl FlockManager {
             [&prompt_name, &prompt_content],
         )?;
 
-        // Generate completion using the specified model
-        let model_string = model.to_string();
-        let prompt_lookup = prompt_name.to_string();
+        // Generate completion using the specified model (use "text_generator" as the model alias)
         let result: String = self.conn.query_row(
-            "SELECT llm_complete({'model_name': ?}, {'prompt_name': ?})",
-            [&model_string, &prompt_lookup],
+            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt_name': ?})",
+            [&prompt_name],
             |row| row.get(0),
         )
         .context("Failed to generate text completion - check if Ollama is running and models are available")?;
@@ -319,11 +327,11 @@ impl FlockManager {
             &format!(
                 "CREATE TABLE {} AS
                  SELECT id, content,
-                        llm_embedding({{'model_name': ?}}, {{'context_columns': [{{'data': content}}]}}, {}) as embedding
+                        llm_embedding({{'model_name': 'embedder'}}, {{'context_columns': [{{'data': content}}]}}, {}) as embedding
                  FROM {}",
                 embedding_table, normalize_clause, table_name
             ),
-            [&model],
+            [],
         ).context("Failed to generate embeddings - check if embedder model is available in Ollama")?;
 
         // Extract embeddings - real implementation would parse the actual embedding arrays

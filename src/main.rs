@@ -143,6 +143,8 @@ fn main() -> Result<()> {
         // === FLOCK/LLM COMMANDS ===
         Commands::FlockSetup {
             ollama_url,
+            text_model,
+            embedding_model,
             skip_verification,
         } => {
             let flock_manager = FlockManager::new()?;
@@ -154,7 +156,7 @@ fn main() -> Result<()> {
                 std::process::exit(4);
             }
 
-            flock_manager.setup_ollama(&ollama_url, skip_verification)?;
+            flock_manager.setup_ollama(&ollama_url, &text_model, &embedding_model, skip_verification)?;
         }
 
         Commands::Complete {

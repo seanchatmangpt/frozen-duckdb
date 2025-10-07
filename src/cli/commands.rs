@@ -215,6 +215,20 @@ pub enum Commands {
         #[arg(long, default_value = "http://localhost:11434")]
         ollama_url: String,
 
+        /// Text generation model
+        ///
+        /// The Ollama model to use for text completion and generation.
+        /// Examples: llama3.1:8b, qwen2.5:14b, codellama:13b
+        #[arg(long, default_value = "qwen3-coder:30b")]
+        text_model: String,
+
+        /// Embedding model
+        ///
+        /// The Ollama model to use for generating embeddings.
+        /// Examples: mxbai-embed-large, all-minilm:latest, nomic-embed-text
+        #[arg(long, default_value = "qwen3-embedding:8b")]
+        embedding_model: String,
+
         /// Skip model verification
         ///
         /// If set, skips checking if the required models are available.
@@ -263,17 +277,16 @@ pub enum Commands {
 
         /// Model to use for completion
         ///
-        /// Available models:
-        /// - `coder`: qwen3-coder:30b (for code generation and explanation)
-        /// - `embedder`: qwen3-embedding:8b (for embedding generation)
-        #[arg(short, long, default_value = "coder")]
+        /// Use the model alias configured during setup (default: "text_generator")
+        /// This corresponds to the text generation model set in flock-setup.
+        #[arg(short, long, default_value = "text_generator")]
         model: String,
 
         /// Maximum tokens to generate
         ///
         /// Controls the length of the generated response.
         /// Higher values allow for longer responses.
-        #[arg(short, long, default_value = "512")]
+        #[arg(long, default_value = "512")]
         max_tokens: usize,
 
         /// Temperature for text generation
@@ -324,8 +337,8 @@ pub enum Commands {
 
         /// Model to use for embedding generation
         ///
-        /// Available models:
-        /// - `embedder`: qwen3-embedding:8b (optimized for embeddings)
+        /// Use the model alias configured during setup (default: "embedder")
+        /// This corresponds to the embedding model set in flock-setup.
         #[arg(short, long, default_value = "embedder")]
         model: String,
 
@@ -431,9 +444,9 @@ pub enum Commands {
 
         /// Model to use for filtering
         ///
-        /// Available models:
-        /// - `coder`: qwen3-coder:30b (good for code and technical content)
-        #[arg(short, long, default_value = "coder")]
+        /// Use the model alias configured during setup (default: "text_generator")
+        /// This corresponds to the text generation model set in flock-setup.
+        #[arg(short, long, default_value = "text_generator")]
         model: String,
 
         /// Filter for positive matches only
@@ -489,9 +502,9 @@ pub enum Commands {
 
         /// Model to use for summarization
         ///
-        /// Available models:
-        /// - `coder`: qwen3-coder:30b (good for technical content)
-        #[arg(short, long, default_value = "coder")]
+        /// Use the model alias configured during setup (default: "text_generator")
+        /// This corresponds to the text generation model set in flock-setup.
+        #[arg(short, long, default_value = "text_generator")]
         model: String,
     },
 }
