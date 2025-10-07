@@ -8,7 +8,13 @@ repository = "https://github.com/yourusername/frozen-duckdb"
 homepage = "https://github.com/yourusername/frozen-duckdb"
 documentation = "https://github.com/yourusername/frozen-duckdb"
 readme = "README.md"
-keywords = ["duckdb", "database", "analytics", "performance", "build-optimization"]
+keywords = [
+  "duckdb",
+  "database",
+  "analytics",
+  "performance",
+  "build-optimization",
+]
 categories = ["database", "development-tools", "performance"]
 
 [workspace]
