@@ -2,7 +2,7 @@
 
 **Pre-compiled DuckDB binary that never needs compilation - Fast builds forever!**
 
-This project provides a frozen DuckDB binary that eliminates the slow compilation bottleneck in Rust projects using `duckdb-rs`. Instead of compiling DuckDB from source every time, this project uses pre-compiled official binaries for lightning-fast builds.
+This project provides architecture-specific DuckDB binaries that eliminate the slow compilation bottleneck in Rust projects using `duckdb-rs`. Instead of compiling DuckDB from source every time, this project uses pre-compiled official binaries for lightning-fast builds.
 
 ## 🚀 Performance
 
@@ -14,9 +14,11 @@ This project provides a frozen DuckDB binary that eliminates the slow compilatio
 
 ## 📦 What's Included
 
-- **Official DuckDB v1.4.0 binaries** for macOS (Universal)
+- **Architecture-specific DuckDB v1.4.0 binaries**:
+  - `libduckdb_x86_64.dylib` (55MB) - Intel Macs
+  - `libduckdb_arm64.dylib` (50MB) - Apple Silicon Macs
 - **C/C++ headers** for development
-- **Environment setup script** for easy integration
+- **Smart environment setup** with automatic architecture detection
 - **Build integration** with Rust projects
 - **Arrow compatibility patch** for version conflicts
 
@@ -26,10 +28,10 @@ This project provides a frozen DuckDB binary that eliminates the slow compilatio
 
 ```bash
 # Clone this repository
-git clone https://github.com/yourusername/frozen-duckdb.git
+git clone https://github.com/seanchatmangpt/frozen-duckdb.git
 cd frozen-duckdb
 
-# Set up environment
+# Set up environment (automatically detects your architecture)
 source prebuilt/setup_env.sh
 
 # Use in your Rust project
@@ -40,7 +42,7 @@ cargo build -p your-duckdb-crate
 
 ```bash
 # Clone this repository
-git clone https://github.com/yourusername/frozen-duckdb.git
+git clone https://github.com/seanchatmangpt/frozen-duckdb.git
 cd frozen-duckdb
 
 # Build the frozen binary
@@ -102,7 +104,7 @@ cargo build
 ### Basic Usage
 
 ```bash
-# Set up the frozen DuckDB environment
+# Set up the frozen DuckDB environment (auto-detects architecture)
 source prebuilt/setup_env.sh
 
 # Build your project (now fast!)
@@ -112,13 +114,23 @@ cargo build -p your-duckdb-crate
 cargo test -p your-duckdb-crate
 ```
 
+### Architecture Detection
+
+The setup script automatically detects your architecture:
+
+```bash
+source prebuilt/setup_env.sh
+# 🍎 Detected Apple Silicon (arm64), using 50MB binary
+# 🖥️  Detected x86_64 architecture, using 55MB binary
+```
+
 ### CI/CD Integration
 
 ```yaml
 # GitHub Actions example
 - name: Set up frozen DuckDB
   run: |
-    git clone https://github.com/yourusername/frozen-duckdb.git
+    git clone https://github.com/seanchatmangpt/frozen-duckdb.git
     source frozen-duckdb/prebuilt/setup_env.sh
     echo "DUCKDB_LIB_DIR=$DUCKDB_LIB_DIR" >> $GITHUB_ENV
     echo "DUCKDB_INCLUDE_DIR=$DUCKDB_INCLUDE_DIR" >> $GITHUB_ENV
@@ -145,6 +157,18 @@ ls -la $DUCKDB_LIB_DIR/libduckdb*
 source prebuilt/setup_env.sh
 ```
 
+### Architecture Issues
+
+If you need to force a specific architecture:
+
+```bash
+# Force x86_64 (Intel Mac)
+ARCH=x86_64 source prebuilt/setup_env.sh
+
+# Force arm64 (Apple Silicon)
+ARCH=arm64 source prebuilt/setup_env.sh
+```
+
 ### Arrow Compatibility Issues
 
 If you encounter Arrow version conflicts:
@@ -154,24 +178,16 @@ If you encounter Arrow version conflicts:
 ./scripts/apply_arrow_patch.sh
 ```
 
-### Platform Support
-
-Currently supports:
-- ✅ macOS (Universal - Intel + Apple Silicon)
-- 🔄 Linux (coming soon)
-- 🔄 Windows (coming soon)
-
 ## 🏗️ Architecture
 
 ```
 frozen-duckdb/
 ├── prebuilt/                 # Pre-compiled binaries
-│   ├── libduckdb.dylib      # Main DuckDB library
-│   ├── libduckdb.1.4.dylib  # Versioned library
-│   ├── libduckdb.1.dylib    # Compatibility link
-│   ├── duckdb.h             # C header
-│   ├── duckdb.hpp           # C++ header
-│   └── setup_env.sh         # Environment setup
+│   ├── libduckdb_x86_64.dylib # Intel Mac binary (55MB)
+│   ├── libduckdb_arm64.dylib  # Apple Silicon binary (50MB)
+│   ├── duckdb.h              # C header
+│   ├── duckdb.hpp            # C++ header
+│   └── setup_env.sh          # Smart environment setup
 ├── scripts/                  # Build and setup scripts
 │   ├── build_frozen_duckdb.sh
 │   ├── download_duckdb_binaries.sh
@@ -218,3 +234,10 @@ cargo build -p my-duckdb-crate
 ```
 
 **Result: 99% faster builds!** 🚀
+
+## 💡 Architecture-Specific Benefits
+
+- **Smaller downloads**: Users only get the binary for their architecture
+- **Faster setup**: No need to download unused architecture code
+- **Better performance**: Native architecture optimization
+- **Reduced storage**: 50-55MB per user instead of 105MB universal binary

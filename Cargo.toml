@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "Pre-compiled DuckDB binary for fast Rust builds"
 license = "MIT"
-repository = "https://github.com/yourusername/frozen-duckdb"
-homepage = "https://github.com/yourusername/frozen-duckdb"
-documentation = "https://github.com/yourusername/frozen-duckdb"
+repository = "https://github.com/seanchatmangpt/frozen-duckdb"
+homepage = "https://github.com/seanchatmangpt/frozen-duckdb"
+documentation = "https://github.com/seanchatmangpt/frozen-duckdb"
 readme = "README.md"
 keywords = [
   "duckdb",
