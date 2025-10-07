@@ -1,0 +1,193 @@
+# KCura Scripts Configuration
+# Production-ready configuration for KCura development tools
+# Version: 1.0 - 80/20 implementation with core team best practices
+
+# Global settings - applies to all scripts
+global:
+  log_level: "info"          # debug, info, warn, error
+  log_format: "json"         # json, simple
+  enable_metrics: true
+  enable_audit: true
+  timeout_default: 60        # seconds
+  max_retries: 3
+  retry_delay: 2            # seconds
+
+# Temporary directory configuration (security fix)
+temp:
+  base_dir: "/tmp"           # Base temporary directory
+  audit_dir: "/tmp"         # Audit log directory
+  cache_dir: "/tmp"         # Cache directory
+  healing_dir: "/tmp"       # Self-healing logs directory
+
+# Scan Fakes configuration - fake implementation detection
+scan_fakes:
+  enabled: true
+  timeout: 30
+  max_workers: 2            # parallel processing
+  cache_results: true
+  cache_ttl: 300           # 5 minutes
+
+  patterns:
+    - name: "unimplemented_macros"
+      pattern: "unimplemented!|todo!|panic!"
+      severity: "critical"
+      enabled: true
+
+    - name: "fake_returns"
+      pattern: "return.*Ok.*(dummy|fake|stub|placeholder)"
+      severity: "high"
+      enabled: true
+
+    - name: "hardcoded_responses"
+      pattern: "(hardcoded|canned|mock).*response"
+      severity: "medium"
+      enabled: true
+
+  excludes:
+    - "target/**"
+    - "node_modules/**"
+    - ".git/**"
+    - "**/*.min.js"
+    - "**/dist/**"
+    - "**/build/**"
+
+# CI Gate configuration - build validation
+ci_gate:
+  enabled: true
+  timeout: 60
+  failure_action: "fail_build"  # fail_build, warn, ignore
+
+  checks:
+    - name: "critical_patterns"
+      enabled: true
+      timeout: 45
+      patterns:
+        - "unimplemented!"
+        - "todo!"
+        - "panic!"
+        - "unwrap()"
+        - "expect()"
+
+    - name: "error_handling"
+      enabled: true
+      timeout: 30
+      required_files:
+        - "crates/kcura-core/src/lib.rs"
+        - "crates/kcura-ffi/src/lib.rs"
+
+    - name: "test_coverage"
+      enabled: true
+      timeout: 30
+      required_tests:
+        - "test.*ffi"
+        - "test.*hook"
+        - "test.*kernel"
+
+# Smoke Tests configuration - multi-language testing
+smoke_tests:
+  enabled: true
+  timeout_per_test: 60
+  max_retries: 2
+  parallel_execution: false    # safe for 80/20 implementation
+
+  tests:
+    node:
+      enabled: true
+      script: "scripts/smoke_node.mjs"
+      required_commands: ["node"]
+      expected_exit_code: 0
+
+    go:
+      enabled: true
+      script: "scripts/smoke_go.go"
+      required_commands: ["go"]
+      expected_exit_code: 0
+
+    python:
+      enabled: true
+      script: "scripts/smoke_py.py"
+      required_commands: ["python3"]
+      expected_exit_code: 0
+
+  skip_on_missing_deps: true
+
+# Security configuration - 80/20 security hardening
+security:
+  input_validation: true       # validate all inputs
+  safe_execution: true         # use safe command patterns
+  audit_trail: true           # log security events
+  temp_dir_cleanup: true      # clean temp files
+
+  # Basic script integrity (can be enhanced with signatures)
+  verify_script_integrity: false  # disabled for 80/20 simplicity
+
+# Performance configuration - basic optimizations
+performance:
+  parallel_processing: true    # where safe and beneficial
+  caching_enabled: true       # result caching
+  incremental_scanning: true  # skip unchanged files
+
+  # Resource limits
+  max_memory_mb: 512
+  max_cpu_percent: 80
+
+# Observability configuration - foundation for monitoring
+observability:
+  # Basic metrics collection
+  metrics:
+    enabled: true
+    collection_interval: 10    # seconds
+
+  # Health checks
+  health:
+    enabled: true
+    check_interval: 30        # seconds
+
+  # Basic tracing (can be enhanced with distributed tracing)
+  tracing:
+    enabled: false            # disabled for 80/20 simplicity
+    service_name: "kcura-scripts"
+
+# Environment-specific overrides
+development:
+  global:
+    log_level: "debug"
+    enable_metrics: true
+
+  scan_fakes:
+    timeout: 15              # faster for dev
+
+  ci_gate:
+    failure_action: "warn"   # don't fail builds in dev
+
+production:
+  global:
+    log_level: "warn"
+    enable_metrics: true
+
+  security:
+    input_validation: true
+    safe_execution: true
+    audit_trail: true
+
+  performance:
+    parallel_processing: true
+    max_workers: 4
+    caching_enabled: true
+
+# Integration points (for future enhancement)
+integrations:
+  # Slack notifications (disabled for 80/20)
+  slack:
+    enabled: false
+    webhook_url: ""
+
+  # Email notifications (disabled for 80/20)
+  email:
+    enabled: false
+    smtp_server: ""
+
+  # Prometheus metrics (disabled for 80/20)
+  prometheus:
+    enabled: false
+    gateway_url: ""

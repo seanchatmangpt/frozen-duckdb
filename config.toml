@@ -1,0 +1,28 @@
+# Rust Core Team Approach: Clean, minimal, using Cargo's built-in features
+
+[build]
+incremental = true
+
+[target.'cfg(all())']
+rustflags = ["-Dwarnings"]
+
+[env]
+RUSTDOCFLAGS = "-D warnings"
+RUSTC_WRAPPER = "sccache"
+
+[profile.dev]
+incremental = true
+debug = true
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+strip = "symbols"
+
+[registries.crates-io]
+protocol = "sparse"
+
+[net]
+retry = 3
+git-fetch-with-cli = true

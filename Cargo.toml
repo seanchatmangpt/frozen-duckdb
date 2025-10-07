@@ -1,0 +1,48 @@
+[package]
+name = "frozen-duckdb"
+version = "0.1.0"
+edition = "2021"
+description = "Pre-compiled DuckDB binary for fast Rust builds"
+license = "MIT"
+repository = "https://github.com/yourusername/frozen-duckdb"
+homepage = "https://github.com/yourusername/frozen-duckdb"
+documentation = "https://github.com/yourusername/frozen-duckdb"
+readme = "README.md"
+keywords = ["duckdb", "database", "analytics", "performance", "build-optimization"]
+categories = ["database", "development-tools", "performance"]
+
+[workspace]
+members = []
+
+[workspace.dependencies]
+# Core dependencies for examples and testing
+anyhow = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.0", features = ["sync", "time"] }
+tracing = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# DuckDB with prebuilt binary support
+duckdb = { version = "1.4.0", default-features = false }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+duckdb = { workspace = true }
+
+[[example]]
+name = "basic_usage"
+path = "examples/basic_usage.rs"
+
+[[example]]
+name = "performance_comparison"
+path = "examples/performance_comparison.rs"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

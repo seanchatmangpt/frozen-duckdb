@@ -1,0 +1,147 @@
+# KCura Scripts Configuration
+# Example configuration file for KCura development tools
+# Copy to kcura-config.yaml and customize for your environment
+
+# Global settings
+global:
+  log_level: "info"
+  log_format: "json"
+  enable_metrics: true
+  enable_tracing: true
+
+# Scan Fakes configuration
+scan_fakes:
+  enabled: true
+  patterns:
+    - name: "unimplemented_macros"
+      pattern: "unimplemented!|todo!|panic!"
+      severity: "critical"
+      description: "Unimplemented macros that must be removed"
+      timeout: 30
+      enabled: true
+
+    - name: "fake_returns"
+      pattern: "return.*Ok.*dummy|fake|stub|placeholder"
+      severity: "high"
+      description: "Fake return statements"
+      timeout: 30
+      enabled: true
+
+    - name: "hardcoded_responses"
+      pattern: "hardcoded|canned.*response|mock.*data"
+      severity: "medium"
+      description: "Hardcoded responses in production code"
+      timeout: 30
+      enabled: true
+
+  excludes:
+    - "target/**"
+    - "node_modules/**"
+    - ".git/**"
+    - "**/*.min.js"
+    - "**/dist/**"
+
+  performance:
+    parallel: true
+    max_workers: 4
+    cache_results: true
+    cache_ttl_seconds: 300
+    incremental_scanning: true
+
+  security:
+    verify_script_signature: true
+    secure_temp_dir: true
+    audit_trail: true
+
+# CI Gate configuration
+ci_gate:
+  enabled: true
+  checks:
+    - name: "critical_patterns"
+      enabled: true
+      timeout: 60
+      max_retries: 3
+      retry_delay: 2
+
+    - name: "error_handling"
+      enabled: true
+      timeout: 45
+      patterns:
+        - "unwrap()"
+        - "expect()"
+        - "panic!"
+
+    - name: "ffi_completeness"
+      enabled: true
+      timeout: 30
+
+    - name: "test_coverage"
+      enabled: true
+      timeout: 30
+      required_patterns:
+        - "test.*ffi"
+        - "test.*hook"
+        - "test.*kernel"
+
+  failure_action: "fail_build"
+  notification_webhook: ""
+
+# Smoke Tests configuration
+smoke_tests:
+  enabled: true
+  timeout_per_test: 60
+  max_retries: 2
+  retry_delay: 3
+
+  tests:
+    node:
+      enabled: true
+      script: "scripts/smoke_node.mjs"
+      required_commands: ["node"]
+
+    go:
+      enabled: true
+      script: "scripts/smoke_go.go"
+      required_commands: ["go"]
+
+    python:
+      enabled: true
+      script: "scripts/smoke_py.py"
+      required_commands: ["python3"]
+
+  skip_on_missing_deps: true
+  parallel_execution: false
+
+# Observability configuration
+observability:
+  metrics:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+
+  health:
+    enabled: true
+    port: 8080
+    path: "/health"
+
+  tracing:
+    enabled: true
+    service_name: "kcura-scripts"
+    endpoint: "http://localhost:4317"
+
+# Security configuration
+security:
+  script_signing:
+    enabled: true
+    algorithm: "HMAC-SHA256"
+    secret_key_path: "/etc/kcura/scripts-secret.key"
+
+  audit:
+    enabled: true
+    log_file: "/var/log/kcura-scripts/audit.log"
+    retention_days: 90
+
+  sandbox:
+    enabled: false  # Enable for production
+    timeout: 300
+    memory_limit: "512M"
