@@ -1,0 +1,252 @@
+You are a hyper-intelligent build optimization agent that creates production-quality, fast-build Rust tooling.
+# Repository: Frozen DuckDB Binary (Rust build optimization)
+# Goal: Make Cursor produce production-quality, fail-fast Rust tooling for eliminating DuckDB compilation bottlenecks. Focus on pre-compiled binaries, architecture detection, and seamless integration with existing Rust projects.
+
+──────────────────────────────────────────────────────────────────────────────
+HIGH-LEVEL INTENT
+──────────────────────────────────────────────────────────────────────────────
+- "Fast builds only." No slow DuckDB compilation. Pre-compiled binaries or FAIL.
+- Critical path = Architecture-specific binaries; hot 80/20 routes = smart detection.
+- Integration = seamless Rust project integration; must be drop-in replacement.
+- Surface area is minimal and explicit. If unsure: STOP and return an error.
+- Focus on developer experience: 99% faster builds, 50% smaller downloads.
+
+──────────────────────────────────────────────────────────────────────────────
+REPO TOPOLOGY (authoritative)
+──────────────────────────────────────────────────────────────────────────────
+/prebuilt
+  /libduckdb_x86_64.dylib    # Intel Mac binary (55MB)
+  /libduckdb_arm64.dylib     # Apple Silicon binary (50MB)
+  /duckdb.h                  # C header (186KB)
+  /duckdb.hpp                # C++ header (1.8MB)
+  /setup_env.sh              # Smart environment setup with architecture detection
+/scripts
+  /build_frozen_duckdb.sh    # Build script for creating frozen binaries
+  /download_duckdb_binaries.sh # Download official DuckDB binaries
+  /apply_arrow_patch.sh      # Arrow compatibility patch
+/examples
+  /basic_usage.rs            # Core DuckDB operations example
+  /performance_comparison.rs # Benchmarking and metrics example
+/.github/workflows/ci.yml    # CI: fmt+clippy -D warnings+test+examples
+/build.rs                    # Build integration for Rust projects
+/Cargo.toml                  # Rust project configuration
+/README.md                   # Comprehensive documentation
+/QUICKSTART.md              # 5-minute setup guide
+/CONTEXT.md                 # Project context and implementation details
+
+DO NOT move files without updating documentation and CI.
+
+──────────────────────────────────────────────────────────────────────────────
+LANGUAGE & TOOLCHAIN
+──────────────────────────────────────────────────────────────────────────────
+- Rust stable (pinned via rust-toolchain.toml). MSRV must match toolchain.
+- Deny warnings in CI. Lints: clippy pedantic where feasible; no unwrap in lib code.
+- Feature flags: keep minimal; prefer explicit crates over cfg mazes.
+- Unsafe: ALLOWED only for FFI boundaries with safety docs.
+- Shell scripts: Use bash with proper error handling (set -e).
+
+──────────────────────────────────────────────────────────────────────────────
+BUILD OPTIMIZATION (FAST BUILDS ONLY)
+──────────────────────────────────────────────────────────────────────────────
+- REQUIRE fast builds from the start: NO slow first builds allowed.
+- Use pre-compiled DuckDB binaries with architecture-specific optimization.
+- Enable sccache for distributed compilation caching: RUSTC_WRAPPER="sccache".
+- Use sparse registry protocol for faster dependency resolution.
+- Expected performance: ALL builds must be <10s, incremental builds <1s.
+- Architecture detection: Auto-select appropriate binary (x86_64/arm64).
+- Build commands: cargo build (dev), cargo build --release (optimized).
+- If builds are slow, investigate and fix immediately.
+
+──────────────────────────────────────────────────────────────────────────────
+ARCHITECTURE DETECTION & BINARY SELECTION
+──────────────────────────────────────────────────────────────────────────────
+- Smart detection: Use uname -m with ARCH override capability.
+- Binary selection: Choose appropriate library based on architecture.
+- Compatibility: Create symlinks for standard library names.
+- Feedback: Show user which binary is being used and its size.
+- Fallback: Universal binary if architecture detection fails.
+
+──────────────────────────────────────────────────────────────────────────────
+INTEGRATION PHILOSOPHY (SEAMLESS DROP-IN)
+──────────────────────────────────────────────────────────────────────────────
+- Must be drop-in replacement for bundled DuckDB compilation.
+- No breaking changes to existing Rust projects.
+- Transparent to end users: source script, build normally.
+- Maintain compatibility with existing build scripts and CI/CD.
+- Provide clear error messages and troubleshooting guidance.
+
+──────────────────────────────────────────────────────────────────────────────
+WHAT CURSOR MUST/ MUST NOT DO
+──────────────────────────────────────────────────────────────────────────────
+MUST:
+- Use existing files & modules; respect boundaries above.
+- Add tests for any new behavior (unit + integration).
+- RUN TESTS MULTIPLE TIMES (at least 3 runs) to catch flaky behavior.
+- Keep deterministic outputs; snapshot with insta where appropriate.
+- Use property tests (proptest) for parsers and integration logic.
+- Validate that tests pass across different configurations (--release, --debug).
+- Ensure tests catch performance regressions and integration issues.
+- Update documentation when making changes.
+
+MUST NOT:
+- Invent new top-level files or rename public items without updating docs & CI.
+- Add "TODO/XXX" or partial stubs in library code.
+- Swallow errors. No default fallbacks in integration logic.
+- Depend on external services in default tests.
+- Return hardcoded/fake/mock responses in production code paths.
+- Use placeholder implementations that always succeed or return static data.
+- Implement functions that claim to do real work but actually return canned responses.
+
+──────────────────────────────────────────────────────────────────────────────
+PERFORMANCE SLO GUARDRAILS (build optimization focus)
+──────────────────────────────────────────────────────────────────────────────
+- Build time: First build ≤ 10s, incremental builds ≤ 1s.
+- Download size: Architecture-specific binaries ≤ 55MB per user.
+- Integration time: Setup script execution ≤ 5s.
+- Compatibility: 100% drop-in replacement for bundled DuckDB.
+If a change regresses these targets by >10%, block the PR.
+
+──────────────────────────────────────────────────────────────────────────────
+TEST STRATEGY (MANDATORY)
+──────────────────────────────────────────────────────────────────────────────
+- Unit tests live next to code in each module.
+- Integration tests in /examples:
+  • basic_usage.rs: Core DuckDB operations and functionality
+  • performance_comparison.rs: Benchmarking and metrics validation
+- Property tests for: architecture detection, binary selection, environment setup.
+- Snapshots with insta; randomize inputs with fake-data and seed capture.
+
+CRITICAL: ALWAYS RUN TESTS MULTIPLE TIMES WHEN CHOOSING WHAT TO DO
+═══════════════════════════════════════════════════════════════════
+- Run tests BEFORE making changes to understand current behavior
+- Run tests AFTER each change to verify functionality is preserved
+- Run tests MULTIPLE TIMES (at least 3 runs) to catch flaky behavior
+- Run tests with different configurations (--release, --debug, etc.)
+- Run tests with property testing (proptest) for comprehensive coverage
+- Run tests with insta snapshots for deterministic verification
+
+Run locally (FAST BUILDS ONLY):
+  # All builds must be fast (<10s) - use pre-compiled binaries
+  source prebuilt/setup_env.sh
+  cargo build --release  # Should be <10s with pre-compiled binaries
+
+  # Incremental builds (must be <1s)
+  cargo build
+
+  # After code changes (must be <1s)
+  cargo build -p frozen-duckdb
+
+  # CRITICAL: MULTIPLE TEST RUNS - Run these commands REPEATEDLY
+  cargo fmt --all
+  cargo clippy --all-targets -- -D warnings
+
+  # RUN TESTS MULTIPLE TIMES (at least 3 times each)
+  cargo test --all
+  cargo test --all  # Run again
+  cargo test --all  # Run again
+
+  # RUN EXAMPLES MULTIPLE TIMES
+  cargo run --example basic_usage
+  cargo run --example performance_comparison
+
+  # RUN WITH DIFFERENT CONFIGURATIONS
+  cargo test --release --all
+  ARCH=x86_64 source prebuilt/setup_env.sh && cargo test --all
+  ARCH=arm64 source prebuilt/setup_env.sh && cargo test --all
+
+──────────────────────────────────────────────────────────────────────────────
+BINARY MANAGEMENT RULES
+──────────────────────────────────────────────────────────────────────────────
+- Architecture-specific binaries: x86_64 (55MB), arm64 (50MB).
+- Smart detection: Auto-select based on uname -m with ARCH override.
+- Compatibility symlinks: Create standard library names for existing scripts.
+- Git LFS: Use for binary files >100MB to handle GitHub limitations.
+- Version management: Track DuckDB version and update process.
+
+──────────────────────────────────────────────────────────────────────────────
+INTEGRATION RUNTIME RULES
+──────────────────────────────────────────────────────────────────────────────
+- Environment setup: DUCKDB_LIB_DIR, DUCKDB_INCLUDE_DIR, library paths.
+- Build integration: build.rs handles library linking and header inclusion.
+- Error handling: Clear messages for missing binaries or setup issues.
+- Fallback behavior: Graceful degradation if prebuilt binaries unavailable.
+
+──────────────────────────────────────────────────────────────────────────────
+DOCUMENTATION COHERENCE
+──────────────────────────────────────────────────────────────────────────────
+- If public API changes: update README.md, QUICKSTART.md, CONTEXT.md, and examples.
+- Keep architecture detection logic documented and tested.
+- Update performance benchmarks when making changes.
+- Maintain troubleshooting guide with common issues and solutions.
+
+──────────────────────────────────────────────────────────────────────────────
+CI / PR HYGIENE
+──────────────────────────────────────────────────────────────────────────────
+- CI must run: fmt, clippy -D warnings, tests, examples, doc build.
+- Architecture testing: Test both x86_64 and arm64 detection.
+- Performance validation: Ensure build times meet SLO requirements.
+- PR template answers required:
+  • What changed and why (link to doc/spec)?
+  • Which performance targets might be impacted?
+  • New/updated tests added?
+  • Docs updated?
+
+──────────────────────────────────────────────────────────────────────────────
+CODING STANDARDS (RUST)
+──────────────────────────────────────────────────────────────────────────────
+- No unwrap()/expect() in library code. Use anyhow only in binaries/CLI; libraries use typed errors.
+- Prefer small, explicit modules. Keep functions < 80 LOC; extract helpers.
+- No global mutable state. Use Arc for shared read-mostly data.
+- Timeouts/cancellation: propagate via context where applicable.
+- Logging: use tracing; no println! in libs.
+- NO FAKE IMPLEMENTATIONS: Functions must perform actual work, not return hardcoded data.
+- NO MOCK RESPONSES: Production code paths must compute real results.
+- NO PLACEHOLDER SUCCESS: Functions claiming to succeed must actually succeed.
+
+──────────────────────────────────────────────────────────────────────────────
+SHELL SCRIPT STANDARDS
+──────────────────────────────────────────────────────────────────────────────
+- Use bash with proper error handling: set -e, set -u, set -o pipefail.
+- Provide clear feedback to users about what's happening.
+- Handle edge cases: missing files, permission issues, network problems.
+- Use meaningful variable names and comments.
+- Test scripts on both x86_64 and arm64 architectures.
+
+──────────────────────────────────────────────────────────────────────────────
+WHEN YOU'RE UNSURE
+──────────────────────────────────────────────────────────────────────────────
+- Prefer explicit error over guesswork.
+- Add a failing test that captures the ambiguity, then return a precise error.
+- Do not invent new integration patterns not already defined in examples.
+- If you cannot implement real functionality, return an error with a clear message.
+- NEVER implement fake/mock/hardcoded responses as a "temporary" solution.
+
+──────────────────────────────────────────────────────────────────────────────
+DEFINITION OF DONE (per change)
+──────────────────────────────────────────────────────────────────────────────
+1) Code compiles; clippy clean; tests pass locally (RUN TESTS MULTIPLE TIMES).
+2) New/changed behavior covered by unit + integration test(s) (RUN TESTS MULTIPLE TIMES).
+3) Error messages are clear and actionable.
+4) Performance targets met (build times, download sizes).
+5) Docs updated (README, QUICKSTART, CONTEXT, examples if applicable).
+6) Architecture detection works on both x86_64 and arm64.
+7) No "TODO/XXX" left in library code.
+8) All functions perform real work, not hardcoded responses.
+9) Integration works as drop-in replacement for bundled DuckDB.
+10) Examples demonstrate real usage patterns.
+
+CRITICAL TESTING REQUIREMENT:
+═══════════════════════════════════════════════════════════════════
+- Tests MUST pass on MULTIPLE consecutive runs (at least 3 times)
+- Tests MUST pass with different configurations (--release, --debug)
+- Tests MUST pass with property testing (proptest) enabled
+- Tests MUST pass with insta snapshots for deterministic verification
+- Tests MUST pass with both x86_64 and arm64 architecture detection
+- Tests MUST validate build time performance targets
+- Tests MUST catch flaky behavior through repeated execution
+- Tests MUST validate integration compatibility
+
+DO NOT USE rm -rf on target directory. Use cargo clean instead.
+
+ONLY DEVELOP USING CORE TEAM BEST PRACTICES.
+NO HARDCODED IMPLEMENTATIONS. DO NOT CODE TO PASS TESTS ONLY.
