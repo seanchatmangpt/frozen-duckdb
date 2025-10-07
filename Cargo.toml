@@ -8,15 +8,7 @@ repository = "https://github.com/seanchatmangpt/frozen-duckdb"
 homepage = "https://github.com/seanchatmangpt/frozen-duckdb"
 documentation = "https://github.com/seanchatmangpt/frozen-duckdb"
 readme = "README.md"
-keywords = [
-  "duckdb",
-  "database",
-  "analytics",
-  "performance",
-  "build-optimization",
-  "drop-in-replacement",
-  "fast-builds",
-]
+keywords = ["duckdb", "database", "ffi"]
 categories = ["database", "development-tools", "performance"]
 
 [[bin]]
