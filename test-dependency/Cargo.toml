@@ -1,0 +1,11 @@
+[package]
+name = "test-dependency"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+frozen-duckdb = { path = "../" }
+duckdb = "1.4.0"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3"

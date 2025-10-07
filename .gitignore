@@ -50,3 +50,4 @@ cobertura.xml
 # Backup files
 *.bak
 *.backup
+.lh/

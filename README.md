@@ -21,6 +21,7 @@ This project provides architecture-specific DuckDB binaries that eliminate the s
 - **Smart environment setup** with automatic architecture detection
 - **Build integration** with Rust projects
 - **Arrow compatibility patch** for version conflicts
+- **CLI tool** for dataset management and TPC-H benchmark data generation
 
 ## 🛠️ Installation
 
@@ -113,6 +114,30 @@ cargo build -p your-duckdb-crate
 # Run tests
 cargo test -p your-duckdb-crate
 ```
+
+### CLI Dataset Management
+
+The frozen-duckdb CLI provides utilities for managing test datasets:
+
+```bash
+# Generate TPC-H benchmark data (industry standard)
+cargo run -- download --dataset tpch --output-dir datasets
+
+# Generate Chinook sample data
+cargo run -- download --dataset chinook --output-dir datasets
+
+# Convert between formats
+cargo run -- convert --input data.csv --output data.parquet --input-format csv --output-format parquet
+
+# Show system information
+cargo run -- info
+```
+
+**TPC-H Dataset Features:**
+- **8 realistic tables**: customer, lineitem, nation, orders, part, partsupp, region, supplier
+- **Scalable data**: From tiny (SF 0.01) to massive datasets (SF 1000+)
+- **Industry standard**: Used for database benchmarking worldwide
+- **Fast generation**: SF 0.01 generates ~86k rows in <1 second
 
 ### Architecture Detection
 

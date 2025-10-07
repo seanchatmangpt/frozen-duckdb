@@ -1,0 +1,52 @@
+name: Test Minimal
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Basic Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check Rust version
+        run: rustc --version
+
+      - name: Check Cargo version
+        run: cargo --version
+
+      - name: List files
+        run: ls -la
+
+      - name: Check if prebuilt directory exists
+        run: |
+          if [ -d "prebuilt" ]; then
+            echo "✅ prebuilt directory exists"
+            ls -la prebuilt/
+          else
+            echo "❌ prebuilt directory not found"
+            exit 1
+          fi
+
+      - name: Test environment setup
+        run: |
+          if [ -f "prebuilt/setup_env.sh" ]; then
+            echo "✅ setup_env.sh exists"
+            source prebuilt/setup_env.sh
+            echo "DUCKDB_LIB_DIR: $DUCKDB_LIB_DIR"
+            echo "DUCKDB_INCLUDE_DIR: $DUCKDB_INCLUDE_DIR"
+          else
+            echo "❌ setup_env.sh not found"
+            exit 1
+          fi
+
+      - name: Build project
+        run: cargo build --verbose

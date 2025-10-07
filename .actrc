@@ -1,0 +1,5 @@
+# Act configuration for frozen-duckdb
+--container-architecture linux/amd64
+--platform ubuntu-latest=catthehacker/ubuntu:act-latest
+--pull=false
+--verbose

@@ -31,6 +31,9 @@ cargo run --example basic_usage
 
 # Run performance comparison
 cargo run --example performance_comparison
+
+# Test TPC-H data generation
+cargo run -- download --dataset tpch --output-dir test_data
 ```
 
 ### 4. Use in Your Project

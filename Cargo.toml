@@ -17,28 +17,130 @@ keywords = [
 ]
 categories = ["database", "development-tools", "performance"]
 
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+duckdb = { version = "1.4.0", default-features = false, features = [
+  "json",
+  "parquet",
+  "appender-arrow",
+] }
+tempfile = "3"
+reqwest = { version = "0.11", features = ["blocking"] }
+
 [workspace]
-members = []
+members = ["test-dependency"]
 
 [workspace.dependencies]
 # Core dependencies for examples and testing
-anyhow = "1.0"
-thiserror = "1.0"
-tokio = { version = "1.0", features = ["sync", "time"] }
+anyhow = "1"
+thiserror = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 tracing = "0.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+parking_lot = "0.12"
+futures = "0.3"
+async-trait = "0.1"
+fastrand = "2"
+tempfile = "3"
+proptest = "1"
+insta = "1"
+testcontainers = "0.15"
+criterion = { version = "0.5", features = ["html_reports"] }
+fake = { version = "2", features = ["derive"] }
+rand = "0.8"
+uuid = "1.0"
+time = "0.3"
+regex = "1.0"
+lazy_static = "1.4"
+itertools = "0.12"
+percent-encoding = "2.0"
+rayon = "1.0"
 
-# DuckDB with prebuilt binary support
-duckdb = { version = "1.4.0", default-features = false }
+# DuckDB with prebuilt binary support - include all features for testing
+duckdb = { version = "1.4.0", default-features = false, features = [
+  "json",
+  "parquet",
+  "appender-arrow",
+] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+unimplemented = "deny"
+todo = "warn"
+unreachable = "deny"
+exit = "deny"
+get_unwrap = "deny"
+index_refutable_slice = "deny"
+string_slice = "deny"
+string_add_assign = "deny"
+str_to_string = "warn"
+string_to_string = "warn"
+if_not_else = "warn"
+needless_borrow = "warn"
+redundant_clone = "warn"
+unnecessary_wraps = "warn"
+unused_async = "warn"
+unused_self = "warn"
+use_self = "warn"
+wrong_self_convention = "warn"
+single_char_lifetime_names = "warn"
+upper_case_acronyms = "warn"
+non_ascii_literal = "warn"
+unseparated_literal_suffix = "warn"
+unclear_operation_precedence = "warn"
+cognitive_complexity = "warn"
+too_many_lines = "warn"
+too_many_arguments = "warn"
+type_complexity = "warn"
+large_types_passed_by_value = "warn"
+large_stack_arrays = "warn"
+large_const_arrays = "warn"
 
 [dev-dependencies]
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
+parking_lot = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+fastrand = { workspace = true }
+tempfile = { workspace = true }
+proptest = { workspace = true }
+insta = { workspace = true }
+testcontainers = { workspace = true }
+criterion = { workspace = true }
+fake = { workspace = true }
+rand = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+time = { workspace = true }
+regex = { workspace = true }
+lazy_static = { workspace = true }
+itertools = { workspace = true }
+percent-encoding = { workspace = true }
+rayon = { workspace = true }
 duckdb = { workspace = true }
 
 [[example]]
