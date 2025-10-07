@@ -510,8 +510,8 @@ impl FlockManager {
         &self,
         criteria: &str,
         input_file: &str,
-        _model: &str,
-        _positive_only: bool,
+        model: &str,
+        positive_only: bool,
     ) -> Result<Vec<(String, bool)>> {
         info!("🎯 Filtering data with criteria: {}", criteria);
 
@@ -580,7 +580,7 @@ impl FlockManager {
         texts: Vec<String>,
         strategy: &str,
         max_length: usize,
-        _model: &str,
+        model: &str,
     ) -> Result<String> {
         info!("📝 Generating summary using {} strategy", strategy);
 

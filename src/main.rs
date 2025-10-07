@@ -338,7 +338,7 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             };
 
-            let results = flock_manager.llm_filter(&filter_criteria, &input, &model, false)
+            let results = flock_manager.llm_filter(&filter_criteria, &input, &model, true)
                 .expect("LLM filtering not implemented yet");
 
             if let Some(output_file) = output {
