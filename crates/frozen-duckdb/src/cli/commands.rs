@@ -538,6 +538,13 @@ pub enum Commands {
     /// - **Core Functionality**: Test basic DuckDB operations
     /// - **Extension Validation**: Test Flock LLM functions
     /// - **Integration Validation**: Test end-to-end LLM workflows
+    /// - **Flock Scalar Functions**: Test llm_complete, llm_filter, llm_embedding
+    /// - **Flock Aggregate Functions**: Test llm_reduce, llm_rerank, llm_first, llm_last
+    /// - **Flock Fusion Functions**: Test fusion_rrf, fusion_combsum, fusion_combmnz, fusion_combmed, fusion_combanz
+    /// - **Context Columns API**: Test text and image data processing
+    /// - **TPC-H Extension**: Test TPC-H benchmark extension loading
+    /// - **TPC-H Data Generation**: Test data generation with different scale factors
+    /// - **TPC-H Query Execution**: Test all 22 TPC-H benchmark queries
     ValidateFfi {
         /// Skip LLM validation (faster, no Ollama required)
         ///

@@ -132,13 +132,9 @@ fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
         .context("Failed to get current directory")?;
 
     let prebuilt_dir = current_dir.join("prebuilt");
-    let headers_dest = cache_path.parent().unwrap().join("duckdb");
+    let headers_dest = cache_path.parent().unwrap();
 
-    // Create duckdb directory in cache (expected by wrapper.h)
-    fs::create_dir_all(&headers_dest)
-        .context("Failed to create duckdb directory in cache")?;
-
-    // Copy header files from prebuilt directory to the duckdb subdirectory
+    // Copy header files directly to cache directory (expected by bindgen)
     let header_files = ["duckdb.h", "duckdb.hpp"];
     for header_name in &header_files {
         let src_path = prebuilt_dir.join(header_name);

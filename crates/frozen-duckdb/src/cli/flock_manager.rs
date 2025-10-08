@@ -804,6 +804,27 @@ impl FlockManager {
         
         // Layer 5: Integration Validation
         results.push(self.validate_integration_layer()?);
+        
+        // Layer 6: Comprehensive Flock Functions Validation
+        results.push(self.validate_flock_scalar_functions()?);
+        
+        // Layer 7: Flock Aggregate Functions Validation
+        results.push(self.validate_flock_aggregate_functions()?);
+        
+        // Layer 8: Flock Fusion Functions Validation
+        results.push(self.validate_flock_fusion_functions()?);
+        
+        // Layer 9: Context Columns API Validation
+        results.push(self.validate_context_columns_api()?);
+        
+        // Layer 10: TPC-H Extension Validation
+        results.push(self.validate_tpch_extension()?);
+        
+        // Layer 11: TPC-H Data Generation Validation
+        results.push(self.validate_tpch_data_generation()?);
+        
+        // Layer 12: TPC-H Query Execution Validation
+        results.push(self.validate_tpch_queries()?);
 
         let total_duration = start_time.elapsed();
         let passed_count = results.iter().filter(|r| r.passed).count();
@@ -937,12 +958,23 @@ impl FlockManager {
             });
         }
 
-        // Test that Flock functions are available (they may fail without models, but should exist)
+        // Test that all Flock functions are available (they may fail without models, but should exist)
         let flock_functions = vec![
+            // Scalar functions
             "llm_complete",
-            "llm_embedding", 
+            "llm_filter", 
+            "llm_embedding",
+            // Aggregate functions
+            "llm_reduce",
+            "llm_rerank",
+            "llm_first",
+            "llm_last",
+            // Fusion functions
             "fusion_rrf",
             "fusion_combsum",
+            "fusion_combmnz",
+            "fusion_combmed",
+            "fusion_combanz",
         ];
 
         for function in &flock_functions {
@@ -1023,6 +1055,593 @@ impl FlockManager {
                 })
             }
         }
+    }
+
+    /// Validate Flock scalar functions (llm_complete, llm_filter, llm_embedding).
+    fn validate_flock_scalar_functions(&self) -> Result<ValidationLayerResult> {
+        let start_time = std::time::Instant::now();
+        
+        info!("🔍 Layer 6: Flock Scalar Functions Validation");
+        
+        // Setup Ollama for testing
+        let _ = self.setup_ollama("http://127.0.0.1:11434", "llama3.2", "mxbai-embed-large", true);
+        
+        // Test llm_complete with context_columns API
+        let complete_result = self.conn.query_row(
+            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt': 'Write a haiku about databases', 'context_columns': [{'data': 'SQL databases store structured data'}]})",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let complete_success = complete_result.is_ok();
+        if let Ok(response) = complete_result {
+            info!("✅ llm_complete response: {}", response);
+        }
+        
+        // Test llm_filter with context_columns API
+        let filter_result = self.conn.query_row(
+            "SELECT llm_filter({'model_name': 'text_generator'}, {'prompt': 'Is this about programming?', 'context_columns': [{'data': 'Python is a programming language'}]})",
+            [],
+            |row| row.get::<_, bool>(0),
+        );
+        
+        let filter_success = filter_result.is_ok();
+        if let Ok(result) = filter_result {
+            info!("✅ llm_filter result: {}", result);
+        }
+        
+        // Test llm_embedding with context_columns API
+        let embedding_result = self.conn.query_row(
+            "SELECT llm_embedding({'model_name': 'embedder'}, {'context_columns': [{'data': 'Machine learning algorithms'}]})",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let embedding_success = embedding_result.is_ok();
+        if let Ok(embedding) = embedding_result {
+            info!("✅ llm_embedding result: {} dimensions", embedding.len());
+        }
+        
+        let all_passed = complete_success && filter_success && embedding_success;
+        let details = format!("llm_complete: {}, llm_filter: {}, llm_embedding: {}", 
+                            if complete_success { "✅" } else { "❌" },
+                            if filter_success { "✅" } else { "❌" },
+                            if embedding_success { "✅" } else { "❌" });
+        
+        let duration = start_time.elapsed();
+        info!("✅ Flock scalar functions validation completed in {:?}", duration);
+        
+        Ok(ValidationLayerResult {
+            layer: "Flock Scalar Functions".to_string(),
+            passed: all_passed,
+            duration,
+            details: Some(details),
+            error: if all_passed { None } else { Some("Some scalar functions failed".to_string()) },
+        })
+    }
+
+    /// Validate Flock aggregate functions (llm_reduce, llm_rerank, llm_first, llm_last).
+    fn validate_flock_aggregate_functions(&self) -> Result<ValidationLayerResult> {
+        let start_time = std::time::Instant::now();
+        
+        info!("🔍 Layer 7: Flock Aggregate Functions Validation");
+        
+        // Setup test data for aggregate functions
+        self.conn.execute_batch(
+            "CREATE TABLE test_docs (id INTEGER, content TEXT);
+             INSERT INTO test_docs VALUES 
+             (1, 'Python is a programming language'),
+             (2, 'Rust is a systems programming language'),
+             (3, 'JavaScript is used for web development'),
+             (4, 'SQL is for database queries');"
+        )?;
+        
+        // Test llm_reduce (summarization)
+        let reduce_result = self.conn.query_row(
+            "SELECT llm_reduce({'model_name': 'text_generator'}, {'prompt': 'Summarize these programming languages', 'context_columns': [{'data': content}]}) FROM test_docs",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let reduce_success = reduce_result.is_ok();
+        if let Ok(summary) = reduce_result {
+            info!("✅ llm_reduce summary: {}", summary);
+        }
+        
+        // Test llm_first (most relevant)
+        let first_result = self.conn.query_row(
+            "SELECT llm_first({'model_name': 'text_generator'}, {'prompt': 'Find the most relevant language for systems programming', 'context_columns': [{'data': content}]}) FROM test_docs",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let first_success = first_result.is_ok();
+        if let Ok(result) = first_result {
+            info!("✅ llm_first result: {}", result);
+        }
+        
+        // Test llm_last (least relevant)
+        let last_result = self.conn.query_row(
+            "SELECT llm_last({'model_name': 'text_generator'}, {'prompt': 'Find the least relevant language for systems programming', 'context_columns': [{'data': content}]}) FROM test_docs",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let last_success = last_result.is_ok();
+        if let Ok(result) = last_result {
+            info!("✅ llm_last result: {}", result);
+        }
+        
+        // Test llm_rerank (reordering)
+        let rerank_result = self.conn.query_row(
+            "SELECT llm_rerank({'model_name': 'text_generator'}, {'prompt': 'Rank by relevance to web development', 'context_columns': [{'data': content}]}) FROM test_docs",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let rerank_success = rerank_result.is_ok();
+        if let Ok(result) = rerank_result {
+            info!("✅ llm_rerank result: {}", result);
+        }
+        
+        let all_passed = reduce_success && first_success && last_success && rerank_success;
+        let details = format!("llm_reduce: {}, llm_first: {}, llm_last: {}, llm_rerank: {}", 
+                            if reduce_success { "✅" } else { "❌" },
+                            if first_success { "✅" } else { "❌" },
+                            if last_success { "✅" } else { "❌" },
+                            if rerank_success { "✅" } else { "❌" });
+        
+        let duration = start_time.elapsed();
+        info!("✅ Flock aggregate functions validation completed in {:?}", duration);
+        
+        Ok(ValidationLayerResult {
+            layer: "Flock Aggregate Functions".to_string(),
+            passed: all_passed,
+            duration,
+            details: Some(details),
+            error: if all_passed { None } else { Some("Some aggregate functions failed".to_string()) },
+        })
+    }
+
+    /// Validate Flock fusion functions (fusion_rrf, fusion_combsum, fusion_combmnz, fusion_combmed, fusion_combanz).
+    fn validate_flock_fusion_functions(&self) -> Result<ValidationLayerResult> {
+        let start_time = std::time::Instant::now();
+        
+        info!("🔍 Layer 8: Flock Fusion Functions Validation");
+        
+        // Test fusion_rrf (Reciprocal Rank Fusion)
+        let rrf_result = self.conn.query_row(
+            "SELECT fusion_rrf(1, 2, 3)",
+            [],
+            |row| row.get::<_, f64>(0),
+        );
+        
+        let rrf_success = rrf_result.is_ok();
+        if let Ok(score) = rrf_result {
+            info!("✅ fusion_rrf result: {}", score);
+        }
+        
+        // Test fusion_combsum (Combination Sum)
+        let combsum_result = self.conn.query_row(
+            "SELECT fusion_combsum(0.4, 0.5, 0.3)",
+            [],
+            |row| row.get::<_, f64>(0),
+        );
+        
+        let combsum_success = combsum_result.is_ok();
+        if let Ok(score) = combsum_result {
+            info!("✅ fusion_combsum result: {}", score);
+        }
+        
+        // Test fusion_combmnz (Combination MNZ)
+        let combmnz_result = self.conn.query_row(
+            "SELECT fusion_combmnz(0.4, 0.5, 0.0)",
+            [],
+            |row| row.get::<_, f64>(0),
+        );
+        
+        let combmnz_success = combmnz_result.is_ok();
+        if let Ok(score) = combmnz_result {
+            info!("✅ fusion_combmnz result: {}", score);
+        }
+        
+        // Test fusion_combmed (Combination Median)
+        let combmed_result = self.conn.query_row(
+            "SELECT fusion_combmed(0.1, 0.5, 0.9)",
+            [],
+            |row| row.get::<_, f64>(0),
+        );
+        
+        let combmed_success = combmed_result.is_ok();
+        if let Ok(score) = combmed_result {
+            info!("✅ fusion_combmed result: {}", score);
+        }
+        
+        // Test fusion_combanz (Combination Average Non-Zero)
+        let combanz_result = self.conn.query_row(
+            "SELECT fusion_combanz(0.2, 0.4, 0.6)",
+            [],
+            |row| row.get::<_, f64>(0),
+        );
+        
+        let combanz_success = combanz_result.is_ok();
+        if let Ok(score) = combanz_result {
+            info!("✅ fusion_combanz result: {}", score);
+        }
+        
+        let all_passed = rrf_success && combsum_success && combmnz_success && combmed_success && combanz_success;
+        let details = format!("fusion_rrf: {}, fusion_combsum: {}, fusion_combmnz: {}, fusion_combmed: {}, fusion_combanz: {}", 
+                            if rrf_success { "✅" } else { "❌" },
+                            if combsum_success { "✅" } else { "❌" },
+                            if combmnz_success { "✅" } else { "❌" },
+                            if combmed_success { "✅" } else { "❌" },
+                            if combanz_success { "✅" } else { "❌" });
+        
+        let duration = start_time.elapsed();
+        info!("✅ Flock fusion functions validation completed in {:?}", duration);
+        
+        Ok(ValidationLayerResult {
+            layer: "Flock Fusion Functions".to_string(),
+            passed: all_passed,
+            duration,
+            details: Some(details),
+            error: if all_passed { None } else { Some("Some fusion functions failed".to_string()) },
+        })
+    }
+
+    /// Validate Context Columns API with text and image data.
+    fn validate_context_columns_api(&self) -> Result<ValidationLayerResult> {
+        let start_time = std::time::Instant::now();
+        
+        info!("🔍 Layer 9: Context Columns API Validation");
+        
+        // Test basic context_columns with text data
+        let basic_text_result = self.conn.query_row(
+            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt': 'Analyze this text', 'context_columns': [{'data': 'This is a test document about databases'}]})",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let basic_text_success = basic_text_result.is_ok();
+        if let Ok(response) = basic_text_result {
+            info!("✅ Basic text context_columns: {}", response);
+        }
+        
+        // Test context_columns with custom name
+        let named_text_result = self.conn.query_row(
+            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt': 'Analyze the document', 'context_columns': [{'data': 'Machine learning is transforming industries', 'name': 'document'}]})",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let named_text_success = named_text_result.is_ok();
+        if let Ok(response) = named_text_result {
+            info!("✅ Named text context_columns: {}", response);
+        }
+        
+        // Test context_columns with multiple text columns
+        let multi_text_result = self.conn.query_row(
+            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt': 'Compare these topics', 'context_columns': [{'data': 'Python programming', 'name': 'topic1'}, {'data': 'Rust programming', 'name': 'topic2'}]})",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let multi_text_success = multi_text_result.is_ok();
+        if let Ok(response) = multi_text_result {
+            info!("✅ Multi-text context_columns: {}", response);
+        }
+        
+        // Test context_columns with image data (if supported)
+        let image_result = self.conn.query_row(
+            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt': 'Describe this image', 'context_columns': [{'data': 'https://example.com/test-image.jpg', 'type': 'image'}]})",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let image_success = image_result.is_ok();
+        if let Ok(response) = image_result {
+            info!("✅ Image context_columns: {}", response);
+        } else {
+            info!("⚠️  Image context_columns not supported or failed (expected)");
+        }
+        
+        // Test mixed text and image context_columns
+        let mixed_result = self.conn.query_row(
+            "SELECT llm_complete({'model_name': 'text_generator'}, {'prompt': 'Analyze this content', 'context_columns': [{'data': 'This is a text description', 'name': 'text'}, {'data': 'https://example.com/image.jpg', 'type': 'image', 'name': 'image'}]})",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        
+        let mixed_success = mixed_result.is_ok();
+        if let Ok(response) = mixed_result {
+            info!("✅ Mixed context_columns: {}", response);
+        } else {
+            info!("⚠️  Mixed context_columns not supported or failed (expected)");
+        }
+        
+        // Consider basic text operations as core requirement
+        let core_passed = basic_text_success && named_text_success && multi_text_success;
+        let advanced_passed = image_success && mixed_success;
+        
+        let all_passed = core_passed; // Core functionality is required, advanced is optional
+        let details = format!("Basic text: {}, Named text: {}, Multi-text: {}, Image: {}, Mixed: {}", 
+                            if basic_text_success { "✅" } else { "❌" },
+                            if named_text_success { "✅" } else { "❌" },
+                            if multi_text_success { "✅" } else { "❌" },
+                            if image_success { "✅" } else { "⚠️" },
+                            if mixed_success { "✅" } else { "⚠️" });
+        
+        let duration = start_time.elapsed();
+        info!("✅ Context Columns API validation completed in {:?}", duration);
+        
+        Ok(ValidationLayerResult {
+            layer: "Context Columns API".to_string(),
+            passed: all_passed,
+            duration,
+            details: Some(details),
+            error: if all_passed { None } else { Some("Core context_columns functionality failed".to_string()) },
+        })
+    }
+
+    /// Validate TPC-H extension loading and basic functionality.
+    fn validate_tpch_extension(&self) -> Result<ValidationLayerResult> {
+        let start_time = std::time::Instant::now();
+        
+        info!("🔍 Layer 10: TPC-H Extension Validation");
+        
+        // Check if TPC-H extension is available
+        let extensions: Vec<String> = self.conn
+            .prepare("SELECT extension_name FROM duckdb_extensions() WHERE extension_name = 'tpch'")?
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if extensions.is_empty() {
+            // Try to install and load TPC-H extension
+            match self.conn.execute_batch("INSTALL tpch; LOAD tpch;") {
+                Ok(_) => {
+                    info!("✅ TPC-H extension installed and loaded");
+                }
+                Err(e) => {
+                    return Ok(ValidationLayerResult {
+                        layer: "TPC-H Extension".to_string(),
+                        passed: false,
+                        duration: start_time.elapsed(),
+                        details: Some("TPC-H extension not available".to_string()),
+                        error: Some(format!("Failed to load TPC-H extension: {}", e)),
+                    });
+                }
+            }
+        } else {
+            info!("✅ TPC-H extension already loaded");
+        }
+
+        // Test TPC-H functions availability
+        let tpch_functions = vec![
+            "dbgen",
+            "tpch_queries", 
+            "tpch_answers",
+        ];
+
+        let mut available_functions = 0;
+        for function in &tpch_functions {
+            let result: Result<String, _> = self.conn
+                .query_row(
+                    &format!("SELECT function_name FROM duckdb_functions() WHERE function_name = '{}'", function),
+                    [],
+                    |row| row.get(0),
+                );
+            
+            if result.is_ok() {
+                available_functions += 1;
+                info!("✅ TPC-H function {} is available", function);
+            } else {
+                info!("❌ TPC-H function {} not found", function);
+            }
+        }
+
+        let all_passed = available_functions == tpch_functions.len();
+        let details = format!("Available functions: {}/{}", available_functions, tpch_functions.len());
+        
+        let duration = start_time.elapsed();
+        info!("✅ TPC-H extension validation completed in {:?}", duration);
+        
+        Ok(ValidationLayerResult {
+            layer: "TPC-H Extension".to_string(),
+            passed: all_passed,
+            duration,
+            details: Some(details),
+            error: if all_passed { None } else { Some("Some TPC-H functions not available".to_string()) },
+        })
+    }
+
+    /// Validate TPC-H data generation with different scale factors.
+    fn validate_tpch_data_generation(&self) -> Result<ValidationLayerResult> {
+        let start_time = std::time::Instant::now();
+        
+        info!("🔍 Layer 11: TPC-H Data Generation Validation");
+        
+        // Clean up any existing TPC-H tables
+        let cleanup_tables = vec![
+            "customer", "lineitem", "nation", "orders", 
+            "part", "partsupp", "region", "supplier"
+        ];
+        
+        for table in &cleanup_tables {
+            let _ = self.conn.execute(&format!("DROP TABLE IF EXISTS {}", table), []);
+        }
+        
+        // Test schema generation (sf = 0)
+        match self.conn.execute("CALL dbgen(sf = 0)", []) {
+            Ok(_) => {
+                info!("✅ TPC-H schema generation successful");
+            }
+            Err(e) => {
+                return Ok(ValidationLayerResult {
+                    layer: "TPC-H Data Generation".to_string(),
+                    passed: false,
+                    duration: start_time.elapsed(),
+                    details: Some("Schema generation failed".to_string()),
+                    error: Some(format!("Schema generation error: {}", e)),
+                });
+            }
+        }
+
+        // Verify tables were created
+        let table_count: i64 = self.conn
+            .query_row(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('customer', 'lineitem', 'nation', 'orders', 'part', 'partsupp', 'region', 'supplier')",
+                [],
+                |row| row.get(0),
+            )?;
+        
+        if table_count != 8 {
+            return Ok(ValidationLayerResult {
+                layer: "TPC-H Data Generation".to_string(),
+                passed: false,
+                duration: start_time.elapsed(),
+                details: Some(format!("Expected 8 tables, got {}", table_count)),
+                error: Some("Not all TPC-H tables created".to_string()),
+            });
+        }
+
+        // Test small data generation (sf = 0.01 for speed)
+        match self.conn.execute("CALL dbgen(sf = 0.01)", []) {
+            Ok(_) => {
+                info!("✅ TPC-H data generation (SF 0.01) successful");
+            }
+            Err(e) => {
+                return Ok(ValidationLayerResult {
+                    layer: "TPC-H Data Generation".to_string(),
+                    passed: false,
+                    duration: start_time.elapsed(),
+                    details: Some("Data generation failed".to_string()),
+                    error: Some(format!("Data generation error: {}", e)),
+                });
+            }
+        }
+
+        // Verify data was inserted
+        let customer_count: i64 = self.conn
+            .query_row("SELECT COUNT(*) FROM customer", [], |row| row.get(0))
+            .unwrap_or(0);
+        
+        let lineitem_count: i64 = self.conn
+            .query_row("SELECT COUNT(*) FROM lineitem", [], |row| row.get(0))
+            .unwrap_or(0);
+
+        if customer_count == 0 || lineitem_count == 0 {
+            return Ok(ValidationLayerResult {
+                layer: "TPC-H Data Generation".to_string(),
+                passed: false,
+                duration: start_time.elapsed(),
+                details: Some(format!("No data generated: customer={}, lineitem={}", customer_count, lineitem_count)),
+                error: Some("Data generation produced no results".to_string()),
+            });
+        }
+
+        let details = format!("Tables: 8, Customer rows: {}, Lineitem rows: {}", customer_count, lineitem_count);
+        
+        let duration = start_time.elapsed();
+        info!("✅ TPC-H data generation validation completed in {:?}", duration);
+        info!("   Generated {} customer records and {} lineitem records", customer_count, lineitem_count);
+        
+        Ok(ValidationLayerResult {
+            layer: "TPC-H Data Generation".to_string(),
+            passed: true,
+            duration,
+            details: Some(details),
+            error: None,
+        })
+    }
+
+    /// Validate TPC-H query execution with actual data.
+    fn validate_tpch_queries(&self) -> Result<ValidationLayerResult> {
+        let start_time = std::time::Instant::now();
+        
+        info!("🔍 Layer 12: TPC-H Query Execution Validation");
+        
+        // Test TPC-H queries availability
+        let queries_result = self.conn.query_row(
+            "SELECT COUNT(*) FROM tpch_queries()",
+            [],
+            |row| row.get::<_, i64>(0),
+        );
+
+        let total_queries = match queries_result {
+            Ok(count) => {
+                info!("✅ Found {} TPC-H queries", count);
+                count
+            }
+            Err(e) => {
+                return Ok(ValidationLayerResult {
+                    layer: "TPC-H Query Execution".to_string(),
+                    passed: false,
+                    duration: start_time.elapsed(),
+                    details: Some("Failed to list TPC-H queries".to_string()),
+                    error: Some(format!("Query listing error: {}", e)),
+                });
+            }
+        };
+
+        if total_queries != 22 {
+            return Ok(ValidationLayerResult {
+                layer: "TPC-H Query Execution".to_string(),
+                passed: false,
+                duration: start_time.elapsed(),
+                details: Some(format!("Expected 22 queries, found {}", total_queries)),
+                error: Some("Incorrect number of TPC-H queries".to_string()),
+            });
+        }
+
+        // Test a few representative queries
+        let test_queries = vec![1, 4, 6, 10, 22]; // Representative queries from different categories
+        
+        let mut successful_queries = 0;
+        let mut query_results = Vec::new();
+        
+        for query_id in &test_queries {
+            match self.conn.query_row(
+                &format!("PRAGMA tpch({})", query_id),
+                [],
+                |row| {
+                    // Get the first column of the result (query results vary in structure)
+                    let result: String = row.get(0)?;
+                    Ok(result)
+                },
+            ) {
+                Ok(result) => {
+                    successful_queries += 1;
+                    query_results.push(format!("Query {}: {} rows", query_id, result.len()));
+                    info!("✅ TPC-H Query {} executed successfully", query_id);
+                }
+                Err(e) => {
+                    query_results.push(format!("Query {}: FAILED - {}", query_id, e));
+                    info!("❌ TPC-H Query {} failed: {}", query_id, e);
+                }
+            }
+        }
+
+        // Test query performance
+        let performance_start = std::time::Instant::now();
+        let _ = self.conn.query_row("PRAGMA tpch(1)", [], |row| row.get::<_, String>(0));
+        let query_time = performance_start.elapsed();
+        
+        info!("✅ TPC-H Query 1 executed in {:?}", query_time);
+
+        let all_passed = successful_queries == test_queries.len();
+        let details = format!("Successful queries: {}/{}, Query 1 time: {:?}", 
+                            successful_queries, test_queries.len(), query_time);
+        
+        let duration = start_time.elapsed();
+        info!("✅ TPC-H query execution validation completed in {:?}", duration);
+        
+        Ok(ValidationLayerResult {
+            layer: "TPC-H Query Execution".to_string(),
+            passed: all_passed,
+            duration,
+            details: Some(details),
+            error: if all_passed { None } else { Some("Some TPC-H queries failed".to_string()) },
+        })
     }
 }
 

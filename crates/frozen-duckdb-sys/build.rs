@@ -77,8 +77,9 @@ mod bindings {
     pub fn write_to_out_dir(header: HeaderLocation, out_path: &Path) {
         let bindings = bindgen::Builder::default()
             .header("wrapper.h")
-            .header("wrapper_ext.h")
-            .header(header.path() + "/duckdb.h")
+            // Skip wrapper_ext.h for now as it requires unstable extension API headers
+            // .header("wrapper_ext.h")
+            .header(header.path() + "/duckdb/duckdb.h")
             .clang_arg(format!("-I{}", header.path()))
             .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
             .generate()
