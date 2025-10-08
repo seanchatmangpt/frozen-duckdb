@@ -51,3 +51,5 @@ cobertura.xml
 *.bak
 *.backup
 .lh/
+
+frozen-test-project/

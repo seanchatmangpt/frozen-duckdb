@@ -1,0 +1,38 @@
+[package]
+name = "frozen-duckdb"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+description = "Pre-compiled DuckDB binary for fast Rust builds - Drop-in replacement for duckdb-rs"
+
+[[bin]]
+name = "frozen-duckdb-cli"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tempfile.workspace = true
+reqwest.workspace = true
+
+# Use our FFI crate instead of duckdb-rs
+frozen-duckdb-sys = { path = "../frozen-duckdb-sys" }
+
+[[example]]
+name = "dropin_replacement"
+path = "examples/dropin_replacement.rs"
+
+[[example]]
+name = "flock_ollama_integration"
+path = "examples/flock_ollama_integration.rs"

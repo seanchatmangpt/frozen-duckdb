@@ -147,6 +147,9 @@ pub mod env_setup;
 // Re-export CLI modules
 pub mod cli;
 
+// Re-export our duckdb module (adapted from duckdb-rs)
+pub mod duckdb;
+
 // Re-export duckdb-rs API for drop-in replacement compatibility
 // This enables frozen-duckdb to be a true drop-in replacement
 pub use duckdb::{

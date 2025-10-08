@@ -1,0 +1,25 @@
+[package]
+name = "frozen-duckdb-builder"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+description = "Builder crate for frozen-duckdb - Downloads and compiles mega-library with all features"
+
+[dependencies]
+anyhow.workspace = true
+reqwest.workspace = true
+tar.workspace = true
+flate2.workspace = true
+zip.workspace = true
+tracing.workspace = true
+tempfile.workspace = true
+
+[features]
+default = []

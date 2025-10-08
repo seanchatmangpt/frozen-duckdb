@@ -1,0 +1,130 @@
+name: Build Frozen DuckDB Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g., v1.4.0)"
+        required: true
+        default: "v1.4.0"
+
+jobs:
+  build-binaries:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install dependencies
+        run: |
+          # Install CMake and other build dependencies
+          brew install cmake
+
+      - name: Set architecture
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            echo "ARCH=arm64" >> $GITHUB_ENV
+          else
+            echo "ARCH=x86_64" >> $GITHUB_ENV
+          fi
+
+      - name: Build mega-library
+        run: |
+          # Create a temporary project to build the mega-library
+          mkdir -p /tmp/frozen-build
+          cd /tmp/frozen-build
+
+          # Create a minimal Cargo.toml that depends on frozen-duckdb-builder
+          cat > Cargo.toml << 'EOF'
+          [package]
+          name = "frozen-build"
+          version = "0.1.0"
+          edition = "2021"
+
+          [dependencies]
+          frozen-duckdb-builder = { path = "${{ github.workspace }}/crates/frozen-duckdb-builder" }
+          EOF
+
+          # Create a build script that compiles the mega-library
+          cat > src/main.rs << 'EOF'
+          use frozen_duckdb_builder::ensure_binary;
+
+          fn main() {
+              match ensure_binary() {
+                  Ok(path) => println!("Built mega-library: {}", path.display()),
+                  Err(e) => {
+                      eprintln!("Failed to build mega-library: {}", e);
+                      std::process::exit(1);
+                  }
+              }
+          }
+          EOF
+
+          # Build the mega-library
+          cargo run --release
+
+      - name: Find built binary
+        run: |
+          # Find the built binary in the cache
+          BINARY_PATH=$(find ~/.frozen-duckdb/cache -name "libfrozen_mega_${{ matrix.arch }}.dylib" | head -1)
+          if [ -z "$BINARY_PATH" ]; then
+            echo "Could not find built binary"
+            exit 1
+          fi
+          echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_ENV
+          echo "Found binary: $BINARY_PATH"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: libfrozen_mega_${{ matrix.arch }}
+          path: ${{ env.BINARY_PATH }}
+
+  release:
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Frozen DuckDB ${{ github.ref_name }}
+          body: |
+            Pre-built Frozen DuckDB mega-libraries for ${{ github.ref_name }}
+
+            ## Architecture Support
+            - **x86_64**: Intel/AMD 64-bit processors
+            - **arm64**: Apple Silicon (M1/M2) processors
+
+            ## Usage
+            These binaries are automatically downloaded by `frozen-duckdb` on first use.
+            No manual installation required.
+
+            ## Features Included
+            - DuckDB with all extensions
+            - Apache Arrow integration
+            - Polars dataframe support
+            - ICU internationalization
+            - All modern DuckDB features
+          files: |
+            libfrozen_mega_x86_64/libfrozen_mega_x86_64.dylib
+            libfrozen_mega_arm64/libfrozen_mega_arm64.dylib
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

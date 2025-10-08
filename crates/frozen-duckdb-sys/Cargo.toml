@@ -1,0 +1,23 @@
+[package]
+name = "frozen-duckdb-sys"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+description = "FFI bindings for frozen-duckdb mega-library"
+
+[build-dependencies]
+frozen-duckdb-builder = { path = "../frozen-duckdb-builder" }
+bindgen = "0.69"
+
+[dependencies]
+
+[features]
+default = []
+bundled = []

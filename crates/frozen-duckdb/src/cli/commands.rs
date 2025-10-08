@@ -507,4 +507,58 @@ pub enum Commands {
         #[arg(short, long, default_value = "text_generator")]
         model: String,
     },
+
+    /// Validate FFI functionality including core DuckDB + Flock LLM extensions.
+    ///
+    /// This command runs comprehensive FFI validation to ensure that
+    /// the frozen-duckdb library properly exposes all required functionality.
+    /// Tests binary loading, core functions, extensions, and LLM integration.
+    ///
+    /// # Examples
+    ///
+    /// ```bash
+    /// # Run all FFI validation tests
+    /// frozen-duckdb validate-ffi
+    ///
+    /// # Run with specific architecture
+    /// ARCH=x86_64 frozen-duckdb validate-ffi
+    /// ARCH=arm64 frozen-duckdb validate-ffi
+    ///
+    /// # Skip LLM validation (faster, no Ollama required)
+    /// frozen-duckdb validate-ffi --skip-llm
+    ///
+    /// # Output results in JSON format
+    /// frozen-duckdb validate-ffi --format json
+    /// ```
+    ///
+    /// # Validation Layers
+    ///
+    /// - **Binary Validation**: Check library files and headers
+    /// - **FFI Function Validation**: Verify C API functions are available
+    /// - **Core Functionality**: Test basic DuckDB operations
+    /// - **Extension Validation**: Test Flock LLM functions
+    /// - **Integration Validation**: Test end-to-end LLM workflows
+    ValidateFfi {
+        /// Skip LLM validation (faster, no Ollama required)
+        ///
+        /// If set, skips the integration validation layer that requires
+        /// Ollama to be running and models to be available. Useful for
+        /// quick validation of core functionality.
+        #[arg(long)]
+        skip_llm: bool,
+
+        /// Output format for results
+        ///
+        /// Choose the format for displaying validation results.
+        /// Human-readable format is default, JSON is useful for automation.
+        #[arg(long, default_value = "human")]
+        format: String,
+
+        /// Verbose output
+        ///
+        /// If set, shows detailed information about each validation step
+        /// including timing and error details.
+        #[arg(long)]
+        verbose: bool,
+    },
 }

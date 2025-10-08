@@ -1,0 +1,27 @@
+# Cargo configuration for optimal caching
+[build]
+# Use more parallel jobs for faster compilation
+# jobs = 0 # Use all available CPU cores (commented out to avoid "jobs may not be 0" error)
+
+# Enable incremental compilation
+incremental = true
+
+# Use sccache for distributed compilation caching
+[env]
+RUSTC_WRAPPER = "sccache"
+
+# Registry configuration for faster downloads
+[registry]
+default = "crates-io"
+
+[source.crates-io]
+# Use sparse registry protocol for faster dependency resolution
+protocol = "sparse"
+
+# Network configuration
+[net]
+# Use git CLI for faster git operations
+git-fetch-with-cli = true
+
+# Retry configuration
+retry = 3

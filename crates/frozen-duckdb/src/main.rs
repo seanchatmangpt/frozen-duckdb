@@ -446,6 +446,69 @@ fn main() -> Result<()> {
             );
             info!("📊 Performance benchmarking feature coming soon!");
         }
+
+        Commands::ValidateFfi {
+            skip_llm,
+            format,
+            verbose,
+        } => {
+            info!("🦆 Starting FFI validation for frozen-duckdb");
+            
+            // Create FlockManager for validation
+            let flock_manager = match FlockManager::new() {
+                Ok(manager) => manager,
+                Err(e) => {
+                    error!("❌ Failed to create FlockManager: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            // Run FFI validation
+            let validation_result = match flock_manager.validate_ffi() {
+                Ok(result) => result,
+                Err(e) => {
+                    error!("❌ FFI validation failed: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            // Display results based on format
+            match format.as_str() {
+                "json" => {
+                    // Output JSON format for automation
+                    let json_result = serde_json::json!({
+                        "total_tests": validation_result.results.len(),
+                        "passed": validation_result.passed_count,
+                        "failed": validation_result.failed_count,
+                        "success_rate": validation_result.success_rate(),
+                        "total_duration_ms": validation_result.total_duration.as_millis(),
+                        "layers": validation_result.results.iter().map(|r| {
+                            serde_json::json!({
+                                "layer": r.layer,
+                                "passed": r.passed,
+                                "duration_ms": r.duration.as_millis(),
+                                "details": r.details,
+                                "error": r.error
+                            })
+                        }).collect::<Vec<_>>()
+                    });
+                    println!("{}", serde_json::to_string_pretty(&json_result).unwrap());
+                }
+                "human" | _ => {
+                    // Output human-readable format
+                    println!("{}", validation_result.format_results());
+                }
+            }
+
+            // Exit with appropriate code
+            if validation_result.all_passed() {
+                info!("🎉 All FFI validation tests passed!");
+                std::process::exit(0);
+            } else {
+                error!("⚠️  Some FFI validation tests failed");
+                std::process::exit(1);
+            }
+        }
     }
 
     Ok(())
