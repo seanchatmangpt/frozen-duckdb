@@ -24,7 +24,7 @@ flate2 = "1.0"
 zip = "0.6"
 
 [workspace.package]
-version = "1.4.0"
+version = "1.5.5"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/seanchatmangpt/frozen-duckdb"
