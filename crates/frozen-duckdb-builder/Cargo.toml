@@ -10,7 +10,7 @@ readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
-description = "Builder crate for frozen-duckdb - Downloads and compiles mega-library with all features"
+description = "Build-time companion for frozen-duckdb: downloads the prebuilt DuckDB library from GitHub Releases or compiles it from the pinned upstream tag, cached for fast builds"
 
 [dependencies]
 anyhow.workspace = true
