@@ -1,0 +1,27 @@
+# HANDWRITTEN.md — 帳 ledger (hand-authored lines on 産面)
+
+This repo has **no ggen pack projection**: nothing here is rendered from a marketplace pack, so
+every hand-written repair line is admitted through this ledger instead. Per the 帳 law the ledger
+must **shrink monotonically** per milestone: a row leaves only when the semantic element becomes
+expressible by an admitted pack/generator (or the code it describes is removed). Growing the
+ledger requires a paydown plan in the same change.
+
+`path | semantic element | missing capability | intended owner pack | date`
+
+| path | semantic element | missing capability | intended owner pack | date |
+|------|------------------|--------------------|---------------------|------|
+| crates/frozen-duckdb/src/duckdb/raw_statement.rs, crates/frozen-duckdb/tests/column_names_tests.rs | column_names() pre-execution returns a proper error instead of panicking on the schema unwrap (raw_statement.rs:218); regression tests for pre-/post-execution and empty-result cases | no generator/gate expresses error-taxonomy repair paired with a regression-test file | frozen-duckdb pack — error-taxonomy + regression-gate family (unadmitted) | 2026-09-21 (TR3) |
+| crates/frozen-duckdb-sys/build.rs | DOCS_RS pattern: under `DOCS_RS=1` generate bindings from the vendored headers and skip linking/rpath so docs.rs typechecks without the dylib | no build-policy pack expresses docs.rs cross-compile policy | frozen-duckdb-sys build-policy pack (unadmitted) | 2026-09-21 (TR4) |
+| crates/frozen-duckdb-builder (acquisition paths in src/lib.rs) | cache normalization on every acquisition path: `~/.frozen-duckdb/cache/v{VER}-{arch}/libduckdb_{arch}.dylib` layout, neutral `libduckdb.dylib` link name, vendored 1.5.5 headers, dead `libfrozen_mega_*` fallback removed | the cache-layout law lives only in crate code; no ontology/pack fact records it | frozen-duckdb-builder pack itself (ontological home unadmitted) | 2026-09-21 (wave-2 milestone; observed live by T7) |
+| prebuilt/setup_env.sh | install-name compat symlinks (`libduckdb.dylib`/`.1`/`.1.4` -> arch dylib): DuckDB >= 1.5 dylibs carry the neutral install name `@rpath/libduckdb.dylib` | no pack expresses dylib install-name/link-name compatibility law | frozen-duckdb-builder pack — link-name family (unadmitted) | 2026-09-21 (T6 scripts-fix; link-name law per wave-2 MILESTONE.md) |
+| scripts/create_frozen_setup.sh | fetch-scheme repair: real v1.5.5 release-asset URLs (seanchatmangpt/frozen-duckdb) replacing a fictional v1.4.1 `libduckdb_{arch}.dylib` scheme; Option-2 clone pinned `--depth 1 --branch v1.5.5` | no pack expresses the release-asset URL scheme; script prose is hand-maintained | scripts-fetch-scheme pack (unadmitted) | 2026-09-21 (T6) |
+| scripts/build_frozen_duckdb.sh, scripts/build_static_duckdb.sh | source-build pin: unpinned duckdb-rs clones -> `--branch v1.10505.0` (DuckDB 1.5.5 era); static twin pinned to the same family float | no pack expresses source-build dependency pinning | scripts-fetch-scheme pack (unadmitted) | 2026-09-21 (T6) |
+| test-dependency/Cargo.toml | standalone workspace table (isolation from the parent workspace) + real crates.io pin `duckdb = "1.10505"` matching DuckDB 1.5.5 | consumer-crate workspace isolation and era-matched pinning not expressible by any pack | consumer-validation pack (unadmitted) | 2026-09-21 (T7 P5 coordinator fix; commit 80f5902) |
+| scripts/test_ffi_simple.sh, scripts/run_ffi_validation.sh, scripts/smoke_go.go, scripts/smoke_go_simple.go, scripts/validate_prod_build.sh, scripts/validate_frozen_approach.sh, scripts/lib/config.sh | TR6 triage STATUS headers: kept-uncertain markers documenting central-cache drift (repo-local prebuilt dylib no longer provided), stale `CRATE_VERSION="0.1.0"` pin, crates.io-vs-tree validation scope, and the scan_fakes*/lib/ coupling that blocks lib/ removal | repo has no script-metadata/annotation mechanism; uncertainty markers are hand-authored prose | repo-hygiene pack (unadmitted) | 2026-09-21 (TR6) |
+
+## Known drift this ledger does not yet cover
+
+- `scripts/scan_fakes.sh`, `scripts/scan_fakes_core_team.sh`, `scripts/kcura-config.yaml`,
+  `scripts/kcura-config.example.yaml`: kcura-era files outside the TR6 scope table — not edited;
+  recorded BLOCKED in `docs/sjira/v26.9.21/TR6.md` History. They are the remaining consumers of
+  `scripts/lib/` and the natural next paydown rows.
