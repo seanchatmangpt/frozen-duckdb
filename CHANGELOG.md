@@ -41,7 +41,37 @@ DuckDB 1.5.5.
   builder normalizes the cache layout (`duckdb/` headers, plain
   `libduckdb.dylib` link name) on every binary-acquisition path.
 
+### Fixes and hardening (wave 3)
+
+- **CI release-asset rehearsal hardening**: the `v1.5.5` release workflow is
+  rehearsed before the operator cuts the tag — matrix builds set
+  `CMAKE_OSX_ARCHITECTURES` per architecture (honored by the builder's
+  local-compile fallback), and the `ensure_binary()` cache-miss path
+  (release-download miss → pinned local compile) was exercised against the
+  exact asset names and paths the workflow publishes.
+- **`column_names()` panic fix**: calling `column_names()` before statement
+  execution no longer panics on a schema unwrap — it returns a proper error.
+  Regression tests cover pre-execution, post-execution, and empty-result
+  calls.
+- **docs.rs build pattern**: `frozen-duckdb-sys` detects the `DOCS_RS`
+  environment variable and generates bindings from the vendored headers while
+  skipping library linking, so documentation builds on docs.rs (Linux, no
+  prebuilt `.so`) succeed without a 30+ minute compile.
+- **Linux / multi-arch builder support**: platform-aware release-asset naming
+  (`.dylib` on macOS, `.so` on Linux), `CMAKE_OSX_ARCHITECTURES` override
+  honored in the local-compile fallback, and a real Linux branch in
+  `setup_env.sh`. Prebuilt `.so` assets are planned for a later tag; the
+  `v1.5.5` tag ships macOS assets.
+- **test-validation is a real gate**: the `test-validation` harness now
+  asserts — binary present at the builder's expected path,
+  `duckdb_library_version()` matching the pinned version via FFI, vendored
+  header layout intact — and exits nonzero on any failure, instead of printing
+  decorative checkmarks.
+- **Repo hygiene**: kcura-era debris removed (dead smoke/CI-gate scripts,
+  stray root test files, empty dataset directories); `HANDWRITTEN.md` ledger
+  seeded.
+
 ### Known limitations
-- Prebuilt release assets are macOS-only (arm64 + x86_64); Windows and Linux
-  builds use the local-compile fallback. Prebuilt assets for those platforms
-  are on the roadmap.
+- Prebuilt release assets are macOS-only — universal binaries containing
+  arm64 + x86_64 slices. Linux and Windows builds use the pinned
+  local-compile fallback; prebuilt `.so` assets for Linux are planned.
