@@ -60,7 +60,9 @@ fn main() {
     );
 }
 
-#[cfg(not(feature = "bundled"))]
+// No bundled build path exists: this crate always links the frozen prebuilt
+// dylib. The legacy `bundled` feature (still declared in Cargo.toml) must stay
+// inert so `--all-features` remains a no-op — hence no `cfg(feature)` gate here.
 mod build_linked {
     use std::path::Path;
 

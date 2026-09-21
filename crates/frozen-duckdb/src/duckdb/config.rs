@@ -150,6 +150,9 @@ impl Config {
 }
 
 impl Drop for Config {
+    // Vendored from duckdb-rs; do not churn — lint fights the is_some guard
+    // on the raw FFI optional, not a real bug.
+    #[allow(clippy::unnecessary_unwrap)]
     fn drop(&mut self) {
         if self.config.is_some() {
             unsafe { ffi::duckdb_destroy_config(&mut self.config.unwrap()) };

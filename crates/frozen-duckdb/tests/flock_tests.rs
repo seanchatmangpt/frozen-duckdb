@@ -3,7 +3,7 @@
 //! Models: qwen3-coder:30b (text), qwen3-embedding:8b (embeddings)
 //! Based on: https://duckdb.org/community_extensions/extensions/flock.html
 
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use tracing::info;
 
 /// Verbose logging function (only logs if verbose mode is enabled)

@@ -53,9 +53,21 @@
 //!     Ok(())
 //! }
 //! ```
+// Vendored from duckdb-rs (1.4.0-era port); do not churn. The upstream
+// feature gates in this module tree (vtab, vscalar, polars, r2d2,
+// extensions-full, ...) are inert by design: this crate intentionally declares
+// no features, so `--all-features` stays a no-op. Silence the check-cfg lint
+// rather than adding the features back.
+#![allow(unexpected_cfgs)]
 #![warn(missing_docs)]
 
 pub use frozen_duckdb_sys as ffi;
+
+// Vendored from duckdb-rs (1.4.0-era port); do not churn. `params!` is
+// `#[macro_export]`'d at the crate root, but vendored code (tests included)
+// spells it `crate::duckdb::params!` — re-export it into this module so that
+// path resolves.
+pub use crate::params;
 
 use std::{
     cell::RefCell,
@@ -720,6 +732,8 @@ mod test {
         Ok(())
     }
 
+    // Vendored from duckdb-rs; do not churn.
+    #[allow(clippy::unnecessary_unwrap)]
     #[test]
     fn test_open() {
         let con = Connection::open_in_memory();

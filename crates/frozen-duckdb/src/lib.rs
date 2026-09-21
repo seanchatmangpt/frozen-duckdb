@@ -175,5 +175,8 @@ pub use duckdb::{
 // Re-export types from duckdb::types for convenience
 pub use duckdb::types::{FromSql, Type, Value};
 
+// duckdb-rs also exposes the arrow crate at its root; keep the same surface
+pub use duckdb::arrow;
+
 // Re-export Result type for convenience (DuckDB's Result, not anyhow)
 pub type Result<T> = DuckDBResult<T>;

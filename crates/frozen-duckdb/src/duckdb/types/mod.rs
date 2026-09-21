@@ -242,6 +242,8 @@ mod test {
         Ok(())
     }
 
+    // Vendored from duckdb-rs; do not churn.
+    #[allow(clippy::unnecessary_unwrap)]
     #[test]
     fn test_string() -> Result<()> {
         let db = checked_memory_handle()?;

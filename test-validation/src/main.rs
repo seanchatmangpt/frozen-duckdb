@@ -47,10 +47,8 @@ fn main() {
 
         // List contents
         if let Ok(entries) = std::fs::read_dir(&cache_dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    println!("   📁 {}", entry.path().display());
-                }
+            for entry in entries.flatten() {
+                println!("   📁 {}", entry.path().display());
             }
         }
     } else {

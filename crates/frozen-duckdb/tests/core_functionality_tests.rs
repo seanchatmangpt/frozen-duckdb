@@ -5,7 +5,7 @@
 //! Follows 80/20 rule: tests the 20% of features that deliver 80% of value.
 
 use anyhow::Result;
-use duckdb::{params, Config, Connection};
+use frozen_duckdb::{params, Config, Connection};
 use std::time::Instant;
 use tracing::info;
 

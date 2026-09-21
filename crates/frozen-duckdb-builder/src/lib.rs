@@ -382,8 +382,6 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     Ok(binary_path)
 }
 
-/// Ensure header files are available for FFI bindings
-
 /// Find the built library in the build directory
 fn find_built_library(build_dir: &Path, _arch: &str) -> Result<PathBuf> {
     // Look for the main DuckDB library - check multiple possible locations

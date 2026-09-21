@@ -4,7 +4,7 @@
 //! the frozen DuckDB binary vs. compiling from source.
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use std::time::Instant;
 use tracing::info;
 

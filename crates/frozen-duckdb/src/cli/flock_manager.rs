@@ -476,6 +476,7 @@ impl FlockManager {
     ///
     /// - **Filtering time**: <10s per 100 items (depends on model and criteria)
     /// - **Memory usage**: <100MB for typical datasets
+    ///
     /// Filter data using LLM-based classification.
     ///
     /// This function uses LLM models to classify and filter data based
@@ -568,10 +569,10 @@ impl FlockManager {
             .execute("CREATE PROMPT(?, ?)", [&prompt_name, &prompt_content])?;
 
         // Filter each item using the specified model
-        for (_i, item) in items.iter().enumerate() {
+        for item in items.iter() {
             let result: String = self.conn.query_row(
                 "SELECT llm_complete({'model_name': ?}, {'prompt_name': ?, 'context_columns': [{'data': ?}]})",
-                [model, &prompt_name, &item.to_string()],
+                [model, &prompt_name, item],
                 |row| row.get(0),
             ).unwrap_or_else(|_| "false".to_string());
 
@@ -1441,7 +1442,7 @@ impl FlockManager {
 
         // Consider basic text operations as core requirement
         let core_passed = basic_text_success && named_text_success && multi_text_success;
-        let advanced_passed = image_success && mixed_success;
+        let _advanced_passed = image_success && mixed_success;
 
         let all_passed = core_passed; // Core functionality is required, advanced is optional
         let details = format!(
@@ -1805,16 +1806,14 @@ impl FFIValidationResult {
     /// Format results for display.
     pub fn format_results(&self) -> String {
         let mut output = String::new();
-        output.push_str(&format!("🦆 Frozen DuckDB FFI Validation Results\n"));
-        output.push_str(&format!(
-            "==================================================\n"
-        ));
+        output.push_str("🦆 Frozen DuckDB FFI Validation Results\n");
+        output.push_str("==================================================\n");
         output.push_str(&format!("Total Tests: {}\n", self.results.len()));
         output.push_str(&format!("Passed: {}\n", self.passed_count));
         output.push_str(&format!("Failed: {}\n", self.failed_count));
         output.push_str(&format!("Success Rate: {:.1}%\n", self.success_rate()));
         output.push_str(&format!("Total Duration: {:?}\n", self.total_duration));
-        output.push_str("\n");
+        output.push('\n');
 
         for result in &self.results {
             let status = if result.passed {

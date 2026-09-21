@@ -460,9 +460,10 @@ fn main() -> Result<()> {
         }
 
         Commands::ValidateFfi {
-            skip_llm,
+            // wired to FlockManager knobs in a later milestone; unused today
+            skip_llm: _skip_llm,
             format,
-            verbose,
+            verbose: _verbose,
         } => {
             info!("🦆 Starting FFI validation for frozen-duckdb");
 
@@ -506,7 +507,7 @@ fn main() -> Result<()> {
                     });
                     println!("{}", serde_json::to_string_pretty(&json_result).unwrap());
                 }
-                "human" | _ => {
+                _ => {
                     // Output human-readable format
                     println!("{}", validation_result.format_results());
                 }

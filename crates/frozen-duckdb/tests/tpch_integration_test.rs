@@ -4,7 +4,7 @@
 //! using the frozen DuckDB binary with industry-standard benchmark data.
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use std::time::Instant;
 use tracing::info;
 
