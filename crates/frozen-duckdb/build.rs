@@ -13,5 +13,8 @@ fn main() {
         println!("cargo:rustc-link-arg-bins=-Wl,-rpath,{lib_dir}");
         println!("cargo:rustc-link-arg-tests=-Wl,-rpath,{lib_dir}");
         println!("cargo:rustc-link-arg-example=-Wl,-rpath,{lib_dir}");
+        // Unqualified link-arg additionally covers the lib unittest harness
+        // (`cargo test --lib`), which the bins/tests/example kinds all miss.
+        println!("cargo:rustc-link-arg=-Wl,-rpath,{lib_dir}");
     }
 }
