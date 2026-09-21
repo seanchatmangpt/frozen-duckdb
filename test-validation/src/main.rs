@@ -60,14 +60,14 @@ fn main() {
     // Test 4: Binary naming convention
     println!("\n4. Testing binary naming...");
     let expected_name = format!("libduckdb_{}.dylib", arch);
-    let binary_path = cache_dir.join(format!("v1.4.0-{}", arch)).join(&expected_name);
+    let binary_path = cache_dir.join(format!("v1.5.5-{}", arch)).join(&expected_name);
     if binary_path.exists() {
         println!("✅ Expected binary exists: {}", expected_name);
     } else {
         println!("❌ Expected binary missing: {}", expected_name);
         // Also check if we have the binary with old naming
         let old_name = format!("libfrozen_mega_{}.dylib", arch);
-        let old_path = cache_dir.join(format!("v1.4.0-{}", arch)).join(&old_name);
+        let old_path = cache_dir.join(format!("v1.5.5-{}", arch)).join(&old_name);
         if old_path.exists() {
             println!("✅ Found binary with old name: {}", old_name);
         }
