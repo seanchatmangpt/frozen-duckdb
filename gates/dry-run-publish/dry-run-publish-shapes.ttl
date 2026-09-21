@@ -1,0 +1,59 @@
+# dry-run-publish-shapes.ttl — frozen-duckdb v1.5.5 SHACL shapes for a filled
+# dry-run publish evidence graph (RENDERED CONSEQUENCE). Adapted from
+# packs/dry-run-publish-pack/templates/dry-run-publish-shapes.ttl.tmpl (same
+# generic shape queries as the pack family: sh:targetClass + sh:path +
+# sh:minCount / sh:closed+sh:ignoredProperties / sh:pattern — no SPARQL-based
+# target extension). Sources: schema/domain.ttl + the pack ontology via
+# ggen.toml [ontology] imports. Edit the sources, never this file.
+#
+# Subject release candidate: RC-FROZEN-DUCKDB-V155 (schema/domain.ttl fd:gateObject).
+# Fence: the modeled gate's only terminal goal atom is dry-run-verified and
+# no effect atom implies an external mutation — full DRY-RUN-OVERCLAIM FENCE
+# wording lives in gates/dry-run-publish-gates.md.
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ex:      <urn:frozen-duckdb:shapes#> .
+
+# Every SKOS concept in the evidence graph must carry a deterministic
+# uppercase notation handle (the blank-node join key).
+ex:DryRunConceptShape a sh:NodeShape ;
+  sh:targetClass skos:Concept ;
+  sh:property [
+    sh:path skos:notation ;
+    sh:minCount 1 ;
+    sh:pattern "^[A-Z0-9][A-Z0-9-]*$" ;
+  ] .
+
+# Every gate-phase execution (prov:Activity) must be notated, described,
+# associated with the release candidate, and generate at least one
+# deliverable entity. Closed: no undeclared predicates sneak onto a phase.
+ex:DryRunPhaseShape a sh:NodeShape ;
+  sh:targetClass prov:Activity ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^DRY-RUN-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:generated ; sh:minCount 1 ; ] .
+
+# The release candidate under test (prov:Agent target of every
+# prov:wasAssociatedWith): notated and described. Not closed: the same node
+# is dual-typed prov:Entity and carries the entity-side handle checked by
+# ex:DryRunDeliverableShape.
+ex:DryRunReleaseCandidateShape a sh:NodeShape ;
+  sh:targetClass prov:Agent ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^RC-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .
+
+# Every prov:Entity — phase deliverable (DELIV-*), publish-set member
+# (PKG-*), or the release candidate (RC-*) — must be notated and described.
+ex:DryRunDeliverableShape a sh:NodeShape ;
+  sh:targetClass prov:Entity ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^(DELIV|PKG|RC)-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .

@@ -16,3 +16,136 @@ fd:project a prov:Entity ;
 fd:duckdbVersionLaw a skos:Concept ;
     skos:prefLabel "crate version mirrors bundled DuckDB release" ;
     skos:notation "1.5.5" .
+
+# --- v26.9.21 C4: dry-run-publish-pack composition --------------------------
+# Consumer-side binding of the 6-phase dry-run publish gate domain
+# (packs/dry-run-publish-pack v26.7.13, loaded via ggen.toml [ontology]
+# imports) onto the v26.9.21 PUBLISH_RUNBOOK cut sequence. Join key to the
+# pack's phase scheme: skos:notation (DRY-RUN-*), the pack's documented
+# cross-file join discipline. Everything under gates/ is a rendered
+# consequence of these facts + the pack ontology: edit THIS file (or the
+# pack), never the projection.
+#
+# DRY-RUN-OVERCLAIM FENCE: every modeled step below is LOCAL and REVERSIBLE.
+# The live operator cuts (merge, tag push, `cargo publish` WITHOUT --dry-run)
+# stay outside the modeled domain — operator authority (権) only. The modeled
+# cycle's terminal atom is dry-run-verified; no atom anywhere in this binding
+# or the pack domain asserts an external mutation.
+
+fd:publishGateBindings a skos:ConceptScheme ;
+    skos:prefLabel "frozen-duckdb v1.5.5 dry-run publish gate bindings" ;
+    skos:notation "FD-DRY-RUN-BINDINGS" ;
+    dcterms:description "Binds each dry-run-publish-pack gate phase (DRY-RUN-*) to the PUBLISH_RUNBOOK steps it gates, the evidence command that proves it (exit 0 required), and the PDDL8 atom/action chain it renders into gates/dry-run-publish/dry-run-publish-domain.ttl."@en .
+
+# The PDDL object every gate action applies to: this workspace's v1.5.5
+# release candidate (mirrors the pack's fictional kestrel object, bound to
+# the REAL release candidate here — as RC evidence facts, never as upload
+# claims).
+fd:gateObject a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "RC-FROZEN-DUCKDB-V155" ;
+    skos:prefLabel "frozen-duckdb v1.5.5 release candidate" ;
+    dcterms:description "The release candidate under dry-run gate: frozen-duckdb workspace at 1.5.5 (crate version mirrors bundled DuckDB v1.5.5 per fd:duckdbVersionLaw)."@en ;
+    fd:pddlObject "frozen_duckdb_v155" .
+
+# Publish-set members in dependency order (Phase 4 coverage set). Real crates
+# of this workspace; sizes/order facts from the TPUB pre-flight evidence.
+fd:publishMemberBuilder a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "PKG-FROZEN-DUCKDB-BUILDER" ;
+    skos:prefLabel "frozen-duckdb-builder (publish-set member 1)" ;
+    dcterms:description "Headers/build-script crate; dependency-first in the release sequence; TPUB-observed .crate 426.9 KiB (437,096 B), unpacked 2.3 MiB; vendored-headers gate green."@en .
+fd:publishMemberSys a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "PKG-FROZEN-DUCKDB-SYS" ;
+    skos:prefLabel "frozen-duckdb-sys (publish-set member 2)" ;
+    dcterms:description "Bindings crate; depends on builder; .crate not producible pre-publication (index-blocked) — pre-cut evidence is the TPUB replica compensation (exact cargo package --list file sets, all three compile together, exit 0)."@en .
+fd:publishMemberMain a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "PKG-FROZEN-DUCKDB" ;
+    skos:prefLabel "frozen-duckdb (publish-set member 3)" ;
+    dcterms:description "Main crate; depends on sys; same replica-compensated pre-cut evidence as sys; name-check GO (exists at 0.1.0, sole owner seanchatmangpt, legal version jump to 1.5.5)."@en .
+
+# --- Phase bindings (join key skos:notation = pack phase notations) --------
+# Atom vocabulary follows the pack's uniform convention:
+# {phase}-engaged (phase 1 entry) / {phase}-step1-done / {phase}-step2-done /
+# {phase}-complete, with the pack's ONE disclosed deviation: phase 6's
+# terminal atom is dry-run-verified (the merged problem's sole GOAL atom).
+
+fd:bindScope a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "DRY-RUN-SCOPE" ;
+    skos:prefLabel "Gate 1 — Release Scope & Identity" ;
+    dcterms:description "Publish set frozen to the 3 PKG-FROZEN-DUCKDB-* members at 1.5.5; TPUB name/ownership check GO/GO/GO (token identity must be seanchatmangpt); RELEASE_CONTROL docs synced (PUBLISH_RUNBOOK, MILESTONE); git SHA bound via tag v1.5.5 on a clean worktree."@en ;
+    fd:phaseOrder 1 ;
+    fd:runbookSteps "TPUB pre-flight name/ownership check; runbook steps 1-2 (merge PR #3; tag v1.5.5)" ;
+    fd:evidenceCommand "gh pr view 3 --repo seanchatmangpt/frozen-duckdb (OPEN); git tag --list v1.5.5 (bound); git status --porcelain (empty)" ;
+    fd:entryAtom "scope-engaged" ;
+    fd:step1Atom "scope-step1-done" ; fd:step1Action "define-publish-set-and-version" ;
+    fd:step2Atom "scope-step2-done" ; fd:step2Action "sync-release-control-docs" ;
+    fd:exitAtom "scope-complete" ; fd:exitAction "bind-git-sha-on-clean-worktree" .
+
+fd:bindGenerate a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "DRY-RUN-GENERATE" ;
+    skos:prefLabel "Gate 2 — Deterministic Generation" ;
+    dcterms:description "Pre-cut repo law (no runbook step): ggen sync run exit 0 with the pack ontology imported; second sync pass byte-identical (idempotence); Cargo.lock correctness via cargo build --workspace green."@en ;
+    fd:phaseOrder 2 ;
+    fd:runbookSteps "pre-cut repo law: ggen sync two-pass idempotence + cargo build --workspace (this wave: C4 gates/ render)" ;
+    fd:evidenceCommand "ggen sync run (exit 0, second pass reports unchanged: content identical); cargo build --workspace (exit 0)" ;
+    fd:entryAtom "scope-complete" ;
+    fd:step1Atom "generate-step1-done" ; fd:step1Action "pin-ggen-version" ;
+    fd:step2Atom "generate-step2-done" ; fd:step2Action "verify-sync-idempotence" ;
+    fd:exitAtom "generate-complete" ; fd:exitAction "verify-lock-correctness" .
+
+fd:bindVerify a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "DRY-RUN-VERIFY" ;
+    skos:prefLabel "Gate 3 — Verification Ladder" ;
+    dcterms:description "CI release assets green on the tag (build-binaries.yml, exactly libduckdb_arm64.dylib + libduckdb_x86_64.dylib); HOLD the publish while assets are missing — the one wrongly-orderable irreversible step."@en ;
+    fd:phaseOrder 3 ;
+    fd:runbookSteps "runbook step 3 (verify CI release assets — do not publish until green)" ;
+    fd:evidenceCommand "gh run watch <run-id> --repo seanchatmangpt/frozen-duckdb; gh api repos/seanchatmangpt/frozen-duckdb/releases/tags/v1.5.5 --jq '.assets[].name' (exactly two expected names)" ;
+    fd:entryAtom "generate-complete" ;
+    fd:step1Atom "verify-step1-done" ; fd:step1Action "run-verify-all-gate" ;
+    fd:step2Atom "verify-step2-done" ; fd:step2Action "run-standing-refresh" ;
+    fd:exitAtom "verify-complete" ; fd:exitAction "confirm-no-silently-ignored-tests" .
+
+fd:bindManufacture a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "DRY-RUN-MANUFACTURE" ;
+    skos:prefLabel "Gate 4 — Package Manufacture" ;
+    dcterms:description "Per publish-set member: cargo package --locked and cargo publish --dry-run --locked (LOCAL, REVERSIBLE — packages and validates WITHOUT uploading). TPUB battery: builder exit 0; sys/main ordering artifacts compensated by the replica build (exit 0). Runbook steps 4-8 are the LIVE cuts this gate rehearses."@en ;
+    fd:phaseOrder 4 ;
+    fd:runbookSteps "TPUB dry-run battery per member; runbook steps 4-8 (operator cuts builder -> index wait -> sys -> index wait -> main, packaging validation at each)" ;
+    fd:evidenceCommand "cargo publish --dry-run --allow-dirty -p frozen-duckdb-builder (exit 0); cargo package --list -p frozen-duckdb-sys; cargo package --list -p frozen-duckdb (file-set audits)" ;
+    fd:entryAtom "verify-complete" ;
+    fd:step1Atom "manufacture-step1-done" ; fd:step1Action "cargo-package-locked" ;
+    fd:step2Atom "manufacture-step2-done" ; fd:step2Action "cargo-publish-dry-run-locked" ;
+    fd:exitAtom "manufacture-complete" ; fd:exitAction "confirm-publish-set-coverage" .
+
+fd:bindCleanroom a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "DRY-RUN-CLEANROOM" ;
+    skos:prefLabel "Gate 5 — Clean-Room Verification" ;
+    dcterms:description "Manufactured package verified in isolation: TPUB full verification build from unpacked target/package/frozen-duckdb-builder-1.5.5; docs.rs rehearsal (DOCS_RS=1, isolated HOME, bindings from vendored headers, no library linked, exit 0); runbook step 11 clean-machine smoke."@en ;
+    fd:phaseOrder 5 ;
+    fd:runbookSteps "TPUB unpack-build + docs.rs rehearsal; runbook step 11 clean-machine smoke (cargo new + cargo add frozen-duckdb@1.5.5 + Connection::open)" ;
+    fd:evidenceCommand "HOME=/tmp/fd-docs-home-tpub DOCS_RS=1 cargo build -p frozen-duckdb-sys (exit 0); cargo new /tmp/smoke + cargo add frozen-duckdb@1.5.5 (query exit 0)" ;
+    fd:entryAtom "manufacture-complete" ;
+    fd:step1Atom "cleanroom-step1-done" ; fd:step1Action "unpack-in-fresh-directory" ;
+    fd:step2Atom "cleanroom-step2-done" ; fd:step2Action "build-in-cleanroom" ;
+    fd:exitAtom "cleanroom-complete" ; fd:exitAction "test-in-cleanroom" .
+
+fd:bindReceipt a skos:Concept ;
+    skos:inScheme fd:publishGateBindings ;
+    skos:notation "DRY-RUN-RECEIPT" ;
+    skos:prefLabel "Gate 6 — Receipt & Replay (terminal: dry-run-verified)" ;
+    dcterms:description "Receipts and replay: docs.rs observed (never gated on), issue #1 reply posted, post-publish verification polled, History + MILESTONE receipt rows appended, byte-identical replay of the modeled gate (two-pass sync). Terminal atom is dry-run-verified — an evidence bundle for the human go/no-go decision, never a release claim and never an assertion that a live cargo publish ran."@en ;
+    fd:phaseOrder 6 ;
+    fd:runbookSteps "runbook steps 9-11 (docs.rs builds — observe; post the issue #1 reply; post-publish verification) + History/MILESTONE receipt appends" ;
+    fd:evidenceCommand "curl -s https://crates.io/api/v1/crates/frozen-duckdb (max_version 1.5.5); sparse index 200 x3; grep -c dry-run-verified gates/dry-run-publish/dry-run-publish-domain.ttl (>=1)" ;
+    fd:entryAtom "cleanroom-complete" ;
+    fd:step1Atom "receipt-step1-done" ; fd:step1Action "emit-final-receipt" ;
+    fd:step2Atom "receipt-step2-done" ; fd:step2Action "attach-ocel-evidence" ;
+    fd:exitAtom "dry-run-verified" ; fd:exitAction "confirm-byte-identical-replay-no-mutation" .

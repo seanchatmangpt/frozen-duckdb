@@ -12,6 +12,16 @@ license = "MIT"
 
 [ontology]
 source = "schema/domain.ttl"
+# Pack composition (v26.9.21 C4): dry-run-publish-pack v26.7.13 — the release
+# DoD as a 6-phase PDDL8 STRIPS domain (scope, generate, verify, manufacture,
+# cleanroom, receipt) with the DRY-RUN-OVERCLAIM FENCE (terminal goal atom is
+# 'dry-run-verified'; no atom asserts an external mutation). Pack facts render
+# gates/ as consequences. NOTE (failed edge, 2026-09-21): ggen 26.8.18's
+# declarative schema REJECTS the scaffold-documented `[[ontology.pack]]`
+# (unknown field `pack`; accepted: source/imports/base_iri/prefixes/
+# standard_only) — the operative declaration for this binary is `imports`;
+# verified: the pack ontology lands in the sync closure with its content hash.
+imports = ["/Users/sac/ggen-marketplace/packs/dry-run-publish-pack/ontology.ttl"]
 standard_only = true
 
 [generation]
@@ -19,12 +29,237 @@ output_dir = "."
 # Capability waves append [[generation.rules]] entries: each renders one
 # consequence (gate/template output) from the pack ontologies. See
 # docs/sjira/v26.9.21/ wave tickets for the owning ticket per rule.
-rules = []
 
-# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) are declared as
-# [[ontology.pack]] entries: name/version must exist in ~/ggen-marketplace/packs/.
-# Capability waves append their pack entries here; each pack's facts render
-# this repo's gates/templates as consequences.
+# --- C4 (v26.9.21): dry-run-publish-pack gate render ------------------------
+# Three consequences of schema/domain.ttl bindings + the pack ontology:
+# the phase x runbook alignment matrix, the modeled PDDL8 domain + cycle
+# problem, and the SHACL shapes for a filled dry-run evidence graph.
+# DRY-RUN-OVERCLAIM FENCE holds in every rendered artifact: the modeled gate
+# is LOCAL, REVERSIBLE dry-run verification; its only terminal goal atom is
+# 'dry-run-verified'.
+
+[[generation.rules]]
+name = "dry-run-publish-gate-matrix"
+query = { inline = '''
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX fd: <https://seanchatmangpt.github.io/frozen-duckdb/ns#>
+SELECT ?order ?notation ?label ?binding ?steps ?evidence ?v ?subject ?entry ?exit
+WHERE {
+  ?ph a skos:Concept ;
+      skos:notation ?notation ;
+      rdfs:label ?label .
+  ?b a skos:Concept ;
+      skos:notation ?notation ;
+      skos:prefLabel ?binding ;
+      fd:phaseOrder ?order ;
+      fd:runbookSteps ?steps ;
+      fd:evidenceCommand ?evidence ;
+      fd:entryAtom ?entry ;
+      fd:exitAtom ?exit .
+  fd:project dcterms:version ?v .
+  fd:gateObject skos:notation ?subject .
+}
+ORDER BY ?order
+''' }
+template = { inline = '''{% for r in results %}{% if loop.first %}# Dry-Run Publish Gate — frozen-duckdb v{{ r.v }} (dry-run-publish-pack composition)
+
+Rendered consequence of `schema/domain.ttl` (gate bindings) + the marketplace
+pack `dry-run-publish-pack` v26.7.13 ontology (loaded via `ggen.toml`
+[ontology] imports). EDIT THE SOURCES, NEVER THIS FILE. Join key across the
+two graphs: `skos:notation` (`DRY-RUN-*`).
+
+> **DRY-RUN-OVERCLAIM FENCE** (pack law — packs/dry-run-publish-pack/ontology.ttl):
+> this gate models LOCAL, REVERSIBLE dry-run verification only. No atom in the
+> modeled domain is named 'published', 'crates-io-uploaded', or
+> 'release-complete'; the only terminal goal atom is 'dry-run-verified'.
+> Gate-green means an evidence bundle is complete for a human go/no-go
+> decision — never that a release shipped. The live cuts (merge, tag push,
+> `cargo publish` without `--dry-run`) are operator authority (権) and stay
+> outside the modeled domain.
+
+{% endif %}{% endfor %}| # | Pack phase | Repo gate binding | PUBLISH_RUNBOOK steps it gates | Evidence command (exit 0 required) |
+|---|------------|-------------------|--------------------------------|-------------------------------------|
+{% for r in results %}| {{ r.order }} | `{{ r.notation }}` — {{ r.label }} | {{ r.binding }} | {{ r.steps }} | `{{ r.evidence }}` |
+{% endfor %}
+{% for r in results %}{% if loop.first %}## The modeled cycle
+
+PDDL8 STRIPS domain + merged cycle problem: `gates/dry-run-publish/dry-run-publish-domain.ttl`.
+SHACL shapes for a filled dry-run evidence graph: `gates/dry-run-publish/dry-run-publish-shapes.ttl`.
+Subject: `{{ r.subject }}` (schema/domain.ttl fd:gateObject); publish set:
+the three `PKG-FROZEN-DUCKDB-*` members in dependency order (fd:publishMember*).
+{% endif %}{% endfor %}
+{% for r in results %}{% if loop.first %}Init atom: `{{ r.entry }}` (phase 1).
+{% endif %}{% endfor %}{% for r in results %}{% if loop.last %}Sole GOAL atom: `{{ r.exit }}` (phase 6 terminal) — the fence requires it to read unambiguously as a dry-run result, never as a release claim.
+{% endif %}{% endfor %}
+## Executing the modeled gate (repeatable)
+
+```
+ggen sync run    # render these artifacts (exit 0); a second pass must be byte-identical
+```
+
+Then walk phases 1-6 against PUBLISH_RUNBOOK.md with the evidence commands in
+the table above, preserving command + exit for each (証). Fence tripwire
+(structural, must exit 0 — the modeled domain carries the real terminal atom
+and none of the banned ones):
+
+```
+! grep -qE '\b(published|crates-io-uploaded|release-complete)\b' gates/dry-run-publish/dry-run-publish-domain.ttl && grep -q 'dry-run-verified' gates/dry-run-publish/dry-run-publish-domain.ttl
+```
+''' }
+output_file = "gates/dry-run-publish-gates.md"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "dry-run-publish-domain"
+query = { inline = '''
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX fd: <https://seanchatmangpt.github.io/frozen-duckdb/ns#>
+SELECT ?order ?notation ?phaseDesc ?entry ?a1 ?a2 ?exit ?act1 ?act2 ?act3 ?obj
+WHERE {
+  ?b a skos:Concept ;
+     skos:inScheme fd:publishGateBindings ;
+     skos:notation ?notation ;
+     dcterms:description ?phaseDesc ;
+     fd:phaseOrder ?order ;
+     fd:entryAtom ?entry ;
+     fd:step1Atom ?a1 ; fd:step1Action ?act1 ;
+     fd:step2Atom ?a2 ; fd:step2Action ?act2 ;
+     fd:exitAtom ?exit ; fd:exitAction ?act3 .
+  fd:gateObject fd:pddlObject ?obj .
+}
+ORDER BY ?order
+''' }
+template = { inline = '''# frozen-duckdb dry-run publish gate — modeled PDDL8 domain (RENDERED CONSEQUENCE).
+# Sources: schema/domain.ttl (fd:publishGateBindings) + packs/dry-run-publish-pack
+# ontology (ggen.toml [ontology] imports). Edit the sources, never this file.
+# One PDDL8 STRIPS fragment per gate phase (uniform pack convention:
+# {phase}-step1-done / {phase}-step2-done / {phase}-complete; the disclosed
+# phase-6 deviation carries the merged problem's sole GOAL atom — see
+# gates/dry-run-publish-gates.md for the DRY-RUN-OVERCLAIM FENCE wording:
+# this domain models LOCAL, REVERSIBLE dry-run verification only, and no
+# effect atom anywhere below implies an external mutation; phase 6's third
+# action records external_mutation=false on the way to the terminal atom).
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+{% for r in results %}_:phase{{ r.order }}
+    skos:notation "{{ r.notation }}" ;
+    dcterms:description "{{ r.phaseDesc }}" ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    ({{ r.entry }} ?x)
+    ({{ r.a1 }} ?x)
+    ({{ r.a2 }} ?x)
+    ({{ r.exit }} ?x))
+  (:action {{ r.act1 }}
+    :parameters (?x)
+    :precondition (and ({{ r.entry }} ?x))
+    :effect (and ({{ r.a1 }} ?x)))
+  (:action {{ r.act2 }}
+    :parameters (?x)
+    :precondition (and ({{ r.a1 }} ?x))
+    :effect (and ({{ r.a2 }} ?x)))
+  (:action {{ r.act3 }}
+    :parameters (?x)
+    :precondition (and ({{ r.a2 }} ?x))
+    :effect (and ({{ r.exit }} ?x))))
+""" .
+
+{% endfor %}{% for r in results %}{% if loop.first %}_:problem
+    skos:notation "FROZEN-DUCKDB-DRY-RUN-PUBLISH-CYCLE-PROBLEM" ;
+    dcterms:description "Merged dry-run publish gate cycle problem for {{ r.obj }}: init = phase-1 entry atom {{ r.entry }}; the sole GOAL atom is the phase-6 fence terminal (dry-run-verified), reached only after external_mutation=false is recorded."@en ;
+    ceng:pddlProblem """
+(define (problem frozen-duckdb-dry-run-publish-cycle-p)
+  (:domain frozen-duckdb-dry-run-publish-cycle)
+  (:objects {{ r.obj }})
+  (:init ({{ r.entry }} {{ r.obj }}))
+{% endif %}{% endfor %}{% for r in results %}{% if loop.last %}  (:goal ({{ r.exit }} {{ r.obj }})))
+""" .
+{% endif %}{% endfor %}''' }
+output_file = "gates/dry-run-publish/dry-run-publish-domain.ttl"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "dry-run-publish-shapes"
+query = { inline = '''
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX fd: <https://seanchatmangpt.github.io/frozen-duckdb/ns#>
+SELECT ?v ?rc
+WHERE {
+  fd:project dcterms:version ?v .
+  fd:gateObject skos:notation ?rc .
+}
+ORDER BY ?rc
+''' }
+template = { inline = '''# dry-run-publish-shapes.ttl — frozen-duckdb v{{ v }} SHACL shapes for a filled
+# dry-run publish evidence graph (RENDERED CONSEQUENCE). Adapted from
+# packs/dry-run-publish-pack/templates/dry-run-publish-shapes.ttl.tmpl (same
+# generic shape queries as the pack family: sh:targetClass + sh:path +
+# sh:minCount / sh:closed+sh:ignoredProperties / sh:pattern — no SPARQL-based
+# target extension). Sources: schema/domain.ttl + the pack ontology via
+# ggen.toml [ontology] imports. Edit the sources, never this file.
+#
+# Subject release candidate: {{ rc }} (schema/domain.ttl fd:gateObject).
+# Fence: the modeled gate's only terminal goal atom is dry-run-verified and
+# no effect atom implies an external mutation — full DRY-RUN-OVERCLAIM FENCE
+# wording lives in gates/dry-run-publish-gates.md.
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ex:      <urn:frozen-duckdb:shapes#> .
+
+# Every SKOS concept in the evidence graph must carry a deterministic
+# uppercase notation handle (the blank-node join key).
+ex:DryRunConceptShape a sh:NodeShape ;
+  sh:targetClass skos:Concept ;
+  sh:property [
+    sh:path skos:notation ;
+    sh:minCount 1 ;
+    sh:pattern "^[A-Z0-9][A-Z0-9-]*$" ;
+  ] .
+
+# Every gate-phase execution (prov:Activity) must be notated, described,
+# associated with the release candidate, and generate at least one
+# deliverable entity. Closed: no undeclared predicates sneak onto a phase.
+ex:DryRunPhaseShape a sh:NodeShape ;
+  sh:targetClass prov:Activity ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^DRY-RUN-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:generated ; sh:minCount 1 ; ] .
+
+# The release candidate under test (prov:Agent target of every
+# prov:wasAssociatedWith): notated and described. Not closed: the same node
+# is dual-typed prov:Entity and carries the entity-side handle checked by
+# ex:DryRunDeliverableShape.
+ex:DryRunReleaseCandidateShape a sh:NodeShape ;
+  sh:targetClass prov:Agent ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^RC-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .
+
+# Every prov:Entity — phase deliverable (DELIV-*), publish-set member
+# (PKG-*), or the release candidate (RC-*) — must be notated and described.
+ex:DryRunDeliverableShape a sh:NodeShape ;
+  sh:targetClass prov:Entity ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^(DELIV|PKG|RC)-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .
+''' }
+output_file = "gates/dry-run-publish/dry-run-publish-shapes.ttl"
+mode = "Overwrite"
 
 [sync]
 enabled = true

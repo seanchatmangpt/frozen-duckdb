@@ -1,0 +1,174 @@
+# frozen-duckdb dry-run publish gate — modeled PDDL8 domain (RENDERED CONSEQUENCE).
+# Sources: schema/domain.ttl (fd:publishGateBindings) + packs/dry-run-publish-pack
+# ontology (ggen.toml [ontology] imports). Edit the sources, never this file.
+# One PDDL8 STRIPS fragment per gate phase (uniform pack convention:
+# {phase}-step1-done / {phase}-step2-done / {phase}-complete; the disclosed
+# phase-6 deviation carries the merged problem's sole GOAL atom — see
+# gates/dry-run-publish-gates.md for the DRY-RUN-OVERCLAIM FENCE wording:
+# this domain models LOCAL, REVERSIBLE dry-run verification only, and no
+# effect atom anywhere below implies an external mutation; phase 6's third
+# action records external_mutation=false on the way to the terminal atom).
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:phase1
+    skos:notation "DRY-RUN-SCOPE" ;
+    dcterms:description "Publish set frozen to the 3 PKG-FROZEN-DUCKDB-* members at 1.5.5; TPUB name/ownership check GO/GO/GO (token identity must be seanchatmangpt); RELEASE_CONTROL docs synced (PUBLISH_RUNBOOK, MILESTONE); git SHA bound via tag v1.5.5 on a clean worktree." ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    (scope-engaged ?x)
+    (scope-step1-done ?x)
+    (scope-step2-done ?x)
+    (scope-complete ?x))
+  (:action define-publish-set-and-version
+    :parameters (?x)
+    :precondition (and (scope-engaged ?x))
+    :effect (and (scope-step1-done ?x)))
+  (:action sync-release-control-docs
+    :parameters (?x)
+    :precondition (and (scope-step1-done ?x))
+    :effect (and (scope-step2-done ?x)))
+  (:action bind-git-sha-on-clean-worktree
+    :parameters (?x)
+    :precondition (and (scope-step2-done ?x))
+    :effect (and (scope-complete ?x))))
+""" .
+
+_:phase2
+    skos:notation "DRY-RUN-GENERATE" ;
+    dcterms:description "Pre-cut repo law (no runbook step): ggen sync run exit 0 with the pack ontology imported; second sync pass byte-identical (idempotence); Cargo.lock correctness via cargo build --workspace green." ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    (scope-complete ?x)
+    (generate-step1-done ?x)
+    (generate-step2-done ?x)
+    (generate-complete ?x))
+  (:action pin-ggen-version
+    :parameters (?x)
+    :precondition (and (scope-complete ?x))
+    :effect (and (generate-step1-done ?x)))
+  (:action verify-sync-idempotence
+    :parameters (?x)
+    :precondition (and (generate-step1-done ?x))
+    :effect (and (generate-step2-done ?x)))
+  (:action verify-lock-correctness
+    :parameters (?x)
+    :precondition (and (generate-step2-done ?x))
+    :effect (and (generate-complete ?x))))
+""" .
+
+_:phase3
+    skos:notation "DRY-RUN-VERIFY" ;
+    dcterms:description "CI release assets green on the tag (build-binaries.yml, exactly libduckdb_arm64.dylib + libduckdb_x86_64.dylib); HOLD the publish while assets are missing — the one wrongly-orderable irreversible step." ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    (generate-complete ?x)
+    (verify-step1-done ?x)
+    (verify-step2-done ?x)
+    (verify-complete ?x))
+  (:action run-verify-all-gate
+    :parameters (?x)
+    :precondition (and (generate-complete ?x))
+    :effect (and (verify-step1-done ?x)))
+  (:action run-standing-refresh
+    :parameters (?x)
+    :precondition (and (verify-step1-done ?x))
+    :effect (and (verify-step2-done ?x)))
+  (:action confirm-no-silently-ignored-tests
+    :parameters (?x)
+    :precondition (and (verify-step2-done ?x))
+    :effect (and (verify-complete ?x))))
+""" .
+
+_:phase4
+    skos:notation "DRY-RUN-MANUFACTURE" ;
+    dcterms:description "Per publish-set member: cargo package --locked and cargo publish --dry-run --locked (LOCAL, REVERSIBLE — packages and validates WITHOUT uploading). TPUB battery: builder exit 0; sys/main ordering artifacts compensated by the replica build (exit 0). Runbook steps 4-8 are the LIVE cuts this gate rehearses." ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    (verify-complete ?x)
+    (manufacture-step1-done ?x)
+    (manufacture-step2-done ?x)
+    (manufacture-complete ?x))
+  (:action cargo-package-locked
+    :parameters (?x)
+    :precondition (and (verify-complete ?x))
+    :effect (and (manufacture-step1-done ?x)))
+  (:action cargo-publish-dry-run-locked
+    :parameters (?x)
+    :precondition (and (manufacture-step1-done ?x))
+    :effect (and (manufacture-step2-done ?x)))
+  (:action confirm-publish-set-coverage
+    :parameters (?x)
+    :precondition (and (manufacture-step2-done ?x))
+    :effect (and (manufacture-complete ?x))))
+""" .
+
+_:phase5
+    skos:notation "DRY-RUN-CLEANROOM" ;
+    dcterms:description "Manufactured package verified in isolation: TPUB full verification build from unpacked target/package/frozen-duckdb-builder-1.5.5; docs.rs rehearsal (DOCS_RS=1, isolated HOME, bindings from vendored headers, no library linked, exit 0); runbook step 11 clean-machine smoke." ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    (manufacture-complete ?x)
+    (cleanroom-step1-done ?x)
+    (cleanroom-step2-done ?x)
+    (cleanroom-complete ?x))
+  (:action unpack-in-fresh-directory
+    :parameters (?x)
+    :precondition (and (manufacture-complete ?x))
+    :effect (and (cleanroom-step1-done ?x)))
+  (:action build-in-cleanroom
+    :parameters (?x)
+    :precondition (and (cleanroom-step1-done ?x))
+    :effect (and (cleanroom-step2-done ?x)))
+  (:action test-in-cleanroom
+    :parameters (?x)
+    :precondition (and (cleanroom-step2-done ?x))
+    :effect (and (cleanroom-complete ?x))))
+""" .
+
+_:phase6
+    skos:notation "DRY-RUN-RECEIPT" ;
+    dcterms:description "Receipts and replay: docs.rs observed (never gated on), issue #1 reply posted, post-publish verification polled, History + MILESTONE receipt rows appended, byte-identical replay of the modeled gate (two-pass sync). Terminal atom is dry-run-verified — an evidence bundle for the human go/no-go decision, never a release claim and never an assertion that a live cargo publish ran." ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    (cleanroom-complete ?x)
+    (receipt-step1-done ?x)
+    (receipt-step2-done ?x)
+    (dry-run-verified ?x))
+  (:action emit-final-receipt
+    :parameters (?x)
+    :precondition (and (cleanroom-complete ?x))
+    :effect (and (receipt-step1-done ?x)))
+  (:action attach-ocel-evidence
+    :parameters (?x)
+    :precondition (and (receipt-step1-done ?x))
+    :effect (and (receipt-step2-done ?x)))
+  (:action confirm-byte-identical-replay-no-mutation
+    :parameters (?x)
+    :precondition (and (receipt-step2-done ?x))
+    :effect (and (dry-run-verified ?x))))
+""" .
+
+_:problem
+    skos:notation "FROZEN-DUCKDB-DRY-RUN-PUBLISH-CYCLE-PROBLEM" ;
+    dcterms:description "Merged dry-run publish gate cycle problem for frozen_duckdb_v155: init = phase-1 entry atom scope-engaged; the sole GOAL atom is the phase-6 fence terminal (dry-run-verified), reached only after external_mutation=false is recorded."@en ;
+    ceng:pddlProblem """
+(define (problem frozen-duckdb-dry-run-publish-cycle-p)
+  (:domain frozen-duckdb-dry-run-publish-cycle)
+  (:objects frozen_duckdb_v155)
+  (:init (scope-engaged frozen_duckdb_v155))
+  (:goal (dry-run-verified frozen_duckdb_v155)))
+""" .
