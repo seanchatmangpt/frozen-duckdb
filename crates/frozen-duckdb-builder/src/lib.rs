@@ -11,14 +11,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info, warn};
 
-const VERSION: &str = "1.4.0";
+const VERSION: &str = "1.5.5";
 const CACHE_DIR: &str = ".frozen-duckdb";
 const BINARY_NAME: &str = "libduckdb";
 
 /// Ensure the prebuilt DuckDB binary is available
 /// 
 /// This function:
-/// 1. Checks for cached binary in ~/.frozen-duckdb/cache/v1.4.0-{arch}/
+/// 1. Checks for cached binary in ~/.frozen-duckdb/cache/v1.5.5-{arch}/
 /// 2. If missing, tries to download from GitHub Release
 /// 3. If download fails, compiles locally as fallback
 /// 4. Returns path to the binary
@@ -255,7 +255,7 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     let duckdb_dir = temp_path.join("duckdb");
 
     Command::new("git")
-        .args(["clone", "--depth", "1", "--branch", "v1.4.0", "https://github.com/duckdb/duckdb.git"])
+        .args(["clone", "--depth", "1", "--branch", "v1.5.5", "https://github.com/duckdb/duckdb.git"])
         .arg(&duckdb_dir)
         .current_dir(temp_path)
         .output()
