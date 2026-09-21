@@ -1,5 +1,7 @@
 # 🦆 Frozen DuckDB Binary
 
+[![CI](https://github.com/seanchatmangpt/frozen-duckdb/actions/workflows/ci.yml/badge.svg)](https://github.com/seanchatmangpt/frozen-duckdb/actions/workflows/ci.yml)
+
 **Zero-compilation DuckDB with Builder Sub-Crate Pattern - Fast builds forever!**
 
 Frozen DuckDB revolutionizes Rust database development with a groundbreaking **Builder Sub-Crate Pattern** that eliminates the most painful aspect of using DuckDB: compilation time. No more waiting 10+ minutes for Arrow, Polars, and ICU to compile.
@@ -13,6 +15,12 @@ Frozen DuckDB revolutionizes Rust database development with a groundbreaking **B
 - **Offline-capable builds**: the DuckDB 1.5.5 headers (`duckdb.h`, `duckdb.hpp`) are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works even when a release download carries only the dylib.
 - **No `DYLD_*` environment variables needed**: the frozen dylib carries the neutral install name `@rpath/libduckdb.dylib`, and the `frozen-duckdb` build script emits the matching runtime rpath for binaries, tests, and examples — `cargo build && cargo run` just works.
 - **Self-healing cache layout**: on every acquisition path (cache hit, download, or local-compile fallback pinned at upstream tag `v1.5.5`), the builder normalizes the cache with headers under `duckdb/` and a plain `libduckdb.dylib` link name.
+
+## 🖥️ Platform Support (as of v1.5.5)
+
+- **macOS**: prebuilt release assets — universal binaries containing both arm64 and x86_64 slices — downloaded automatically on first build. No local compilation, no `DYLD_*` setup.
+- **Linux**: builds via the pinned local-compile fallback (DuckDB `v1.5.5` source). Prebuilt `.so` release assets are planned.
+- **Windows**: builds via the pinned local-compile fallback.
 
 ## 🏗️ Revolutionary Architecture
 
@@ -170,7 +178,7 @@ cargo build --workspace
 cargo test --workspace
 
 # Build with all features
-cargo build --workspace --features extreme
+cargo build --workspace --all-features
 ```
 
 ### Creating a Release
@@ -275,7 +283,7 @@ ls -la ~/.frozen-duckdb/cache/
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [contributing guides](docs/contributing/coding-standards.md) for details.
+We welcome contributions! Please see our [contributing guides](https://github.com/seanchatmangpt/frozen-duckdb/blob/master/docs/contributing/coding-standards.md) for details.
 
 ### Development Setup
 
@@ -295,7 +303,7 @@ We welcome contributions! Please see our [contributing guides](docs/contributing
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/seanchatmangpt/frozen-duckdb/blob/master/LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
