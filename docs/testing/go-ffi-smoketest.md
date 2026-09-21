@@ -112,7 +112,7 @@ The test validates:
 🦆 Frozen DuckDB FFI Smoke Test
 ============================================================
 ✅ PASS Library Version (2.1ms)
-   DuckDB Version: 1.4.1
+   DuckDB Version: 1.5.5
 ✅ PASS Architecture Detection (0.5ms)
    Detected Architecture: arm64
 ✅ PASS Database Lifecycle (15.2ms)

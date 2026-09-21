@@ -9,7 +9,7 @@
 # Remove duckdb-rs
 cargo remove duckdb
 
-# Add frozen-duckdb (same version 1.4.0)
+# Add frozen-duckdb (same version 1.5.5)
 cargo add frozen-duckdb
 ```
 
@@ -153,7 +153,7 @@ ls -la prebuilt/
 grep "frozen-duckdb" Cargo.toml
 
 # Should show:
-# frozen-duckdb = "1.4.0"
+# frozen-duckdb = "1.5.5"
 ```
 
 ### Issue: Import errors
@@ -172,10 +172,10 @@ use frozen_duckdb::{Connection, Result};
 If you were using specific duckdb-rs features:
 ```toml
 # Before
-duckdb = { version = "1.4.0", features = ["json", "parquet"] }
+duckdb = { version = "1.5.5", features = ["json", "parquet"] }
 
 # After (same features, faster builds)
-frozen-duckdb = "1.4.0"  # All features included by default
+frozen-duckdb = "1.5.5"  # All features included by default
 ```
 
 ### Custom Build Scripts

@@ -42,7 +42,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-duckdb = { version = "1.4.0", default-features = false }
+duckdb = { version = "1.5.5", default-features = false }
 ```
 
 Add `build.rs` to your project root:
