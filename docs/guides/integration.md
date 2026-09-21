@@ -8,69 +8,35 @@ This guide shows how to **integrate Frozen DuckDB** into your existing Rust proj
 
 ### 1. Add Dependency
 
-Update your `Cargo.toml` to use the standard DuckDB dependency:
+Update your `Cargo.toml` to use frozen-duckdb (the crate version mirrors the bundled DuckDB version):
 
 ```toml
 [dependencies]
-duckdb = { version = "1.5.5", default-features = false, features = [
-  "json",
-  "parquet",
-  "appender-arrow",
-] }
+frozen-duckdb = "1.5.5"   # bundles DuckDB 1.5.5
 ```
 
-**No changes needed** to your existing DuckDB dependency!
+### 2. Build
 
-### 2. Add Build Script
-
-Create a `build.rs` file in your project root:
-
-```rust
-use std::env;
-use std::path::Path;
-
-fn main() {
-    // Check if frozen DuckDB environment is configured
-    if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-        let lib_dir = Path::new(&lib_dir);
-        let include_dir = env::var("DUCKDB_INCLUDE_DIR")
-            .map(|p| Path::new(&p).to_path_buf())
-            .unwrap_or_else(|_| lib_dir.join("include"));
-
-        // Configure build to use pre-compiled binary
-        println!("cargo:rustc-link-search=native={}", lib_dir.display());
-        println!("cargo:rustc-link-lib=dylib=duckdb");
-        println!("cargo:include={}", include_dir.display());
-
-        // Set rerun triggers for environment changes
-        println!("cargo:rerun-if-env-changed=DUCKDB_LIB_DIR");
-        println!("cargo:rerun-if-env-changed=DUCKDB_INCLUDE_DIR");
-    } else {
-        // Fall back to bundled compilation (slower)
-        println!("cargo:warning=No DUCKDB_LIB_DIR specified, using bundled DuckDB compilation");
-    }
-}
-```
-
-### 3. Set Up Environment
-
-Before building your project, set up the Frozen DuckDB environment:
+No custom build script and no environment variables are needed. On first build,
+`frozen-duckdb-builder::ensure_binary()` downloads `libduckdb_{arch}.dylib` from this
+repository's GitHub Releases into `~/.frozen-duckdb/cache/v1.5.5-{arch}/`, normalizes the
+cache (vendored 1.5.5 headers under `duckdb/`, a plain `libduckdb.dylib` link name), and
+`frozen-duckdb`'s build script emits the runtime `@rpath` so your binaries and tests run
+without any `DYLD_*` configuration:
 
 ```bash
-# In your project directory
-source /path/to/frozen-duckdb/prebuilt/setup_env.sh
 cargo build
 ```
 
-### 4. Use DuckDB Normally
+### 3. Use DuckDB Normally
 
-Your code works exactly the same as before:
+Your code works exactly the same as before — swap the import:
 
 ```rust
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create connection (now using pre-compiled binary)
+    // Create connection (backed by the pre-compiled binary)
     let conn = Connection::open_in_memory()?;
 
     // Your existing DuckDB code works unchanged
@@ -93,10 +59,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Before Integration
 
 ```bash
-# First build with bundled DuckDB
+# First build with the upstream duckdb-rs crate (bundles DuckDB from source)
 cargo build
-# Compiling libduckdb-sys v1.5.5
-# Compiling duckdb v1.5.5
+# Compiling libduckdb-sys v1.10505.0
+# Compiling duckdb v1.10505.0
 #    Finished dev profile [unoptimized + debuginfo] target(s) in 1m 45s
 
 # Incremental build
@@ -107,8 +73,7 @@ cargo build
 ### After Integration
 
 ```bash
-# First build with frozen DuckDB
-source ../frozen-duckdb/prebuilt/setup_env.sh
+# First build with frozen DuckDB (includes the one-time dylib download)
 cargo build
 #    Finished dev profile [unoptimized + debuginfo] target(s) in 0.15s
 
@@ -127,12 +92,14 @@ cargo build
 use frozen_duckdb::env_setup;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Check if using frozen DuckDB
+    // Informational: DUCKDB_LIB_DIR/DUCKDB_INCLUDE_DIR are only set by the
+    // legacy manual-prebuilt workflow (prebuilt/setup_env.sh). The normal
+    // cargo build path needs no environment at all — the builder acquires
+    // the dylib and the emitted @rpath loads it.
     if env_setup::is_configured() {
-        println!("✅ Using frozen DuckDB (fast builds)");
+        println!("Legacy prebuilt environment detected");
     } else {
-        println!("⚠️  Using bundled DuckDB (slow builds)");
-        println!("   Run: source prebuilt/setup_env.sh");
+        println!("Standard configuration — the builder manages the binary");
     }
 
     // Your application code here
@@ -150,46 +117,9 @@ fn main() {
     println!("Building for architecture: {}", arch);
 
     if architecture::is_supported(&arch) {
-        println!("✅ Using optimized binary for {}", arch);
+        println!("✅ Universal binary available for {}", arch);
     } else {
-        println!("⚠️  Using generic binary");
-    }
-}
-```
-
-### Build Script with Validation
-
-```rust
-use std::env;
-use std::path::Path;
-
-fn main() {
-    // Check for frozen DuckDB environment
-    if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-        let lib_dir = Path::new(&lib_dir);
-
-        // Validate binary exists before building
-        if !lib_dir.join("libduckdb.dylib").exists() &&
-           !lib_dir.join("libduckdb_x86_64.dylib").exists() &&
-           !lib_dir.join("libduckdb_arm64.dylib").exists() {
-            panic!("No DuckDB binary found in {}. Please run setup script.", lib_dir.display());
-        }
-
-        // Configure build
-        println!("cargo:rustc-link-search=native={}", lib_dir.display());
-        println!("cargo:rustc-link-lib=dylib=duckdb");
-
-        if let Ok(include_dir) = env::var("DUCKDB_INCLUDE_DIR") {
-            println!("cargo:include={}", include_dir);
-        } else {
-            println!("cargo:include={}", lib_dir.display());
-        }
-
-        println!("cargo:rerun-if-env-changed=DUCKDB_LIB_DIR");
-        println!("cargo:rerun-if-env-changed=DUCKDB_INCLUDE_DIR");
-    } else {
-        // Build without frozen DuckDB
-        println!("cargo:warning=Frozen DuckDB not configured, using bundled compilation");
+        println!("⚠️  Local-compile fallback would be used");
     }
 }
 ```
@@ -209,19 +139,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        # Prebuilt release assets are macOS-only; on Linux the builder
+        # falls back to a local DuckDB compile pinned at upstream tag v1.5.5
         os: [macos-latest, ubuntu-latest]
         rust: [stable]
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup frozen DuckDB
-      run: |
-        git clone https://github.com/seanchatmangpt/frozen-duckdb.git
-        source frozen-duckdb/prebuilt/setup_env.sh
-        echo "DUCKDB_LIB_DIR=$DUCKDB_LIB_DIR" >> $GITHUB_ENV
-        echo "DUCKDB_INCLUDE_DIR=$DUCKDB_INCLUDE_DIR" >> $GITHUB_ENV
-
+    # Zero setup: the builder downloads and caches the dylib on first build,
+    # and the emitted @rpath handles runtime loading
     - name: Build project
       run: cargo build --release
 
@@ -240,21 +167,14 @@ stages:
   - build
   - test
 
-variables:
-  DUCKDB_LIB_DIR: "${CI_PROJECT_DIR}/frozen-duckdb/prebuilt"
-  DUCKDB_INCLUDE_DIR: "${CI_PROJECT_DIR}/frozen-duckdb/prebuilt"
-
 build:
   stage: build
   script:
-    - git clone https://github.com/seanchatmangpt/frozen-duckdb.git
-    - source frozen-duckdb/prebuilt/setup_env.sh
     - cargo build --release
 
 test:
   stage: test
   script:
-    - source frozen-duckdb/prebuilt/setup_env.sh
     - cargo test --all
   artifacts:
     paths:
@@ -264,21 +184,21 @@ test:
 
 ### Docker Integration
 
+Prebuilt release assets are currently macOS-only (universal arm64 + x86_64 dylibs), so a
+Linux container cannot use them directly — inside a Linux container the builder uses the
+local-compile fallback (cloning upstream DuckDB at the pinned `v1.5.5` tag), which is slow
+but functional:
+
 ```dockerfile
 # Dockerfile
 FROM rust:latest as builder
 
-# Install frozen DuckDB
-COPY frozen-duckdb /frozen-duckdb
-RUN cd /frozen-duckdb && source prebuilt/setup_env.sh
-
-# Copy your project
+# Copy your project (depends on frozen-duckdb)
 WORKDIR /app
 COPY . .
 
-# Build with frozen DuckDB
-ENV DUCKDB_LIB_DIR="/frozen-duckdb/prebuilt"
-ENV DUCKDB_INCLUDE_DIR="/frozen-duckdb/prebuilt"
+# The builder compiles DuckDB locally (pinned at upstream tag v1.5.5)
+# because no Linux prebuilt asset exists yet
 RUN cargo build --release
 
 # Runtime image
@@ -287,95 +207,70 @@ COPY --from=builder /app/target/release/app /usr/local/bin/
 CMD ["app"]
 ```
 
+macOS prebuilt assets for Linux (`.so`) and Windows (`.dll`) are on the roadmap.
+
 ## Development Workflow Integration
 
 ### Local Development Setup
 
+No setup required — add the dependency and build. The builder downloads and caches the
+dylib once and every subsequent build reuses it:
+
 ```bash
 #!/bin/bash
 # setup_dev.sh
-
-# Setup frozen DuckDB
-git clone https://github.com/seanchatmangpt/frozen-duckdb.git ../frozen-duckdb
-source ../frozen-duckdb/prebuilt/setup_env.sh
-
-# Export for persistent environment
-echo "export DUCKDB_LIB_DIR=\"$DUCKDB_LIB_DIR\"" >> ~/.bashrc
-echo "export DUCKDB_INCLUDE_DIR=\"$DUCKDB_INCLUDE_DIR\"" >> ~/.bashrc
-
-echo "✅ Development environment configured"
-echo "   Build time improvement: 99%"
+cargo build
+echo "✅ Ready — dylib cached in ~/.frozen-duckdb/cache/v1.5.5-{arch}/"
 ```
 
 ### VS Code Integration
 
-Add to your `.vscode/settings.json`:
-
-```json
-{
-  "rust-analyzer.cargo.extraEnv": {
-    "DUCKDB_LIB_DIR": "${workspaceFolder}/../frozen-duckdb/prebuilt",
-    "DUCKDB_INCLUDE_DIR": "${workspaceFolder}/../frozen-duckdb/prebuilt"
-  }
-}
-```
+Nothing to configure — no environment variables are needed. rust-analyzer triggers the
+normal cargo build, which acquires the binary automatically.
 
 ### IDE Integration
 
-Most Rust IDEs will automatically use the configured environment variables. For manual setup:
-
-```bash
-# Set environment before starting IDE
-export DUCKDB_LIB_DIR="/path/to/frozen-duckdb/prebuilt"
-export DUCKDB_INCLUDE_DIR="/path/to/frozen-duckdb/prebuilt"
-code .
-```
+Most Rust IDEs just work, since the binary acquisition happens inside the cargo build
+itself and runtime loading goes through the emitted `@rpath` (no `DYLD_*` variables).
 
 ## Migration from Existing Projects
 
 ### Step-by-Step Migration
 
 1. **Backup current setup** (optional but recommended)
-2. **Add build script** (`build.rs` with frozen DuckDB integration)
-3. **Update CI/CD** (add frozen DuckDB setup)
+2. **Swap the dependency** (`duckdb = "1.10505.0"` → `frozen-duckdb = "1.5.5"`)
+3. **Remove any custom build script / env setup** (not needed with frozen-duckdb)
 4. **Test build** (verify faster builds)
 5. **Update documentation** (mention performance improvements)
 
 ### Zero-Downtime Migration
 
-```rust
-// Optional: Detect and handle both configurations
-fn detect_duckdb_setup() -> DuckDBSetup {
-    if env::var("DUCKDB_LIB_DIR").is_ok() {
-        DuckDBSetup::Frozen
-    } else {
-        DuckDBSetup::Bundled
-    }
-}
+Both dependencies can coexist while you migrate module by module — the frozen
+crate (`frozen_duckdb::`) and the upstream crate (`duckdb::`) are separate types:
 
-enum DuckDBSetup {
-    Frozen,   // Fast builds with pre-compiled binary
-    Bundled,  // Slow builds with source compilation
-}
+```toml
+[dependencies]
+frozen-duckdb = "1.5.5"
+duckdb = "1.10505.0"   # remove once migration completes
 ```
 
 ## Troubleshooting Integration Issues
 
 ### Common Integration Problems
 
-#### 1. Environment Variables Not Set
+#### 1. First Build Is Slow
 
-**Error:** `DUCKDB_LIB_DIR not set`
+**Behavior:** The builder compiles DuckDB locally instead of downloading
 
 **Solution:**
 ```bash
-# Check if variables are set
-echo $DUCKDB_LIB_DIR
-echo $DUCKDB_INCLUDE_DIR
+# Check whether a release asset is reachable
+ls -la ~/.frozen-duckdb/cache/v1.5.5-*/
 
-# Set them manually if needed
-export DUCKDB_LIB_DIR="/path/to/frozen-duckdb/prebuilt"
-export DUCKDB_INCLUDE_DIR="/path/to/frozen-duckdb/prebuilt"
+# If the cache is empty, the builder downloads libduckdb_{arch}.dylib from
+# GitHub Releases; it falls back to a local compile pinned at upstream
+# tag v1.5.5 only when no asset is reachable
+cargo clean && cargo build
 ```
 
 #### 2. Binary Not Found
@@ -384,48 +279,36 @@ export DUCKDB_INCLUDE_DIR="/path/to/frozen-duckdb/prebuilt"
 
 **Solution:**
 ```bash
-# Check binary location
-ls -la /path/to/frozen-duckdb/prebuilt/libduckdb*
+# Check the builder-managed cache
+find ~/.frozen-duckdb/cache -name 'libduckdb*'
 
-# Verify correct binary for your architecture
-source /path/to/frozen-duckdb/prebuilt/setup_env.sh
-echo "Selected binary: $DUCKDB_LIB"
+# Verify the universal binary for your platform
+lipo -info ~/.frozen-duckdb/cache/v1.5.5-*/libduckdb_*.dylib
 ```
 
 #### 3. Architecture Mismatch
 
-**Error:** Binary doesn't match system architecture
+The builder detects the architecture via `uname -m` and each v1.5.5 asset is a universal
+binary (arm64 + x86_64), so a mismatch cannot strand you on macOS. Verify with:
 
-**Solution:**
 ```bash
-# Check system architecture
 uname -m
-
-# Override architecture if needed
-ARCH=x86_64 source /path/to/frozen-duckdb/prebuilt/setup_env.sh
+lipo -info ~/.frozen-duckdb/cache/v1.5.5-*/libduckdb_*.dylib
 ```
 
-#### 4. Build Script Issues
+#### 4. Runtime Crashes: "Library not loaded"
 
-**Error:** Compilation fails with linking errors
+**Error:** `dyld[...]: Library not loaded: @rpath/libduckdb.dylib`
 
 **Solution:**
-```rust
-// In build.rs - add better error handling
-if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-    let lib_path = Path::new(&lib_dir);
+This should not happen for binaries, tests, and examples built through
+frozen-duckdb — the build script emits `-Wl,-rpath,{cache_dir}` automatically.
+If you link the dylib from a custom build system, add the matching rpath yourself:
 
-    // Validate binary exists
-    let binary_exists = lib_path.join("libduckdb.dylib").exists() ||
-                       lib_path.join("libduckdb_x86_64.dylib").exists() ||
-                       lib_path.join("libduckdb_arm64.dylib").exists();
-
-    if !binary_exists {
-        panic!("No DuckDB binary found in {}", lib_dir.display());
-    }
-
-    // Continue with configuration...
-}
+```bash
+# Inspect what the loader sees
+otool -l target/debug/your-binary | grep -A2 LC_RPATH
+otool -L target/debug/your-binary
 ```
 
 ### Debug Integration
@@ -434,15 +317,12 @@ if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
 # Show build configuration
 RUST_LOG=debug cargo build
 
-# Check linked libraries
+# Check linked libraries and rpath
 otool -L target/debug/your-binary
+otool -l target/debug/your-binary | grep -A2 LC_RPATH
 
-# Verify environment setup
-/path/to/frozen-duckdb/prebuilt/setup_env.sh
-echo "Environment configured:"
-echo "  DUCKDB_LIB_DIR: $DUCKDB_LIB_DIR"
-echo "  DUCKDB_INCLUDE_DIR: $DUCKDB_INCLUDE_DIR"
-echo "  Selected binary: $(ls -la $DUCKDB_LIB_DIR/libduckdb* | head -1)"
+# Check the cache layout (headers under duckdb/, plain libduckdb.dylib link name)
+ls -la ~/.frozen-duckdb/cache/v1.5.5-*/
 ```
 
 ## Performance Validation
@@ -492,22 +372,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use frozen_duckdb::{architecture, env_setup};
+    use frozen_duckdb::{architecture, Connection};
 
     #[test]
     fn test_frozen_duckdb_integration() {
-        // Verify environment is configured
-        assert!(env_setup::is_configured(), "Frozen DuckDB not configured");
-
         // Verify architecture detection works
         let arch = architecture::detect();
         assert!(!arch.is_empty());
 
-        // Verify binary validation passes
-        env_setup::validate_binary().expect("Binary validation failed");
-
-        // Test that DuckDB operations work
-        let conn = duckdb::Connection::open_in_memory().unwrap();
+        // Test that DuckDB operations work through the frozen binary.
+        // The build itself already exercised binary acquisition
+        // (ensure_binary) and runtime loading (emitted @rpath).
+        let conn = Connection::open_in_memory().unwrap();
         conn.execute("SELECT 1", []).unwrap();
     }
 }
@@ -515,30 +391,30 @@ mod integration_tests {
 
 ## Best Practices
 
-### 1. Environment Management
+### 1. Zero Environment Management
 
-- **Always source setup script** before building
-- **Export environment variables** for persistent configuration
-- **Validate setup** in CI/CD pipelines
-- **Document setup process** for team members
+- **No setup script needed** — the builder acquires the binary inside the cargo build
+- **No environment variables** — runtime loading goes through the emitted `@rpath`
+- **Trust the cache** — `~/.frozen-duckdb/cache/v1.5.5-{arch}/` is reused across projects
+- **CI/CD needs no setup step** either
 
-### 2. Build Script Design
+### 2. Build Configuration
 
-- **Defensive programming**: Handle missing environment gracefully
-- **Clear error messages**: Help users understand configuration issues
+- **No custom build.rs** — frozen-duckdb-sys and frozen-duckdb handle linking and rpath
+- **Clear error messages**: builder failures name the missing asset or cache path
 - **Performance validation**: Verify expected build time improvements
-- **Documentation**: Comment build script thoroughly
+- **Documentation**: Keep team docs aligned with the zero-setup reality
 
 ### 3. CI/CD Optimization
 
-- **Early environment setup**: Configure before dependency installation
-- **Cached binaries**: Reuse frozen DuckDB across pipeline stages
+- **No environment setup**: Configure nothing before `cargo build`
+- **Cached binaries**: The builder reuses the cache within a runner; prime it once for large fleets
 - **Parallel builds**: Take advantage of faster build times
-- **Artifact optimization**: Smaller binaries for faster deployments
+- **Platform awareness**: Prebuilt assets are macOS-only; Linux/Windows use the local-compile fallback (pinned at upstream tag v1.5.5)
 
 ### 4. Team Collaboration
 
-- **Shared setup scripts**: Consistent configuration across team
+- **Share nothing but the dependency**: Consistent zero-configuration across team
 - **Documentation updates**: Update README with integration steps
 - **Performance communication**: Share build time improvements
 - **Troubleshooting guides**: Common issues and solutions
@@ -553,48 +429,34 @@ mod integration_tests {
 members = ["project1", "project2", "shared"]
 
 [workspace.dependencies]
-duckdb = { version = "1.5.5", default-features = false }
+frozen-duckdb = "1.5.5"
 ```
 
-```rust
-// workspace build script
-fn main() {
-    // Configure for entire workspace
-    if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-        println!("cargo:rustc-link-search=native={}", lib_dir);
-        println!("cargo:rustc-link-lib=dylib=duckdb");
-    }
-}
-```
+No workspace-level build script is needed — every member that depends on
+`frozen-duckdb` shares the same cached dylib in `~/.frozen-duckdb/cache/`.
 
 ### Cross-Platform Development
 
 ```bash
-# Different binaries for different platforms
+# Prebuilt release assets are macOS-only (universal arm64 + x86_64 dylibs)
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS setup
-    source prebuilt/setup_env.sh
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    # Linux setup (future)
-    source prebuilt/setup_env_linux.sh
+    # macOS: prebuilt asset downloaded automatically
+    cargo build
+else
+    # Linux/Windows: builder falls back to a local DuckDB compile
+    # pinned at upstream tag v1.5.5 (slow but functional)
+    cargo build
 fi
 ```
 
 ### Development vs Production
 
-```rust
-// Conditional build configuration
-fn main() {
-    let is_production = env::var("PRODUCTION").is_ok();
+No configuration switch is needed — the same prebuilt dylib and rpath behavior
+apply in development and production:
 
-    if is_production || env::var("DUCKDB_LIB_DIR").is_ok() {
-        // Use frozen DuckDB for fast builds
-        configure_frozen_duckdb();
-    } else {
-        // Use bundled for development flexibility
-        println!("cargo:warning=Using bundled DuckDB for development");
-    }
-}
+```toml
+[dependencies]
+frozen-duckdb = "1.5.5"
 ```
 
 ## Performance Monitoring
@@ -608,8 +470,7 @@ fn main() {
 echo "Build started at $(date)"
 start_time=$(date +%s)
 
-# Build with frozen DuckDB
-source ../frozen-duckdb/prebuilt/setup_env.sh
+# First build includes the one-time dylib download; later builds reuse the cache
 cargo build
 
 end_time=$(date +%s)
@@ -626,23 +487,12 @@ fi
 ### Integration Health Checks
 
 ```rust
+use frozen_duckdb::Connection;
+
 fn check_integration_health() -> Result<(), Box<dyn std::error::Error>> {
-    // Check environment configuration
-    if !env_setup::is_configured() {
-        return Err("Frozen DuckDB not configured".into());
-    }
-
-    // Validate binary accessibility
-    env_setup::validate_binary()?;
-
-    // Verify architecture compatibility
-    let arch = architecture::detect();
-    if !architecture::is_supported(&arch) {
-        return Err(format!("Architecture {} not optimized", arch).into());
-    }
-
-    // Test basic DuckDB functionality
-    let conn = duckdb::Connection::open_in_memory()?;
+    // The definitive health check: a real query through the frozen binary.
+    // Binary acquisition and rpath loading are exercised by the build itself.
+    let conn = Connection::open_in_memory()?;
     conn.execute("SELECT 1", [])?;
 
     Ok(())
@@ -651,22 +501,22 @@ fn check_integration_health() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Summary
 
-Integrating Frozen DuckDB into your Rust project is **straightforward** and delivers **immediate performance benefits**. The integration requires minimal code changes while providing **99% faster builds** and **complete compatibility** with existing `duckdb-rs` usage.
+Integrating Frozen DuckDB into your Rust project is **straightforward** and delivers **immediate performance benefits**. Swap the dependency and build — no code changes beyond the import, no build script, and no environment setup — while retaining **complete compatibility** with existing `duckdb-rs` usage.
 
 **Key Integration Points:**
-- **Environment setup**: Source `setup_env.sh` before building
-- **Build script**: Configure library linking and includes
-- **CI/CD**: Add setup steps to build pipelines
-- **Development workflow**: Update team processes for faster builds
+- **Dependency**: `frozen-duckdb = "1.5.5"` (crate version mirrors bundled DuckDB 1.5.5)
+- **Binary acquisition**: automatic — GitHub Release download, cached in `~/.frozen-duckdb/cache/v1.5.5-{arch}/`, normalized with vendored 1.5.5 headers
+- **Runtime**: emitted `@rpath` — no `DYLD_*` variables for binaries, tests, or examples
+- **CI/CD**: no setup steps needed
 
 **Benefits Achieved:**
 - **99% faster incremental builds** (0.11s vs 30s)
 - **85% faster first builds** (7-10s vs 1-2 minutes)
-- **50% smaller binaries** (architecture-specific optimization)
+- **Universal dylibs** (~117MB asset serving arm64 + x86_64, no compilation)
 - **Zero breaking changes** (drop-in replacement)
 
 **Next Steps:**
-1. Follow the [Quick Start Guide](../README.md#quick-start)
+1. Follow the [Quick Start Guide](../../QUICKSTART.md)
 2. Update your CI/CD pipelines for faster builds
 3. Share performance improvements with your team
 4. Consider the [LLM Setup Guide](./llm-setup.md) for AI capabilities

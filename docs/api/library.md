@@ -51,9 +51,11 @@ assert!(!architecture::is_supported("unknown"));
 ```
 
 **Supported Architectures:**
-- `x86_64`: Intel/AMD 64-bit processors (55MB optimized binary)
-- `arm64`: Apple Silicon processors (50MB optimized binary)
-- `aarch64`: ARM 64-bit processors (same as arm64, 50MB optimized binary)
+- `x86_64`: Intel/AMD 64-bit processors
+- `arm64`: Apple Silicon processors
+- `aarch64`: ARM 64-bit processors (same as arm64)
+
+Each v1.5.5 release asset is a universal binary containing both arm64 and x86_64 slices (~117MB per asset).
 
 #### `get_binary_name() -> String`
 
@@ -73,11 +75,11 @@ std::env::remove_var("ARCH");
 ```
 
 **Binary Mapping:**
-| Architecture | Binary Name | Size | Optimization |
-|--------------|-------------|------|--------------|
-| x86_64 | libduckdb_x86_64.dylib | 55MB | Intel/AMD optimized |
-| arm64/aarch64 | libduckdb_arm64.dylib | 50MB | ARM optimized |
-| Other | libduckdb.dylib | ~50MB | Generic fallback |
+| Architecture | Binary Name | Size | Notes |
+|--------------|-------------|------|-------|
+| x86_64 | libduckdb_x86_64.dylib | ~117MB | universal (arm64 + x86_64) |
+| arm64/aarch64 | libduckdb_arm64.dylib | ~117MB | universal (arm64 + x86_64) |
+| Other | libduckdb.dylib | — | link name created by the builder/cache normalization |
 
 ### Performance Characteristics
 
@@ -127,9 +129,9 @@ if let Some(lib_dir) = env_setup::get_lib_dir() {
 ```
 
 **Expected Directory Contents:**
-- `libduckdb_x86_64.dylib` (55MB) - Intel/AMD 64-bit binary
-- `libduckdb_arm64.dylib` (50MB) - Apple Silicon/ARM 64-bit binary
-- `libduckdb.dylib` - Generic fallback binary
+- `libduckdb_{arch}.dylib` (~117MB) — universal binary (arm64 + x86_64)
+- `libduckdb.dylib` — link name (symlink to the cached arch binary)
+- `duckdb/` — header directory used by bindgen
 
 #### `get_include_dir() -> Option<String>`
 
@@ -147,8 +149,10 @@ if let Some(include_dir) = env_setup::get_include_dir() {
 ```
 
 **Expected Directory Contents:**
-- `duckdb.h` (186KB) - C header file
-- `duckdb.hpp` (1.8MB) - C++ header file
+- `duckdb.h` (244KB) - C header file for DuckDB 1.5.5
+- `duckdb.hpp` (2.0MB) - C++ header file for DuckDB 1.5.5
+
+The same 1.5.5 headers are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works offline.
 
 #### `validate_binary() -> Result<()>`
 

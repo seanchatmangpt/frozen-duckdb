@@ -118,19 +118,18 @@ Options:
 ```
 
 **Information Displayed:**
-- **Version**: Frozen DuckDB version
+- **Version**: Frozen DuckDB version (the crate version, mirroring the bundled DuckDB version)
 - **Build Type**: Pre-compiled binary
 - **Architecture**: Current system architecture
 - **Available Extensions**: DuckDB extensions loaded
-- **Environment Status**: Configuration validation
 
 **Example Output:**
 ```bash
 🦆 Frozen DuckDB Information
-  Version: 0.1.0
+  Version: 1.5.5
   Build Type: Pre-compiled binary
   Architecture: arm64
-  Target: darwin
+  Target: macos
   Available Extensions: parquet, tpch, flock
 ```
 

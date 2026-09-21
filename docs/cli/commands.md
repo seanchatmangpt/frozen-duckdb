@@ -197,41 +197,35 @@ Options:
 ```
 
 **Information Categories:**
-- **Version Information**: Frozen DuckDB version and build type
-- **Architecture Details**: System architecture and binary selection
+- **Version Information**: Frozen DuckDB version (the crate version, mirroring the bundled DuckDB version)
+- **Architecture Details**: System architecture and target OS
 - **Extension Status**: Available DuckDB extensions
-- **Environment Validation**: Configuration status
-- **Performance Metrics**: Build time and resource usage
 
 **Example Output:**
 ```bash
 🦆 Frozen DuckDB Information
-  Version: 0.1.0
+  Version: 1.5.5
   Build Type: Pre-compiled binary
   Architecture: arm64
-  Target: darwin
+  Target: macos
   Available Extensions: parquet, tpch, flock
-  Library Directory: /Users/sac/dev/frozen-duckdb/prebuilt
-  Binary Size: 50MB (libduckdb_arm64.dylib)
 ```
 
 **Verbose Output:**
 ```bash
-# With -v flag
-frozen-duckdb info -v
+# With -v flag, tracing emits DEBUG-level detail alongside the same fields
+frozen-duckdb -v info
 
 🦆 Frozen DuckDB Information
-  Version: 0.1.0
+  Version: 1.5.5
   Build Type: Pre-compiled binary
   Architecture: arm64
-  Target: darwin
+  Target: macos
   Available Extensions: parquet, tpch, flock, arrow, json
-  Library Directory: /Users/sac/dev/frozen-duckdb/prebuilt
-  Include Directory: /Users/sac/dev/frozen-duckdb/prebuilt
-  Binary Size: 50MB (libduckdb_arm64.dylib)
-  Environment Status: ✅ Configured
-  Performance: Build time <10s, Memory <200MB
 ```
+
+The prebuilt dylib behind this command is cached at
+`~/.frozen-duckdb/cache/v1.5.5-{arch}/` (universal binary, arm64 + x86_64).
 
 ### `test` Command
 
