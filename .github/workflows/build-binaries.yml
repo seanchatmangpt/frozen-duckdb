@@ -79,13 +79,10 @@ jobs:
         run: |
           # frozen-duckdb-builder::ensure_binary() downloads
           # releases/download/v{VERSION}/libduckdb_{arch}.dylib, so the released
-          # asset must carry exactly that name. Search the versioned cache for
-          # it first, fall back to the legacy mega-library name, then stage a
-          # copy under the canonical download name.
+          # asset must carry exactly that name. The versioned cache also stores
+          # it under that name (the legacy libfrozen_mega_* name is no longer
+          # produced by the builder).
           BINARY_PATH=$(find "$HOME/.frozen-duckdb/cache" -path "*/v*/libduckdb_${{ matrix.arch }}.dylib" | head -1)
-          if [ -z "$BINARY_PATH" ]; then
-            BINARY_PATH=$(find "$HOME/.frozen-duckdb/cache" -name "libfrozen_mega_${{ matrix.arch }}.dylib" | head -1)
-          fi
           if [ -z "$BINARY_PATH" ]; then
             echo "Could not find built binary"
             exit 1
