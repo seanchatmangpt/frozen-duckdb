@@ -72,18 +72,20 @@ Closes #1 (asked 2026-03-23: "Do you plan to release a version with DuckDB 1.5?"
 
 ## Test plan
 
+> Final consolidated run on merged head `be1b611`: `cargo test --workspace` → **exit 0, 294 passed / 0 failed across 16 suites**.
+
 Gate results owned by their tickets are recorded in
 `docs/sjira/v26.9.21/MILESTONE.md` and each ticket's History. Slots below are
 to be filled from those tickets before merge:
 
-- [FILL: T2A — `cargo test -p frozen-duckdb --lib` → exit 0]
-- [FILL: T2A — `cargo test -p frozen-duckdb --test frozen_duckdb_tests --test dropin_compatibility_tests --test core_functionality_tests` → exit 0 or documented `#[ignore]` + UNSUPPORTED row]
-- [FILL: T2B — arrow/parquet/vss/tpch/flock suites → exit 0 with gated skips documented]
-- [FILL: T3 — `cargo build --workspace --examples` → exit 0; `cargo run --example basic_usage` → exit 0 with output]
-- [FILL: T4 — `grep -rn '1\.4\.0' --include='*.md'` → only intentional-historical hits]
-- [FILL: T5 — `cargo clippy --workspace --all-targets --all-features -- -D warnings` → exit 0; `cargo fmt --check` → exit 0; workflows yaml-parse]
-- [FILL: T6 — `grep -rn 'v1\.4' scripts/` → zero live pins; `bash -n` on edited scripts → exit 0]
-- [FILL: T7 — cache-normalization probes (delete + rebuild), `otool -l` LC_RPATH, clean-env CLI execution, ctypes `duckdb_library_version() == v1.5.5`]
+- ✅ `cargo test -p frozen-duckdb --lib` → exit 0 (T2A: 140 passed; superseded on merged head by full-workspace run)
+- ✅ frozen_duckdb_tests / dropin_compatibility_tests / core_functionality_tests → exit 0 (10 + 7 + 8 passed)
+- ✅ arrow 6/6, parquet 6/6, vss 8/8, tpch 6/6 (real INSTALL/LOAD/dbgen runs; dbgen serialized — process-global state, SIGSEGV under parallel harness); flock 11/11 SKIP-gated on FLOCK_TEST=1; polars compile-gated (UNSUPPORTED: polars dev-dep not carried)
+- ✅ `cargo build --workspace --examples` → exit 0; `cargo run --example basic_usage` → exit 0 (1000 queries in 153 ms); `cargo run --example performance_comparison` → exit 0
+- ✅ remaining `1.4.0` md mentions: CHANGELOG release note, CONTEXT.md Phase-1 history, ADR snapshot, sjira tickets — all intentional-historical
+- ✅ clippy `-D warnings` → exit 0; `cargo fmt --all -- --check` → exit 0; all workflows yaml-parse (re-verified on merged head)
+- ✅ zero live v1.4 pins in scripts/; `bash -n` green; duckdb-rs clones pinned v1.10505.0 (verified via git ls-remote)
+- ✅ cache normalization observed live (deleted duckdb/ + libduckdb.dylib → build restored both from vendored headers + symlink); LC_RPATH = v1.5.5-arm64 cache; `env -i` CLI run exit 0; ctypes `duckdb_library_version()` == v1.5.5
 
 ### Release pre-flight (T8, observed 2026-09-21)
 
