@@ -19,7 +19,7 @@ echo "=============================================="
 echo ""
 
 # Configuration
-DUCKDB_VERSION="1.4.1"
+DUCKDB_VERSION="1.5.5"
 BUILD_DIR="duckdb-build"
 PREBUILT_DIR="prebuilt"
 
