@@ -32,15 +32,20 @@ impl Statement<'_> {
     /// sure that current statement has already been stepped once before
     /// calling this method.
     ///
-    /// # Caveats
-    /// Panics if the query has not been [`execute`](Statement::execute)d yet.
-    pub fn column_names(&self) -> Vec<String> {
-        self.stmt
-            .schema()
+    /// # Failure
+    ///
+    /// Returns an `Error::StatementNotExecuted` if the query has not been
+    /// [`execute`](Statement::execute)d yet.
+    pub fn column_names(&self) -> Result<Vec<String>> {
+        let schema = self
+            .stmt
+            .try_schema()
+            .ok_or(Error::StatementNotExecuted)?;
+        Ok(schema
             .fields()
             .iter()
             .map(|f| f.name().to_owned())
-            .collect()
+            .collect())
     }
 
     /// Return the number of columns in the result set returned by the prepared

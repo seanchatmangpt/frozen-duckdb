@@ -866,12 +866,12 @@ mod test {
         let mut stmt = db.prepare("SELECT * FROM foo")?;
         stmt.execute([])?;
         assert_eq!(stmt.column_count(), 1);
-        assert_eq!(stmt.column_names(), vec!["x"]);
+        assert_eq!(stmt.column_names()?, vec!["x"]);
 
         let mut stmt = db.prepare("SELECT x AS a, x AS b FROM foo")?;
         stmt.execute([])?;
         assert_eq!(stmt.column_count(), 2);
-        assert_eq!(stmt.column_names(), vec!["a", "b"]);
+        assert_eq!(stmt.column_names()?, vec!["a", "b"]);
         Ok(())
     }
 
