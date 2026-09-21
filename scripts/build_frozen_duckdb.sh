@@ -23,8 +23,8 @@ mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
 if [ ! -d "duckdb-rs" ]; then
-    echo "Cloning duckdb-rs repository..."
-    git clone https://github.com/duckdb/duckdb-rs.git
+    echo "Cloning duckdb-rs repository (pinned to v1.10505.0 = DuckDB 1.5.5)..."
+    git clone --branch v1.10505.0 https://github.com/duckdb/duckdb-rs.git
 fi
 cd duckdb-rs
 
