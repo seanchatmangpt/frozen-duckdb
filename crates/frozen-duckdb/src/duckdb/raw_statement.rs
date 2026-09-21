@@ -213,6 +213,13 @@ impl RawStatement {
         self.schema().field(idx).data_type().to_owned()
     }
 
+    /// Returns the result schema if the statement has been executed, `None`
+    /// otherwise. Unlike [`schema`](Self::schema), this never panics.
+    #[inline]
+    pub(crate) fn try_schema(&self) -> Option<SchemaRef> {
+        self.schema.clone()
+    }
+
     #[inline]
     pub fn schema(&self) -> SchemaRef {
         self.schema.clone().unwrap()

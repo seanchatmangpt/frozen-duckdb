@@ -87,6 +87,11 @@ pub enum Error {
 
     /// Append Error
     AppendError,
+
+    /// Error when result schema information is requested from a statement
+    /// that has not been executed yet (e.g.,
+    /// [`column_names`](crate::duckdb::Statement::column_names)).
+    StatementNotExecuted,
 }
 
 impl PartialEq for Error {
@@ -201,6 +206,9 @@ impl fmt::Display for Error {
             Self::InvalidQuery => write!(f, "Query is not read-only"),
             Self::MultipleStatement => write!(f, "Multiple statements provided"),
             Self::AppendError => write!(f, "Append error"),
+            Self::StatementNotExecuted => {
+                write!(f, "The statement was not executed yet")
+            }
         }
     }
 }
@@ -226,7 +234,8 @@ impl error::Error for Error {
             | Self::InvalidQuery
             | Self::AppendError
             | Self::ArrowTypeToDuckdbType(..)
-            | Self::MultipleStatement => None,
+            | Self::MultipleStatement
+            | Self::StatementNotExecuted => None,
             Self::FromSqlConversionFailure(_, _, ref err)
             | Self::ToSqlConversionFailure(ref err) => Some(&**err),
         }
