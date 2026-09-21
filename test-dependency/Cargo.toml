@@ -5,7 +5,11 @@ edition = "2021"
 
 [dependencies]
 frozen-duckdb = { path = "../" }
-duckdb = "1.5"
+# crates.io encodes DuckDB 1.5.5 as 1.10505.0 — no "1.5" release exists
+duckdb = "1.10505"
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+
+# standalone consumer simulation — not part of the root workspace
+[workspace]
