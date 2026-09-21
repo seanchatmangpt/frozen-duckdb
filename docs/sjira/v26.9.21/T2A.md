@@ -23,6 +23,8 @@ Anything outside scope: do not edit — record BLOCKED with the reason instead.
 ## Work order
 
 
+Context: tests/ are integration tests — 'crate::' paths are illegal there; use frozen_duckdb::. test_all_types.rs moved from lib-cfg-test to tests/: fix paths, then run it against DuckDB 1.5.5 and repair the EXCLUDE list / match fallthrough (todo!() panics on unknown columns; 1.5.5 may add GEOMETRY/VARIANT) and any golden drift, empirically driven by failures. dev-dep pretty_assertions is already declared.
+DoD: [ ] cargo test -p frozen-duckdb --lib → exit 0  [ ] cargo test -p frozen-duckdb --test frozen_duckdb_tests --test dropin_compatibility_tests --test core_functionality_tests → exit 0 (or documented #[ignore] + UNSUPPORTED row in History)  [ ] all fixes committed atomically on feat/155-tests-core
 
 ## Contract (all tickets)
 
@@ -37,4 +39,4 @@ Anything outside scope: do not edit — record BLOCKED with the reason instead.
 
 | ts | standing | branch+SHA | gates+exits | remaining |
 |----|----------|------------|-------------|-----------|
-| 2026-09-21 | OPEN | feat/155-tests-core@ac9c5e3 | not started | all of DoD |
+| 2026-09-21 | OPEN | feat/155-tests-core@c8e5788 | not started | all of DoD |

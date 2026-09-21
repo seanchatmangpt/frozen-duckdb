@@ -159,7 +159,11 @@ EOF
 
 # render tickets
 for spec in "${SPECS[@]}"; do
-  IFS='|' read -r id title wt branch scope body <<< "$spec"
+  id="${spec%%|*}";        rest="${spec#*|}"
+  title="${rest%%|*}";     rest="${rest#*|}"
+  wt="${rest%%|*}";        rest="${rest#*|}"
+  branch="${rest%%|*}";    rest="${rest#*|}"
+  scope="${rest%%|*}";     body="${rest#*|}"
   render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body"
 done
 

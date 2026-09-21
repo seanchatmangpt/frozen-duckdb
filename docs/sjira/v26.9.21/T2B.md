@@ -23,6 +23,8 @@ Anything outside scope: do not edit — record BLOCKED with the reason instead.
 ## Work order
 
 
+Context: fix 'use duckdb::' → 'use frozen_duckdb::'. polars_tests.rs imports a polars crate that is not a dependency → gate whole file with #![cfg(feature = "polars")] + UNSUPPORTED(polars dev-dep not carried) note; do NOT add polars. flock_tests.rs needs community extension flock + live Ollama → runtime gate: early-return SKIP unless env FLOCK_TEST=1. tpch/parquet: official 1.5.5 dylib ships parquet statically; tpch needs network INSTALL — attempt real run; if network-blocked, env-gate DUCKDB_NET_TESTS=1 with default-on and note. vss probes soft-skip by design — keep.
+DoD: [ ] cargo test -p frozen-duckdb --test arrow_tests --test parquet_tests --test vss_tests --test tpch_integration_test --test flock_tests → exit 0 (gated skips documented in History)  [ ] committed
 
 ## Contract (all tickets)
 
@@ -37,4 +39,4 @@ Anything outside scope: do not edit — record BLOCKED with the reason instead.
 
 | ts | standing | branch+SHA | gates+exits | remaining |
 |----|----------|------------|-------------|-----------|
-| 2026-09-21 | OPEN | feat/155-tests-ext@ac9c5e3 | not started | all of DoD |
+| 2026-09-21 | OPEN | feat/155-tests-ext@c8e5788 | not started | all of DoD |
