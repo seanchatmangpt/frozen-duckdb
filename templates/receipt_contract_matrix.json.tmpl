@@ -1,0 +1,7 @@
+{
+  "generated_by": "frozen-duckdb ggen.toml rule receipt-contract-census (facts: receipt-provenance-unification-pack ontology.ttl + schema/domain.ttl)",
+  "note": "Machine-consumable census of every rp: receipt contract in the merged graph, including this repo's ggen_sync_receipt contract. Do not hand-edit; regenerate with `ggen sync run`. Adapted from receipt-provenance-unification-pack/templates/receipt_contract_matrix.json.tmpl — its frontmatter multi-query form is unreachable from the consumer [[generation.rules]] path (single `results` binding); see docs/sjira/v26.9.21/C5.md History.",
+  "fields": [
+{% for r in results %}    {"contract": {{ r.key | json_encode }}, "title": {{ r.title | json_encode }}, "path": {{ r.path | json_encode }}, "value_form": {{ r.form | json_encode }}, "json_type": {{ r.jtype | json_encode }}, "pattern": {{ r.pattern | json_encode }}, "mandatory": {{ r.mandatory }}}{% if not loop.last %},{% endif %}
+{% endfor %}  ]
+}

@@ -13,18 +13,55 @@ license = "MIT"
 [ontology]
 source = "schema/domain.ttl"
 standard_only = true
+# C5 (v26.9.21 wave 4): REUSE receipt-provenance-unification-pack. The ticket's
+# [[ontology.pack]] form FAILED against ggen 26.8.18 — [ontology] accepts only
+# source/imports/base_iri/prefixes/standard_only (FM-CONFIG-003, observed
+# 2026-09-21, recorded in docs/sjira/v26.9.21/C5.md History). Lawful
+# composition on this CLI: import the pack ontology (merged into the sync
+# graph, read-only marketplace source) and render its templates via
+# [[generation.rules]].
+imports = ["/Users/sac/ggen-marketplace/packs/receipt-provenance-unification-pack/ontology.ttl"]
 
 [generation]
 output_dir = "."
 # Capability waves append [[generation.rules]] entries: each renders one
 # consequence (gate/template output) from the pack ontologies. See
 # docs/sjira/v26.9.21/ wave tickets for the owning ticket per rule.
-rules = []
 
-# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) are declared as
-# [[ontology.pack]] entries: name/version must exist in ~/ggen-marketplace/packs/.
-# Capability waves append their pack entries here; each pack's facts render
-# this repo's gates/templates as consequences.
+# C5: render the pack's unified receipt validator (pure predicate over JSON
+# receipt documents; covers the five transcribed gym-ecosystem contracts plus
+# this repo's ggen_sync_receipt contract declared in schema/domain.ttl).
+# C5: receipt-contract census. The pack's three templates all consume named
+# multi-query results (forms/contracts/fields/divergences via their frontmatter
+# sparql:), while the consumer [[generation.rules]] path binds exactly ONE
+# query as `results` — the pack templates are therefore not directly
+# renderable consumer-side (failed edge, ticket History). Composition: one
+# census query over the merged graph (pack's five transcribed contracts + this
+# repo's ggen_sync_receipt contract in schema/domain.ttl) rendered through the
+# consumer template templates/receipt_contract_matrix.json.tmpl (adapted from
+# the pack's matrix template; UNSUPPORTED row in ticket History).
+[[generation.rules]]
+name = "receipt-contract-census"
+query = { inline = "PREFIX rp: <http://seanchatmangpt.github.io/packs/receipt-provenance#> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> PREFIX dcterms: <http://purl.org/dc/terms/> SELECT ?key ?title ?path ?form ?pattern ?jtype ?mandatory WHERE { ?f a rp:FieldBinding ; rp:contract ?c ; rp:dottedPath ?path ; rp:mandatory ?mandatory ; rp:valueForm ?vf . ?c rp:contractKey ?key ; dcterms:title ?title . ?vf skos:prefLabel ?form ; rp:jsonType ?jtype ; rp:pattern ?pattern . } ORDER BY ?key ?path" }
+template = { file = "templates/receipt_contract_matrix.json.tmpl" }
+output_file = "generated/receipt_contract_matrix.json"
+mode = "Overwrite"
+
+# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT). C5 (v26.9.21
+# wave 4): REUSE receipt-provenance-unification-pack (failed edge for
+# supply-chain-evidence-pack recorded in docs/sjira/v26.9.21/C5.md: its
+# CourtCase/Court family models falsification cases, not receipt contracts).
+# The ticket's [[ontology.pack]] form FAILED against ggen 26.8.18
+# (FM-CONFIG-003: [ontology] accepts only source/imports/base_iri/prefixes/
+# standard_only; observed 2026-09-21, recorded in ticket History). The actual
+# declaration mechanisms on this CLI: [ontology].imports (graph merge) +
+# [[packs]] (pack reference) + [[generation.rules]] (render).
+
+[[packs]]
+name = "receipt-provenance-unification-pack"
+registry = "local"
+path = "/Users/sac/ggen-marketplace/packs/receipt-provenance-unification-pack"
+version = "0.1.0"
 
 [sync]
 enabled = true
