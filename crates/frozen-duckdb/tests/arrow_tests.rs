@@ -4,8 +4,8 @@
 //! in Arrow format for comprehensive testing.
 
 use anyhow::Result;
-use duckdb::arrow::record_batch::RecordBatch;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
+use frozen_duckdb::duckdb::arrow::record_batch::RecordBatch;
 use std::time::Instant;
 use tracing::info;
 
@@ -179,7 +179,7 @@ fn test_complex_analytics_with_arrow() -> Result<()> {
         };
         conn.execute(
             "INSERT INTO complex_analytics VALUES (?, ?, ?, ?, ?)",
-            duckdb::params![
+            frozen_duckdb::params![
                 i % 10, // 10 users
                 event_type,
                 (i as f64) * 0.5,
@@ -240,7 +240,7 @@ fn test_arrow_performance() -> Result<()> {
     for i in 0..1000 {
         conn.execute(
             "INSERT INTO arrow_perf_test VALUES (?, ?, ?, ?)",
-            duckdb::params![
+            frozen_duckdb::params![
                 i,
                 format!("user_{}", i),
                 (i as f64) * 1.5,
