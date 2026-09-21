@@ -1,18 +1,183 @@
 # frozen-duckdb project domain ontology (consumer-side facts)
 # Standard vocabularies only (dcterms, prov, skos) per marketplace law.
+# C2 note: the rdx: facts below are projected by packs/readme-diataxis-pack
+# into the Diataxis docs tree (docs/tutorials/, docs/how-to/, docs/reference/,
+# docs/explanation/, docs/index.md, docs/meta.md). Every fact is seeded
+# honestly from README.md at v1.5.5. Deliberately NOT seeded (failed edges,
+# ledgered in docs/sjira/v26.9.21/C2.md):
+#   rdx:ApiEndpoint / rdx:ApiParameter — the pack models an HTTP API; this
+#     repo's API surface is the duckdb-rs-mirror Rust API, not HTTP.
+#   rdx:ContactChannel — pack admits only email|slack; this repo's support
+#     channel is GitHub (contributing docs linked as rdx:RelatedLink).
+#   rdx:CodeExample / rdx:ExampleFile / rdx:PlaygroundFile — would fan out
+#     files under examples/ and playground/, outside this ticket's scope
+#     (docs/**); real examples live in crates/frozen-duckdb/examples/.
 
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix prov:   <http://www.w3.org/ns/prov#> .
 @prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdx:    <https://seanchatmangpt.github.io/ggen-marketplace/readme-diataxis#> .
 @prefix fd:     <https://seanchatmangpt.github.io/frozen-duckdb/ns#> .
 
-fd:project a prov:Entity ;
+fd:project a prov:Entity, rdx:Project ;
     dcterms:title "frozen-duckdb" ;
     dcterms:description "Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement" ;
     dcterms:version "1.5.5" ;
-    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v1.5.5> .
+    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v1.5.5> ;
+    rdx:license "MIT" ;
+    rdx:repositoryUrl "https://github.com/seanchatmangpt/frozen-duckdb" .
 
 # DuckDB version law: crate version mirrors the bundled upstream release
 fd:duckdbVersionLaw a skos:Concept ;
     skos:prefLabel "crate version mirrors bundled DuckDB release" ;
     skos:notation "1.5.5" .
+
+# ---- Tutorial quadrant: one guided learning path (clone/install/start) ----
+
+fd:run:000 a rdx:RunStep ; rdx:position 0 ; rdx:kind "clone" ;
+    rdx:label "Clone the repository" ;
+    rdx:command "git clone https://github.com/seanchatmangpt/frozen-duckdb.git" .
+fd:run:001 a rdx:RunStep ; rdx:position 1 ; rdx:kind "install" ;
+    rdx:label "Change to the project directory" ;
+    rdx:command "cd frozen-duckdb" .
+fd:run:002 a rdx:RunStep ; rdx:position 2 ; rdx:kind "install" ;
+    rdx:label "Build the workspace (downloads the prebuilt binary on first run)" ;
+    rdx:command "cargo build --workspace" .
+fd:run:003 a rdx:RunStep ; rdx:position 3 ; rdx:kind "start" ;
+    rdx:label "Run the drop-in replacement example" ;
+    rdx:command "cargo run --example dropin_replacement" .
+
+# ---- How-to quadrant: deploy and test are task recipes, not learning ----
+
+fd:run:010 a rdx:RunStep ; rdx:position 10 ; rdx:kind "deploy" ;
+    rdx:label "Tag the release" ;
+    rdx:command "git tag v1.5.5" .
+fd:run:011 a rdx:RunStep ; rdx:position 11 ; rdx:kind "deploy" ;
+    rdx:label "Push the tag to trigger the release build" ;
+    rdx:command "git push origin v1.5.5" .
+
+fd:run:020 a rdx:RunStep ; rdx:position 20 ; rdx:kind "test" ;
+    rdx:label "Run the test suite" ;
+    rdx:command "cargo test --workspace" .
+fd:run:021 a rdx:RunStep ; rdx:position 21 ; rdx:kind "test" ;
+    rdx:label "Run the test suite in release mode" ;
+    rdx:command "cargo test --workspace --release" .
+
+# ---- Reference quadrant -------------------------------------------------
+
+# rdx:FunctionRef: the README's canonical usage surface. frozen-duckdb is a
+# drop-in duckdb-rs replacement (same API), so these signatures describe the
+# mirrored duckdb-rs API as demonstrated in README.md's usage block.
+fd:fn:000 a rdx:FunctionRef ; rdx:position 0 ;
+    rdx:signature "Connection::open_in_memory()" ;
+    dcterms:description "Open an in-memory DuckDB connection." .
+fd:fn:001 a rdx:FunctionRef ; rdx:position 1 ;
+    rdx:signature "Connection::execute_batch(sql)" ;
+    dcterms:description "Execute a batch of SQL statements (CREATE TABLE, INSERT, ...)." .
+fd:fn:002 a rdx:FunctionRef ; rdx:position 2 ;
+    rdx:signature "Connection::prepare(sql)" ;
+    dcterms:description "Prepare a SQL statement for repeated parameterized execution." .
+fd:fn:003 a rdx:FunctionRef ; rdx:position 3 ;
+    rdx:signature "Statement::query_row(params, row_mapper)" ;
+    dcterms:description "Execute a prepared query and map the first result row." .
+
+fd:env:arch a rdx:EnvVar ;
+    rdx:varName "ARCH" ; rdx:required false ;
+    dcterms:description "Selects the architecture for prebuilt/setup_env.sh and the architecture helper module only; the builder's download path is unaffected because each v1.5.5 release asset is a universal binary (arm64 + x86_64)." .
+fd:env:rustlog a rdx:EnvVar ;
+    rdx:varName "RUST_LOG" ; rdx:required false ;
+    dcterms:description "Set to debug for verbose build output." .
+
+fd:tech:rust a rdx:TechStackItem ; rdx:layer "client" ; rdx:techName "Rust (three-crate workspace)" .
+fd:tech:cargo a rdx:TechStackItem ; rdx:layer "client" ; rdx:techName "Cargo" .
+fd:tech:duckdb a rdx:TechStackItem ; rdx:layer "server" ; rdx:techName "DuckDB 1.5.5 (embedded engine, all extensions enabled)" .
+fd:tech:releases a rdx:TechStackItem ; rdx:layer "server" ; rdx:techName "GitHub Releases (prebuilt universal dylibs, cached under ~/.frozen-duckdb/)" .
+
+# ---- How-to quadrant: usage examples (task recipes) ----------------------
+
+fd:usage:000 a rdx:UsageExample ; rdx:position 0 ; rdx:language "toml" ;
+    dcterms:description "Swap the dependency — no code changes needed; same API as duckdb-rs, 99% faster builds." ;
+    rdx:code """# Before (slow builds)
+duckdb = "1.10505.0"   # upstream duckdb-rs crate bundling DuckDB 1.5.5
+
+# After (99% faster builds)
+frozen-duckdb = "1.5.5"
+""" .
+fd:usage:001 a rdx:UsageExample ; rdx:position 1 ; rdx:language "rust" ;
+    dcterms:description "Open a connection, create a table, insert rows, and query — the drop-in replacement in action." ;
+    rdx:code """use frozen_duckdb::{Connection, Result};
+
+fn main() -> Result<()> {
+    // Same API as duckdb-rs, but 99% faster builds!
+    let conn = Connection::open_in_memory()?;
+
+    conn.execute_batch(
+        "CREATE TABLE users (id INTEGER, name TEXT);
+         INSERT INTO users VALUES (1, 'Alice'), (2, 'Bob');"
+    )?;
+
+    let mut stmt = conn.prepare("SELECT name FROM users WHERE id = ?")?;
+    let name: String = stmt.query_row([1], |row| row.get(0))?;
+
+    println!("User: {}", name); // Prints: User: Alice
+    Ok(())
+}
+""" .
+fd:usage:002 a rdx:UsageExample ; rdx:position 2 ; rdx:language "bash" ;
+    dcterms:description "Install and drive the CLI tool: TPC-H data generation, format conversion, and Flock LLM integration." ;
+    rdx:code """cargo install frozen-duckdb
+frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./data
+frozen-duckdb-cli convert --input data.csv --output data.parquet
+frozen-duckdb-cli flock-setup --text-model llama3.2 --embedding-model nomic-embed-text
+""" .
+
+# ---- Explanation quadrant -------------------------------------------------
+
+fd:faq:000 a rdx:FaqEntry ; rdx:position 0 ;
+    rdx:question "Is frozen-duckdb really a drop-in replacement for duckdb-rs?" ;
+    rdx:answer "Yes — same API, same functionality, no code changes needed; builds are 99% faster." .
+fd:faq:001 a rdx:FaqEntry ; rdx:position 1 ;
+    rdx:question "What does \"Failed to get frozen DuckDB binary\" mean?" ;
+    rdx:answer "The builder is compiling locally. This is normal for first-time use; subsequent builds use the cached binary." .
+fd:faq:002 a rdx:FaqEntry ; rdx:position 2 ;
+    rdx:question "What if no cached binary is found?" ;
+    rdx:answer "Check ~/.frozen-duckdb/cache/ and try cargo clean followed by a rebuild." .
+fd:faq:003 a rdx:FaqEntry ; rdx:position 3 ;
+    rdx:question "What does the ARCH environment variable do?" ;
+    rdx:answer "The builder auto-detects the architecture via uname -m, and each v1.5.5 release asset is a universal binary (arm64 + x86_64) that runs on any supported Mac. ARCH only affects prebuilt/setup_env.sh and the architecture helper module, not the builder's download path." .
+fd:faq:004 a rdx:FaqEntry ; rdx:position 4 ;
+    rdx:question "Why is it called frozen?" ;
+    rdx:answer "The DuckDB mega-library is compiled once, then frozen into prebuilt binaries downloaded from GitHub Releases and cached under ~/.frozen-duckdb/ — builds take seconds instead of minutes." .
+
+fd:lesson:000 a rdx:LessonLearned ; rdx:position 0 ;
+    rdx:text "The Builder Sub-Crate Pattern — an ultra-thin main crate over an FFI sys crate over a builder sub-crate — resolves the fundamental tension between feature richness and build performance." .
+
+fd:opt:000 a rdx:Optimization ; rdx:position 0 ;
+    rdx:text "First builds drop from 10–15 minutes (duckdb-rs source builds) to 2–5 seconds using prebuilt universal binaries." .
+fd:opt:001 a rdx:Optimization ; rdx:position 1 ;
+    rdx:text "Subsequent builds take about 0.1 seconds from the global cache under ~/.frozen-duckdb/." .
+fd:opt:002 a rdx:Optimization ; rdx:position 2 ;
+    rdx:text "No DYLD_* environment variables are needed: the frozen dylib carries the neutral install name @rpath/libduckdb.dylib and the frozen-duckdb build script emits the matching runtime rpath for binaries, tests, and examples." .
+fd:opt:003 a rdx:Optimization ; rdx:position 3 ;
+    rdx:text "Download size is about 117MB for the universal binary (arm64 + x86_64), roughly 40% smaller than the ~200MB it replaces." .
+
+fd:related:000 a rdx:RelatedLink ; rdx:position 0 ;
+    dcterms:title "DuckDB" ; rdx:url "https://duckdb.org" .
+fd:related:001 a rdx:RelatedLink ; rdx:position 1 ;
+    dcterms:title "duckdb-rs (upstream Rust bindings)" ; rdx:url "https://github.com/duckdb/duckdb-rs" .
+fd:related:002 a rdx:RelatedLink ; rdx:position 2 ;
+    dcterms:title "DuckDB v1.5.5 release (bundled upstream)" ; rdx:url "https://github.com/duckdb/duckdb/releases/tag/v1.5.5" .
+fd:related:003 a rdx:RelatedLink ; rdx:position 3 ;
+    dcterms:title "Contributing guide: coding standards" ; rdx:url "https://github.com/seanchatmangpt/frozen-duckdb/blob/master/docs/contributing/coding-standards.md" .
+
+# ---- Meta (outside the four quadrants) ------------------------------------
+
+fd:feature:000 a rdx:Feature ; rdx:position 0 ; rdx:text "Drop-in duckdb-rs replacement — same API, no code changes" .
+fd:feature:001 a rdx:Feature ; rdx:position 1 ; rdx:text "DuckDB 1.5.5 bundled with all extensions enabled: JSON, Parquet, Arrow, ICU, HTTPFS, Visualizer, TPC-H/TPC-DS, FTS, INET, Excel, SQLSmith, TPC-E, Jemalloc, Autoload" .
+fd:feature:002 a rdx:Feature ; rdx:position 2 ; rdx:text "Integration features: Apache Arrow, Polars, R2D2 connection pooling, Serde, Chrono" .
+fd:feature:003 a rdx:Feature ; rdx:position 3 ; rdx:text "Prebuilt macOS universal binaries (arm64 + x86_64) downloaded automatically on first build and cached under ~/.frozen-duckdb/cache/" .
+fd:feature:004 a rdx:Feature ; rdx:position 4 ; rdx:text "Offline-capable builds via vendored DuckDB headers (duckdb.h, duckdb.hpp) in crates/frozen-duckdb-builder/vendored-headers/" .
+fd:feature:005 a rdx:Feature ; rdx:position 5 ; rdx:text "No DYLD_* environment variables needed — neutral @rpath/libduckdb.dylib install name with matching runtime rpath" .
+
+fd:roadmap:000 a rdx:RoadmapItem ; rdx:position 0 ;
+    rdx:text "Prebuilt Linux .so release assets (Linux currently builds via the pinned local-compile fallback of DuckDB v1.5.5 source)" .

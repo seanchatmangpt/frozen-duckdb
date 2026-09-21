@@ -2,37 +2,33 @@
 # 源 hierarchy: ~/ggen-marketplace/marketplace.toml → packs/<name>/pack.toml
 #   → ontology.ttl → templates/ → gates/ → THIS projection.
 # Generated files are consequences: edit the owning pack/ontology, never the
-# projection. Hand-edits to frozen artifacts are detected by freeze_policy.
+# projection.
+#
+# Schema note (C2, wave 4): this file uses ggen's FRONTMATTER schema
+# ([project].name / [ontology].source / [templates].dir / [packs.<name>]),
+# which is the pipeline pack templates (to:/sparql: frontmatter) and pack
+# gates (gates/*.rq) are enforced under. The declarative schema
+# ([[generation.rules]] + [project].version) cannot render
+# readme-diataxis-pack's multi-SELECT templates, and `[[ontology.pack]]`
+# is refused by ggen 26.8.18 ([FM-CONFIG-003] unknown field `pack`) —
+# failed edges ledgered in docs/sjira/v26.9.21/C2.md.
+# Crate identity metadata (version/license/authors) lives in Cargo.toml,
+# not here: [project].version's presence would re-classify this file into
+# the declarative schema.
+
 [project]
 name = "frozen-duckdb"
-version = "1.5.5"
-description = "Drop-in replacement for the duckdb (duckdb-rs) crate backed by prebuilt DuckDB binaries"
-authors = ["Sean Chatman"]
-license = "MIT"
 
 [ontology]
 source = "schema/domain.ttl"
-standard_only = true
 
-[generation]
-output_dir = "."
-# Capability waves append [[generation.rules]] entries: each renders one
-# consequence (gate/template output) from the pack ontologies. See
-# docs/sjira/v26.9.21/ wave tickets for the owning ticket per rule.
-rules = []
+[templates]
+dir = "templates"
 
-# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) are declared as
-# [[ontology.pack]] entries: name/version must exist in ~/ggen-marketplace/packs/.
-# Capability waves append their pack entries here; each pack's facts render
-# this repo's gates/templates as consequences.
-
-[sync]
-enabled = true
-on_change = "manual"
-validate_after = true
-conflict_mode = "fail"
-
-[rdf]
-formats = ["turtle"]
-default_format = "turtle"
-strict_validation = false
+# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) are declared
+# as [packs.<name>] table-of-tables entries; `path` must resolve to an
+# admitted pack in ~/ggen-marketplace/packs/. Absolute path: the marketplace
+# is a machine-level checkout, and a ../-relative path would break at the
+# different checkout depth of the main repo vs. this worktree.
+[packs.readme-diataxis-pack]
+path = "/Users/sac/ggen-marketplace/packs/readme-diataxis-pack"
