@@ -4,6 +4,10 @@
 
 Frozen DuckDB revolutionizes Rust database development with a groundbreaking **Builder Sub-Crate Pattern** that eliminates the most painful aspect of using DuckDB: compilation time. No more waiting 10+ minutes for Arrow, Polars, and ICU to compile.
 
+## 🆕 DuckDB 1.5 Support
+
+**DuckDB v1.5.5 is now supported as of this release.** Prebuilt binaries are cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}` and are downloaded automatically on first build. This is a drop-in upgrade — no code changes are needed for existing users.
+
 ## 🏗️ Revolutionary Architecture
 
 Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Rust crates handle heavy dependencies:
