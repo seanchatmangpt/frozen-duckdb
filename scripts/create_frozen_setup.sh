@@ -145,14 +145,14 @@ fn create_frozen_binary() -> Result<(), Box<dyn std::error::Error>> {
         To complete the setup and get 99% faster builds:\n\n\
         ## Option 1: Use pre-compiled binary (Recommended)\n\
         ```bash\n\
-        # Download pre-compiled DuckDB binary\n\
+        # Download pre-compiled DuckDB binary from frozen-duckdb releases\n\
         curl -L -o prebuilt/libduckdb_{}.dylib \\\n\
-          https://github.com/duckdb/duckdb/releases/download/v1.4.1/libduckdb_{}.dylib\n\
+          https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v1.5.5/libduckdb_{}.dylib\n\
         ```\n\n\
         ## Option 2: Compile from source\n\
         ```bash\n\
-        # Clone and compile DuckDB\n\
-        git clone https://github.com/duckdb/duckdb.git\n\
+        # Clone and compile DuckDB (pinned to v1.5.5)\n\
+        git clone --depth 1 --branch v1.5.5 https://github.com/duckdb/duckdb.git\n\
         cd duckdb\n\
         make -j$(nproc)\n\
         cp build/release/src/libduckdb.* ../prebuilt/\n\
