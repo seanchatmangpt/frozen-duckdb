@@ -693,11 +693,11 @@ CREATE MODEL('fast_coder', 'qwen3-coder:7b', 'ollama');
 
 ## Performance Best Practices
 
-### 1. Environment Setup
+### 1. Build Setup
 
-- **Always source setup script** before building
-- **Use persistent environment variables** for development
-- **Verify configuration** in CI/CD pipelines
+- **No environment setup needed** — the builder acquires the dylib automatically on first build and reuses the cache afterwards
+- **Keep the cache warm** — `~/.frozen-duckdb/cache/v1.5.5-{arch}/` makes subsequent builds near-instant
+- **No CI/CD setup step** — binaries, tests, and examples load the dylib via the emitted `@rpath`
 - **Monitor build times** and investigate anomalies
 
 ### 2. Data Management

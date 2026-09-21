@@ -11,7 +11,7 @@ Traditional DuckDB integration in Rust projects suffers from **severe build perf
 
 ## Solution Architecture
 
-Frozen DuckDB eliminates these bottlenecks through **pre-compiled, architecture-specific binaries** that provide **99% faster builds** while maintaining **100% compatibility**.
+Frozen DuckDB eliminates these bottlenecks through **pre-compiled universal dylibs** (arm64 + x86_64 in each release asset) that provide **99% faster builds** while maintaining **100% compatibility**.
 
 ### Core Optimization Strategy
 
@@ -41,37 +41,44 @@ Frozen DuckDB eliminates these bottlenecks through **pre-compiled, architecture-
 
 ## Technical Implementation
 
-### Build Script Integration (`build.rs`)
+### Build Script Integration (`frozen-duckdb-sys/build.rs`)
+
+Consumers need **no custom build script and no environment variables**. The real integration lives in the `frozen-duckdb-sys` build script:
 
 ```rust
 fn main() {
-    // Check if frozen DuckDB environment is configured
-    if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-        let lib_dir = Path::new(&lib_dir);
-        let include_dir = env::var("DUCKDB_INCLUDE_DIR")
-            .map(|p| Path::new(&p).to_path_buf())
-            .unwrap_or_else(|_| lib_dir.join("include"));
+    // Ensure the frozen DuckDB mega-library is available
+    // (cache hit -> local prebuilt dir -> GitHub Release download
+    //  -> local compile pinned at upstream tag v1.5.5)
+    let binary_path = frozen_duckdb_builder::ensure_binary()
+        .expect("Failed to get frozen DuckDB binary");
 
-        // Configure build to use pre-compiled binary
-        println!("cargo:rustc-link-search=native={}", lib_dir.display());
-        println!("cargo:rustc-link-lib=dylib=duckdb");
-        println!("cargo:include={}", include_dir.display());
+    let lib_dir = binary_path.parent().unwrap();
 
-        // Set rerun triggers
-        println!("cargo:rerun-if-env-changed=DUCKDB_LIB_DIR");
-        println!("cargo:rerun-if-env-changed=DUCKDB_INCLUDE_DIR");
-    } else {
-        // Fall back to bundled compilation
-        println!("cargo:warning=No DUCKDB_LIB_DIR specified, using bundled DuckDB");
-    }
+    // Tell rustc where to find the library, and link it
+    println!("cargo:rustc-link-search=native={}", lib_dir.display());
+    println!("cargo:rustc-link-lib=dylib=duckdb");
+
+    // Expose DEP_DUCKDB_DUCKDB_LIB_DIR to dependent crates (links = "duckdb"),
+    // which frozen-duckdb's build script turns into a runtime @rpath entry
+    println!("cargo:DUCKDB_LIB_DIR={}", lib_dir.display());
+
+    // Bindgen against the builder's vendored 1.5.5 headers
+    build_linked::main(&out_dir, &out_path, lib_dir);
 }
 ```
 
-### Environment Setup (`setup_env.sh`)
+Because the dylib's install name is `@rpath/libduckdb.dylib` and `frozen-duckdb`'s build
+script emits `-Wl,-rpath,{lib_dir}` for binaries, tests, and examples, the built
+artifacts run **without `DYLD_LIBRARY_PATH` or any other environment setup**.
+
+### Legacy Environment Setup (`prebuilt/setup_env.sh`)
+
+The manual prebuilt workflow remains available via `setup_env.sh` (excerpt from the script):
 
 ```bash
 #!/bin/bash
-# Smart environment setup with architecture detection
+# Setup environment for frozen DuckDB binary with architecture detection
 export DUCKDB_LIB_DIR="$(dirname "$(realpath "$0")")"
 export DUCKDB_INCLUDE_DIR="$(dirname "$(realpath "$0")")"
 
@@ -79,20 +86,22 @@ export DUCKDB_INCLUDE_DIR="$(dirname "$(realpath "$0")")"
 ARCH=${ARCH:-$(uname -m)}
 if [[ "$ARCH" == "x86_64" ]]; then
     DUCKDB_LIB="libduckdb_x86_64.dylib"
-    echo "🖥️  Detected x86_64 architecture, using 55MB binary"
 elif [[ "$ARCH" == "arm64" ]]; then
     DUCKDB_LIB="libduckdb_arm64.dylib"
-    echo "🍎 Detected Apple Silicon (arm64), using 50MB binary"
 else
     DUCKDB_LIB="libduckdb.dylib"
-    echo "⚠️  Unknown architecture ($ARCH), using universal binary (105MB)"
 fi
 
-# Create symlinks for compatibility
+# Create symlinks for compatibility. DuckDB >= 1.5 dylibs carry the neutral
+# install name @rpath/libduckdb.dylib, so the plain link name is what matters;
+# the versioned names remain for older 1.4-era consumers
 ln -sf "$DUCKDB_LIB" "$DUCKDB_LIB_DIR/libduckdb.dylib"
 ln -sf "$DUCKDB_LIB" "$DUCKDB_LIB_DIR/libduckdb.1.dylib"
 ln -sf "$DUCKDB_LIB" "$DUCKDB_LIB_DIR/libduckdb.1.4.dylib"
 ```
+
+This script is **not required** for the normal `cargo build` path — the builder handles
+acquisition and linking automatically.
 
 ## Performance Metrics
 
@@ -137,23 +146,23 @@ where
 
 **Problem**: DuckDB is a complex C++ codebase requiring significant compilation time
 
-**Solution**: Use official pre-compiled binaries from DuckDB releases
+**Solution**: Use pre-compiled dylibs published as GitHub Release assets on this repository
 
 **Benefits**:
 - Eliminates compilation step entirely
 - Consistent build times across environments
 - Reduced system resource usage during builds
 
-### 2. Architecture-Specific Optimization
+### 2. Universal Binary Distribution
 
-**Problem**: Universal binaries are larger and may not be optimized for specific architectures
+**Problem**: Publishing per-architecture binaries complicates asset management
 
-**Solution**: Split into architecture-specific binaries with native optimization
+**Solution**: Each v1.5.5 release asset is a universal binary containing both arm64 and x86_64 slices
 
 **Benefits**:
-- 50% smaller download size
-- Better runtime performance (native architecture)
-- Faster initial setup
+- One asset serves Apple Silicon and Intel Macs
+- No architecture-specific asset selection at download time
+- The builder still caches under `v1.5.5-{arch}` per `uname -m` for stable paths
 
 ### 3. Smart Caching Strategy
 
@@ -237,8 +246,8 @@ cargo test --all
 | Operation | Before | After | Improvement |
 |-----------|--------|-------|-------------|
 | **Build memory** | 500MB-1GB | 100MB-200MB | **75% less** |
-| **Disk usage** | 200MB+ | 50-55MB | **75% less** |
-| **Network** | Full source | Binary only | **90% less** |
+| **Disk usage** | 200MB+ (source build tree) | ~117MB universal dylib | **No compilation** |
+| **Network** | Full source | One dylib download | **90% less** |
 
 ### CPU Usage
 
@@ -256,15 +265,11 @@ cargo test --all
   run: cargo build --release
   # Takes 2-3 minutes
 
-# After (fast)
-- name: Setup frozen DuckDB
-  run: |
-    source frozen-duckdb/prebuilt/setup_env.sh
-    echo "DUCKDB_LIB_DIR=$DUCKDB_LIB_DIR" >> $GITHUB_ENV
-
+# After (fast) — zero setup: the builder downloads and caches the
+# dylib on first build, and @rpath handles runtime loading
 - name: Build project
   run: cargo build --release
-  # Takes 7-10 seconds
+  # Takes seconds (first run includes the one-time dylib download)
 ```
 
 ### Pipeline Impact
@@ -299,33 +304,29 @@ println!("Build completed in: {:?}", build_time);
 
 ### Common Performance Problems
 
-#### 1. Environment Not Configured
+#### 1. Stale or Missing Cache
 ```bash
-# Check environment variables
-echo $DUCKDB_LIB_DIR
-echo $DUCKDB_INCLUDE_DIR
+# Check the builder-managed cache
+ls -la ~/.frozen-duckdb/cache/
 
-# Should show:
-# /path/to/frozen-duckdb/prebuilt
-# /path/to/frozen-duckdb/prebuilt
+# Force a fresh acquisition attempt
+cargo clean && cargo build
 ```
 
 #### 2. Wrong Architecture Binary
 ```bash
-# Check binary size and type
-ls -lah prebuilt/libduckdb*
-
-# Verify correct binary is selected
-source prebuilt/setup_env.sh
-echo $DUCKDB_LIB
+# Check binary size and type — v1.5.5 assets are universal
+ls -lah ~/.frozen-duckdb/cache/v1.5.5-*/
+lipo -info ~/.frozen-duckdb/cache/v1.5.5-*/libduckdb_*.dylib
 ```
 
-#### 3. Fallback to Bundled Compilation
+#### 3. Fallback to Local Compilation
 ```bash
-# Check if using prebuilt or bundled
-cargo build -v
+# Check if the prebuilt download succeeded
+cargo build -v 2>&1 | grep -i duckdb
 
-# Should show linking to prebuilt binary, not compiling DuckDB
+# Should show linking to the cached prebuilt binary; a local compile
+# (pinned at upstream tag v1.5.5) only happens when no release asset is reachable
 ```
 
 ### Performance Debug Information
@@ -379,9 +380,9 @@ time cargo build --release
 
 ### For Developers
 
-1. **Use prebuilt binaries**: Always source `setup_env.sh` before building
-2. **Architecture awareness**: Be aware of target architecture for optimal performance
-3. **Environment consistency**: Use consistent environment across development and CI/CD
+1. **Zero setup**: just `cargo build` — the builder acquires the dylib and the emitted `@rpath` handles runtime loading (no `setup_env.sh` needed)
+2. **Architecture awareness**: each v1.5.5 asset is a universal binary (arm64 + x86_64), so either asset runs on any supported Mac
+3. **Environment consistency**: no environment variables to keep in sync across development and CI/CD
 4. **Performance monitoring**: Track build times and investigate anomalies
 
 ### For Contributors

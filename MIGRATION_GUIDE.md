@@ -41,7 +41,7 @@ cargo build  # Now 99% faster!
 
 ### 🚀 What Gets Better
 - **Build time**: 99% faster (0.11s vs 2+ minutes)
-- **Download size**: 75% smaller (50-55MB vs 200MB)
+- **Binary acquisition**: prebuilt universal dylib (~117MB, arm64 + x86_64) downloaded from GitHub Releases instead of compiling DuckDB from source
 - **Setup time**: Zero configuration needed
 - **CI/CD**: Consistent, fast builds across environments
 
@@ -131,19 +131,21 @@ fn process_data() -> Result<()> {
 | **First Build** | 1-2 minutes | 7-10 seconds | **85% faster** |
 | **Incremental Build** | 30 seconds | 0.11 seconds | **99% faster** |
 | **Release Build** | 1-2 minutes | 0.11 seconds | **99% faster** |
-| **Download Size** | ~200MB | 50-55MB | **75% smaller** |
+| **Binary Size** | Source compile (~200MB of build I/O) | ~117MB universal dylib | **No compilation** |
 | **Setup Time** | Manual setup | Zero config | **100% faster** |
 
 ## Troubleshooting
 
 ### Issue: "Library not found" errors
-**Solution**: The frozen binary should be automatically detected. If not:
+**Solution**: The frozen binary is acquired automatically by the builder — no environment needed.
 ```bash
-# Check if prebuilt directory exists
-ls -la prebuilt/
+# Check the versioned cache
+ls -la ~/.frozen-duckdb/cache/
 
-# If missing, the build will fall back to bundled compilation
-# This is normal and expected behavior
+# On first build the builder downloads libduckdb_{arch}.dylib from
+# this repo's GitHub Releases; if no asset is reachable it falls back
+# to a local compile pinned at upstream tag v1.5.5
+cargo clean && cargo build
 ```
 
 ### Issue: Build still slow
@@ -172,7 +174,7 @@ use frozen_duckdb::{Connection, Result};
 If you were using specific duckdb-rs features:
 ```toml
 # Before
-duckdb = { version = "1.5.5", features = ["json", "parquet"] }
+duckdb = { version = "1.10505.0", features = ["json", "parquet"] }  # upstream crate bundling DuckDB 1.5.5
 
 # After (same features, faster builds)
 frozen-duckdb = "1.5.5"  # All features included by default
@@ -222,10 +224,10 @@ cargo add duckdb
 ## Benefits Summary
 
 ✅ **99% faster builds** - No more waiting for DuckDB compilation  
-✅ **Zero configuration** - Works out of the box  
+✅ **Zero configuration** - Works out of the box (no `DYLD_*` env vars either)  
 ✅ **Same API** - No code changes needed  
 ✅ **Better CI/CD** - Consistent, fast builds  
-✅ **Smaller downloads** - 75% smaller binary size  
+✅ **Universal binaries** - One ~117MB asset serves arm64 and x86_64  
 ✅ **Production ready** - Tested, optimized binaries  
 
 ## Support

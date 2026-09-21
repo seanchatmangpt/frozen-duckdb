@@ -20,7 +20,8 @@ DuckDB 1.5.5.
   tag, when no release asset is available.
 - Vendored DuckDB 1.5.5 headers in `frozen-duckdb-builder`, so builds work
   offline regardless of how the binary was obtained.
-- Runtime `@rpath` entry emitted by `frozen-duckdb-sys`, so executables and
+- Runtime `@rpath` entry emitted by the `frozen-duckdb` build script (consuming
+  `DEP_DUCKDB_DUCKDB_LIB_DIR` metadata exposed by `frozen-duckdb-sys`), so executables and
   tests link and run without `DYLD_LIBRARY_PATH` setup.
 
 ### Changed

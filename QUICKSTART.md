@@ -13,19 +13,16 @@ Get up and running with frozen DuckDB in under 5 minutes!
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/frozen-duckdb.git
+git clone https://github.com/seanchatmangpt/frozen-duckdb.git
 cd frozen-duckdb
 ```
 
-### 2. Set Up Environment
+### 2. Test the Installation
 
 ```bash
-source prebuilt/setup_env.sh
-```
+# Build the workspace (first build downloads the prebuilt DuckDB dylib automatically)
+cargo build
 
-### 3. Test the Installation
-
-```bash
 # Run the basic example
 cargo run --example basic_usage
 
@@ -36,37 +33,27 @@ cargo run --example performance_comparison
 cargo run -- download --dataset tpch --output-dir test_data
 ```
 
-### 4. Use in Your Project
+No environment setup is required: on first build, `frozen-duckdb-builder::ensure_binary()`
+downloads `libduckdb_{arch}.dylib` from this repository's GitHub Releases into
+`~/.frozen-duckdb/cache/v1.5.5-{arch}/`, vendored 1.5.5 headers make bindgen work
+offline, and the emitted runtime `@rpath` means binaries and tests run without any
+`DYLD_LIBRARY_PATH` setup. `prebuilt/setup_env.sh` remains available for the legacy
+manual-prebuilt workflow only.
+
+### 3. Use in Your Project
 
 Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-duckdb = { version = "1.5.5", default-features = false }
+frozen-duckdb = "1.5.5"
 ```
 
-Add `build.rs` to your project root:
-
-```rust
-use std::env;
-use std::path::Path;
-
-fn main() {
-    if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-        let lib_dir = Path::new(&lib_dir);
-        println!("cargo:rustc-link-search=native={}", lib_dir.display());
-        println!("cargo:rustc-link-lib=dylib=duckdb");
-        println!("cargo:rerun-if-env-changed=DUCKDB_LIB_DIR");
-    }
-}
-```
-
-Set environment before building:
-
-```bash
-source /path/to/frozen-duckdb/prebuilt/setup_env.sh
-cargo build
-```
+That's it — no custom `build.rs`, no environment variables. The `frozen-duckdb-sys`
+build script invokes `frozen-duckdb-builder::ensure_binary()`, which fetches the
+prebuilt dylib (falling back to a local compile pinned at upstream tag `v1.5.5`
+only if no release asset is reachable), and the emitted runtime `@rpath` lets your
+binaries and tests run with no `DYLD_LIBRARY_PATH` configuration.
 
 ## 🎯 Expected Results
 
@@ -79,20 +66,21 @@ cargo build
 ### Library Not Found
 
 ```bash
-# Check environment
-echo $DUCKDB_LIB_DIR
-echo $DUCKDB_INCLUDE_DIR
+# Check the cache directory — the builder stores the dylib here
+ls -la ~/.frozen-duckdb/cache/
 
-# Re-source environment
-source prebuilt/setup_env.sh
+# Force a fresh download attempt
+cargo clean && cargo build
 ```
+
+If no release asset is reachable, the builder falls back to compiling DuckDB
+locally, pinned at upstream tag `v1.5.5`.
 
 ### Build Errors
 
 ```bash
 # Clean and rebuild
 cargo clean
-source prebuilt/setup_env.sh
 cargo build
 ```
 
@@ -100,7 +88,7 @@ cargo build
 
 - Read the full [README.md](README.md) for detailed documentation
 - Check out the [examples/](examples/) directory for more usage patterns
-- Visit the [GitHub repository](https://github.com/yourusername/frozen-duckdb) for updates
+- Visit the [GitHub repository](https://github.com/seanchatmangpt/frozen-duckdb) for updates
 
 ## 🤝 Need Help?
 
