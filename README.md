@@ -6,7 +6,13 @@ Frozen DuckDB revolutionizes Rust database development with a groundbreaking **B
 
 ## 🆕 DuckDB 1.5 Support
 
-**DuckDB v1.5.5 is now supported as of this release.** Prebuilt binaries are cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}` and are downloaded automatically on first build. This is a drop-in upgrade — no code changes are needed for existing users.
+**DuckDB v1.5.5 is now supported as of this release** (closes [#1](https://github.com/seanchatmangpt/frozen-duckdb/issues/1)). The crate version mirrors the bundled DuckDB version: frozen-duckdb 1.5.5 contains DuckDB 1.5.5. This is a drop-in upgrade — no code changes are needed for existing users.
+
+- **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`.
+- **Universal macOS binaries**: each released dylib is a universal binary containing both arm64 and x86_64 slices, so one asset serves both Apple Silicon and Intel Macs.
+- **Offline-capable builds**: the DuckDB 1.5.5 headers (`duckdb.h`, `duckdb.hpp`) are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works even when a release download carries only the dylib.
+- **No `DYLD_*` environment variables needed**: the frozen dylib carries the neutral install name `@rpath/libduckdb.dylib`, and the `frozen-duckdb` build script emits the matching runtime rpath for binaries, tests, and examples — `cargo build && cargo run` just works.
+- **Self-healing cache layout**: on every acquisition path (cache hit, download, or local-compile fallback pinned at upstream tag `v1.5.5`), the builder normalizes the cache with headers under `duckdb/` and a plain `libduckdb.dylib` link name.
 
 ## 🏗️ Revolutionary Architecture
 
@@ -23,7 +29,7 @@ Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Ru
 | **First Build** | 10-15 minutes | 2-5 seconds | **99% faster** |
 | **Subsequent Builds** | 10-15 minutes | 0.1 seconds | **99.9% faster** |
 | **CI/CD Builds** | 10-15 minutes | 2-5 seconds | **99% faster** |
-| **Download Size** | ~200MB | 50-55MB | **75% smaller** |
+| **Download Size** | ~200MB | ~117MB (universal: arm64 + x86_64) | **~40% smaller** |
 
 ## 🎯 How It Works
 
@@ -34,7 +40,7 @@ Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Ru
 4. **Transparent Operation**: Zero configuration required
 
 ### Mega-Library Compilation
-- **Single static library** includes DuckDB + Arrow + Polars + ICU
+- **Single dynamic library** includes DuckDB with all extensions enabled
 - **All features enabled** by default
 - **Compiled once**, cached globally, shared across projects
 
@@ -44,7 +50,7 @@ Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Ru
 
 ```toml
 # Before (slow builds)
-duckdb = "1.5.5"
+duckdb = "1.10505.0"   # upstream duckdb-rs crate bundling DuckDB 1.5.5
 
 # After (99% faster builds)  
 frozen-duckdb = "1.5.5"
@@ -79,13 +85,13 @@ fn main() -> Result<()> {
 cargo install frozen-duckdb
 
 # Generate TPC-H benchmark data
-frozen-duckdb-cli generate-tpch --scale 1.0
+frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./data
 
-# Manage datasets
-frozen-duckdb-cli dataset create --name mydata --path data.csv
+# Convert datasets between formats
+frozen-duckdb-cli convert --input data.csv --output data.parquet
 
 # Flock LLM integration
-frozen-duckdb-cli flock setup --text-model llama3.2 --embedding-model nomic-embed-text
+frozen-duckdb-cli flock-setup --text-model llama3.2 --embedding-model nomic-embed-text
 ```
 
 ## 🏗️ Architecture Deep Dive
@@ -250,8 +256,9 @@ ls -lh ~/.frozen-duckdb/cache/*/
    - Try `cargo clean` and rebuild
 
 3. **Architecture mismatch**
-   - Verify your system architecture: `uname -m`
-   - Set `ARCH` environment variable if needed
+   - The builder auto-detects the architecture via `uname -m`
+   - Each v1.5.5 release asset is a universal binary (arm64 + x86_64), so either asset runs on any supported Mac
+   - The `ARCH` environment variable only affects `prebuilt/setup_env.sh` and the `architecture` helper module, not the builder's download path
 
 ### Debug Information
 
@@ -268,7 +275,7 @@ ls -la ~/.frozen-duckdb/cache/
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [contributing guides](docs/contributing/coding-standards.md) for details.
 
 ### Development Setup
 
@@ -302,7 +309,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Frozen DuckDB has transformed the Rust database ecosystem:
 
 - **99% faster builds** for thousands of developers
-- **75% smaller downloads** reducing bandwidth usage
+- **No compilation** — universal prebuilt dylibs downloaded from GitHub Releases
 - **Zero configuration** eliminating setup friction
 - **Production-ready** with comprehensive testing
 
