@@ -19,27 +19,27 @@ aps:standing: https://w3id.org/chatman/aps#OPEN
 - [x] Runtime @rpath propagation via DEP_DUCKDB build script; CLI bin executes against 1.5.5 (dyld clean)
 - [x] Workspace cargo build → exit 0
 
-## Open (this wave — tickets T2A..T8)
+## Closed (wave 2, 2026-09-21 — tickets T2A..T8)
 
-- [ ] T2A — Core test suite green
+- [x] T2A — Core test suite green → **ALIVE**
 - [ ] Context: tests/ are integration tests — 'crate::' paths are illegal there; use frozen_duckdb::. test_all_types.rs moved from lib-cfg-test to tests/: fix paths, then run it against DuckDB 1.5.5 and repair the EXCLUDE list / match fallthrough (todo!() panics on unknown columns; 1.5.5 may add GEOMETRY/VARIANT) and any golden drift, empirically driven by failures. dev-dep pretty_assertions is already declared.
 - [ ] DoD: [ ] cargo test -p frozen-duckdb --lib → exit 0  [ ] cargo test -p frozen-duckdb --test frozen_duckdb_tests --test dropin_compatibility_tests --test core_functionality_tests → exit 0 (or documented #[ignore] + UNSUPPORTED row in History)  [ ] all fixes committed atomically on feat/155-tests-core
-- [ ] T2B — Extension test suite green/gated
+- [x] T2B — Extension test suite green/gated → **ALIVE**
 - [ ] Context: fix 'use duckdb::' → 'use frozen_duckdb::'. polars_tests.rs imports a polars crate that is not a dependency → gate whole file with #![cfg(feature = "polars")] + UNSUPPORTED(polars dev-dep not carried) note; do NOT add polars. flock_tests.rs needs community extension flock + live Ollama → runtime gate: early-return SKIP unless env FLOCK_TEST=1. tpch/parquet: official 1.5.5 dylib ships parquet statically; tpch needs network INSTALL — attempt real run; if network-blocked, env-gate DUCKDB_NET_TESTS=1 with default-on and note. vss probes soft-skip by design — keep.
 - [ ] DoD: [ ] cargo test -p frozen-duckdb --test arrow_tests --test parquet_tests --test vss_tests --test tpch_integration_test --test flock_tests → exit 0 (gated skips documented in History)  [ ] committed
-- [ ] T3 — Examples compile + run
+- [x] T3 — Examples compile + run → **PARTIAL_ALIVE (superseded: T5's unscoped rpath unblocked both example runs, green on merged head)**
 - [ ] Context: 'use duckdb::' rot. Fix to frozen_duckdb::, build all examples, then EXECUTE basic_usage against the frozen 1.5.5 dylib (execution evidence, not inspection). performance_comparison may be slow — cap with timeout 300.
 - [ ] DoD: [ ] cargo build --workspace --examples → exit 0  [ ] cargo run --example basic_usage → exit 0, output in History  [ ] cargo run --example performance_comparison → exit 0 or BLOCKED with preserved output
-- [ ] T4 — Docs accuracy final pass
+- [x] T4 — Docs accuracy final pass → **ALIVE**
 - [ ] Context: verify every CURRENT-behavior claim against implemented reality: release asset names libduckdb_{arch}.dylib; vendored 1.5.5 headers in frozen-duckdb-builder (offline builds); @rpath propagation (no DYLD_LIBRARY_PATH needed for bins/tests); universal macOS dylib serving arm64+x86_64; local-compile fallback pinned v1.5.5; crate version 1.5.5 mirrors DuckDB 1.5.5. Grep-anchor each claim in code before asserting it. Historical records (CONTEXT.md phases, ADRs) stay untouched.
 - [ ] DoD: [ ] grep -rn '1\.4\.0' --include='*.md' → only intentional-historical hits, each with justification in History  [ ] README 'DuckDB 1.5 Support' section matches final reality incl. issue #1 answered  [ ] committed
-- [ ] T5 — CI parity: clippy/fmt/workflows
+- [x] T5 — CI parity: clippy/fmt/workflows → **ALIVE (full ci.yml gate suite green x3)**
 - [ ] Context: ci.yml gates are fmt --check, clippy --all-targets --all-features -D warnings, build, test, examples. Make those pass locally. Prefer minimal targeted #[allow] at vendored module roots (comment: vendored from duckdb-rs 1.4.0-era; do not churn) over broad lint suppression; cargo fmt the workspace if the diff is mechanical. build-binaries.yml was fixed on feat/155-ci (asset names libduckdb_{arch}.dylib) — re-verify against the new vendored-headers builder reality and ci-simple/test-minimal coherence. yaml-parse every workflow you touch.
 - [ ] DoD: [ ] cargo clippy --workspace --all-targets --all-features -- -D warnings → exit 0 (or documented ci.yml amendment)  [ ] cargo fmt --check → exit 0  [ ] workflows yaml-parse  [ ] committed
-- [ ] T6 — Scripts repair: fiction + float pins
+- [x] T6 — Scripts repair: fiction + float pins → **ALIVE**
 - [ ] Context: create_frozen_setup.sh fetches libduckdb_{arch}.dylib assets that never existed upstream (fictional scheme) — rewrite to fetch from this repo's GitHub Releases (the real post-fix scheme) or remove the dead path with an UNSUPPORTED note. build_frozen_duckdb.sh clones duckdb-rs default branch unpinned → pin --branch v1.10505.0 (duckdb-rs crate version encoding DuckDB 1.5.5). Sweep remaining 1.4.x pins (create_frozen_setup.sh has v1.4.1). bash -n everything touched. Do NOT execute build scripts.
 - [ ] DoD: [ ] grep -rn 'v1\.4' scripts/ → zero live pins  [ ] bash -n on all edited scripts → exit 0  [ ] committed
-- [ ] T7 — Verification: cache normalization + rpath
+- [x] T7 — Verification: cache normalization + rpath → **PARTIAL_ALIVE (P1-P4 PASS; P5 test-dependency workspace isolation fixed by coordinator post-merge)**
 - [ ] Context: prove the builder's normalization and rpath propagation by execution. (1) Delete ~/.frozen-duckdb/cache/v1.5.5-arm64/duckdb/ and libduckdb.dylib → cargo build -p frozen-duckdb → assert both restored (vendored headers + symlink) and build exit 0. (2) otool -l target/debug/frozen-duckdb-cli  —  grep -A2 LC_RPATH shows the cache dir. (3) env -i HOME=/Users/sac PATH=/usr/bin:/bin <abs> frozen-duckdb-cli --help → exit 0 (clean-env dyld proof). (4) python3 ctypes duckdb_library_version() == v1.5.5 post-mutation. (5) cd test-dependency && cargo build → dual-engine attempt, record outcome (UNKNOWN acceptable, preserve output).
 - [ ] DoD: [ ] all five probes executed with command+exit recorded in History  [ ] standing declared
 - [x] T8 — Release preflight + comms artifacts
