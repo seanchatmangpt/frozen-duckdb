@@ -146,6 +146,21 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             1 => assert_eq!(value, ValueRef::Time64(TimeUnit::Microsecond, 86400000000)),
             _ => assert_eq!(value, ValueRef::Null),
         },
+        // DuckDB >= 1.5 added a TIME NS column to test_all_types()
+        "time_ns" => match idx {
+            0 => assert_eq!(value, ValueRef::Time64(TimeUnit::Nanosecond, 0)),
+            1 => assert_eq!(
+                value,
+                ValueRef::Time64(TimeUnit::Nanosecond, 86400000000000)
+            ),
+            _ => assert_eq!(value, ValueRef::Null),
+        },
+        // DuckDB >= 1.5 also added GEOMETRY (surfaces as raw WKB in a Blob)
+        "geometry" => match idx {
+            0 => assert!(matches!(value, ValueRef::Blob(b) if !b.is_empty())),
+            1 => assert!(matches!(value, ValueRef::Blob(b) if !b.is_empty())),
+            _ => assert_eq!(value, ValueRef::Null),
+        },
         "timestamp" => match idx {
             0 => assert_eq!(
                 value,

@@ -634,6 +634,19 @@ impl<'stmt> Row<'stmt> {
                 }
                 ValueRef::Time64(types::TimeUnit::Microsecond, array.value(row))
             }
+            // DuckDB >= 1.5 exports TIME NS columns as Time64(Nanosecond)
+            // (1.4-era port only knew Microsecond; test_all_types() trips it)
+            DataType::Time64(TimeUnit::Nanosecond) => {
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::Time64NanosecondArray>()
+                    .unwrap();
+
+                if array.is_null(row) {
+                    return ValueRef::Null;
+                }
+                ValueRef::Time64(types::TimeUnit::Nanosecond, array.value(row))
+            }
             DataType::Interval(unit) => match unit {
                 IntervalUnit::MonthDayNano => {
                     let array = column
