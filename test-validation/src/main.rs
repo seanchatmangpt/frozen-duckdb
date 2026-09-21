@@ -77,7 +77,10 @@ fn main() -> ExitCode {
         Ok(home) => {
             let expected = expected_binary_path(&home, &version, &arch);
             if binary_path == expected {
-                println!("✅ cache layout matches builder rule: {}", expected.display());
+                println!(
+                    "✅ cache layout matches builder rule: {}",
+                    expected.display()
+                );
             } else {
                 failures.push(format!(
                     "cache layout drift: builder returned {}, replicated rule expects {}",
@@ -99,8 +102,14 @@ fn main() -> ExitCode {
         Ok(m) if m.is_file() => {
             println!("✅ header layout present: {}", header.display());
         }
-        Ok(_) => failures.push(format!("header path is not a regular file: {}", header.display())),
-        Err(e) => failures.push(format!("header layout broken ({} missing): {e}", header.display())),
+        Ok(_) => failures.push(format!(
+            "header path is not a regular file: {}",
+            header.display()
+        )),
+        Err(e) => failures.push(format!(
+            "header layout broken ({} missing): {e}",
+            header.display()
+        )),
     }
 
     // Gate 6: load the staged dylib via FFI; its self-reported version must
@@ -134,14 +143,16 @@ fn parse_versioned_dir(dir: Option<&Path>) -> Result<(String, String), String> {
         .file_name()
         .and_then(|n| n.to_str())
         .ok_or_else(|| format!("unreadable cache directory name: {}", dir.display()))?;
-    let rest = name
-        .strip_prefix('v')
-        .ok_or_else(|| format!("cache directory '{name}' does not start with 'v' (expected v{{VERSION}}-{{arch}})"))?;
+    let rest = name.strip_prefix('v').ok_or_else(|| {
+        format!("cache directory '{name}' does not start with 'v' (expected v{{VERSION}}-{{arch}})")
+    })?;
     let (version, arch) = rest
         .rsplit_once('-')
         .ok_or_else(|| format!("cache directory '{name}' does not encode VERSION-arch"))?;
     if version.is_empty() || arch.is_empty() {
-        return Err(format!("cache directory '{name}' has empty VERSION or arch"));
+        return Err(format!(
+            "cache directory '{name}' has empty VERSION or arch"
+        ));
     }
     Ok((version.to_string(), arch.to_string()))
 }
@@ -175,7 +186,10 @@ fn expected_binary_path(home: &Path, version: &str, arch: &str) -> PathBuf {
 
 /// Mirror of the builder's `detect_architecture` (private): `uname -m`.
 fn detect_architecture() -> Option<String> {
-    let output = std::process::Command::new("uname").arg("-m").output().ok()?;
+    let output = std::process::Command::new("uname")
+        .arg("-m")
+        .output()
+        .ok()?;
     Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
@@ -185,9 +199,8 @@ fn ffi_library_version(binary_path: &Path, expected: &str) -> Result<String, Str
     unsafe {
         let lib = libloading::Library::new(binary_path)
             .map_err(|e| format!("failed to load dylib {}: {e}", binary_path.display()))?;
-        let sym: libloading::Symbol<unsafe extern "C" fn() -> *const c_char> = lib
-            .get(b"duckdb_library_version\0")
-            .map_err(|e| {
+        let sym: libloading::Symbol<unsafe extern "C" fn() -> *const c_char> =
+            lib.get(b"duckdb_library_version\0").map_err(|e| {
                 format!(
                     "symbol duckdb_library_version not found in {}: {e}",
                     binary_path.display()
@@ -213,7 +226,10 @@ fn report(failures: &[String]) -> ExitCode {
         println!("   layout, header layout, and dylib FFI version are consistent.");
         ExitCode::SUCCESS
     } else {
-        eprintln!("\n❌ frozen-duckdb validation FAILED: {} assertion(s) broke:", failures.len());
+        eprintln!(
+            "\n❌ frozen-duckdb validation FAILED: {} assertion(s) broke:",
+            failures.len()
+        );
         for f in failures {
             eprintln!("   - {f}");
         }

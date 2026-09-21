@@ -38,3 +38,6 @@ DoD: [ ] harness asserts, no decorative prints  [ ] cargo run -p test-validation
 | ts | standing | branch+SHA | gates+exits | remaining |
 |----|----------|------------|-------------|-----------|
 | 2026-09-21 | OPEN | feat/155-r5@c55d4f2 | not started | all of DoD |
+| 2026-09-21 | ALIVE | feat/155-r5@770f88c | `cargo run -p test-validation` exit 0 (7 gates held: builder path, binary presence, builder-derived version v1.5.5, layout rule, header duckdb/duckdb.h, dylib FFI duckdb_library_version()=v1.5.5, arch agreement); failure paths proven: `HOME=/dev/null ./target/debug/test-validation` exit 1 ("Failed to create cache directory"), `env -u HOME ./target/debug/test-validation` exit 1 ("HOME environment variable not set") | none — DoD complete; coordinator merges |
+
+DoD: [x] harness asserts, no decorative prints — version DERIVED from builder (`ensure_binary()` path `v{VERSION}-{arch}` parsed; builder crate untouched, scope held to `test-validation/**`) [x] cargo run -p test-validation exit 0 [x] committed (770f88c)

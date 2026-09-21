@@ -383,28 +383,20 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     // target a specific macOS arch (or arch list) instead of the host
     // default. The flag is only meaningful for Apple targets; cmake ignores
     // it elsewhere.
+    // CMake extension law for DuckDB v1.5.x, verified by the wave-3 release
+    // rehearsal (ticket TR2): BUILD_EXTENSIONS is an extension-NAME list, not a
+    // boolean — "-DBUILD_EXTENSIONS=ON" makes cmake try to load a literal "ON"
+    // extension and configure fails. visualizer/tpce are out-of-tree in 1.5.x;
+    // excel needs minizip-ng on the build host. Static in-tree set proven to
+    // configure + build:
     let mut configure = Command::new("cmake");
     configure
         .args([
             "..",
             "-DCMAKE_BUILD_TYPE=Release",
-            "-DBUILD_EXTENSIONS=ON",
-            "-DBUILD_PARQUET=ON",
-            "-DBUILD_JSON=ON",
-            "-DBUILD_ICU=ON",
-            "-DBUILD_HTTPFS=ON",
-            "-DBUILD_VISUALIZER=ON",
-            "-DBUILD_TPCH=ON",
-            "-DBUILD_TPCDS=ON",
-            "-DBUILD_FTS=ON",
-            "-DBUILD_INET=ON",
-            "-DBUILD_EXCEL=ON",
-            "-DBUILD_SQLSMITH=ON",
-            "-DBUILD_TPCE=ON",
+            "-DBUILD_EXTENSIONS=parquet;json;icu;httpfs;tpch;tpcds;fts;inet;sqlsmith",
             "-DBUILD_JEMALLOC=ON",
             "-DBUILD_AUTOLOAD=ON",
-            "-DBUILD_ARROW=ON",
-            "-DBUILD_POLARS=ON",
         ])
         .current_dir(&build_dir);
     if let Ok(osx_archs) = env::var("CMAKE_OSX_ARCHITECTURES") {
@@ -414,16 +406,32 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
             configure.arg(format!("-DCMAKE_OSX_ARCHITECTURES={}", osx_archs));
         }
     }
-    configure
+    // Fail loudly with the captured tool output instead of discarding it and
+    // dying later in find_built_library with no diagnostics.
+    let configure_out = configure
         .output()
         .context("Failed to configure DuckDB with CMake")?;
+    if !configure_out.status.success() {
+        anyhow::bail!(
+            "DuckDB cmake configure failed (exit {:?}):\n{}",
+            configure_out.status.code(),
+            String::from_utf8_lossy(&configure_out.stderr)
+        );
+    }
 
     // Build with all available cores (use 4 as default)
-    Command::new("make")
+    let make_out = Command::new("make")
         .args(["-j4"])
         .current_dir(&build_dir)
         .output()
         .context("Failed to build DuckDB")?;
+    if !make_out.status.success() {
+        anyhow::bail!(
+            "DuckDB make failed (exit {:?}):\n{}",
+            make_out.status.code(),
+            String::from_utf8_lossy(&make_out.stderr)
+        );
+    }
 
     // Find the built library
     let built_lib = find_built_library(&build_dir, arch).context("Failed to find built library")?;
@@ -458,7 +466,12 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
 fn find_built_library(build_dir: &Path, _arch: &str) -> Result<PathBuf> {
     // Look for the main DuckDB library - check multiple possible locations
     let possible_paths = [
-        // Release build location (most common)
+        // DuckDB v1.5.x cmake output (verified by the TR2 rehearsal: make -j4
+        // places the artifact under build/duckdb/)
+        build_dir.join("duckdb").join("libduckdb.dylib"),
+        build_dir.join("duckdb").join("libduckdb.so"),
+        build_dir.join("duckdb").join("libduckdb.dll"),
+        // Release build location (older layouts)
         build_dir.join("src").join("libduckdb.dylib"),
         build_dir.join("src").join("libduckdb.so"),
         build_dir.join("src").join("libduckdb.dll"),

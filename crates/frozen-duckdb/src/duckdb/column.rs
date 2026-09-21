@@ -37,10 +37,7 @@ impl Statement<'_> {
     /// Returns an `Error::StatementNotExecuted` if the query has not been
     /// [`execute`](Statement::execute)d yet.
     pub fn column_names(&self) -> Result<Vec<String>> {
-        let schema = self
-            .stmt
-            .try_schema()
-            .ok_or(Error::StatementNotExecuted)?;
+        let schema = self.stmt.try_schema().ok_or(Error::StatementNotExecuted)?;
         Ok(schema
             .fields()
             .iter()
