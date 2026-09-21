@@ -79,7 +79,8 @@ mod bindings {
             .header("wrapper.h")
             // Skip wrapper_ext.h for now as it requires unstable extension API headers
             // .header("wrapper_ext.h")
-            .header(header.path() + "/duckdb/duckdb.h")
+            // wrapper.h already includes "duckdb/duckdb.h" via -I; adding the header
+            // again here double-includes it and trips C redefinition errors
             .clang_arg(format!("-I{}", header.path()))
             .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
             .generate()

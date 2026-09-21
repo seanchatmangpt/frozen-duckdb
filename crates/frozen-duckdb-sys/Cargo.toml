@@ -11,9 +11,12 @@ keywords.workspace = true
 categories.workspace = true
 
 description = "FFI bindings for frozen-duckdb mega-library"
+# Required so cargo:DUCKDB_LIB_DIR from the build script reaches dependents as
+# DEP_DUCKDB_DUCKDB_LIB_DIR, and to enforce a single linking duckdb provider
+links = "duckdb"
 
 [build-dependencies]
-frozen-duckdb-builder = { path = "../frozen-duckdb-builder" }
+frozen-duckdb-builder = { path = "../frozen-duckdb-builder", version = "1.5.5" }
 bindgen = "0.69"
 
 [dependencies]
