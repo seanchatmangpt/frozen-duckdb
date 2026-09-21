@@ -12,7 +12,7 @@ Update your `Cargo.toml` to use the standard DuckDB dependency:
 
 ```toml
 [dependencies]
-duckdb = { version = "1.4.0", default-features = false, features = [
+duckdb = { version = "1.5.5", default-features = false, features = [
   "json",
   "parquet",
   "appender-arrow",
@@ -95,8 +95,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```bash
 # First build with bundled DuckDB
 cargo build
-# Compiling libduckdb-sys v1.4.0
-# Compiling duckdb v1.4.0
+# Compiling libduckdb-sys v1.5.5
+# Compiling duckdb v1.5.5
 #    Finished dev profile [unoptimized + debuginfo] target(s) in 1m 45s
 
 # Incremental build
@@ -553,7 +553,7 @@ mod integration_tests {
 members = ["project1", "project2", "shared"]
 
 [workspace.dependencies]
-duckdb = { version = "1.4.0", default-features = false }
+duckdb = { version = "1.5.5", default-features = false }
 ```
 
 ```rust

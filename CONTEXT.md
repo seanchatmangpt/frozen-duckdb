@@ -80,7 +80,7 @@ prebuilt/
 - **Fallback handling**: Bundled build if no prebuilt
 
 #### 4. Cargo Configuration (`Cargo.toml`)
-- **DuckDB dependency**: `duckdb = { version = "1.4.0", default-features = false }`
+- **DuckDB dependency**: `duckdb = { version = "1.5.5", default-features = false }`
 - **Workspace integration**: Consistent versions
 - **Example configurations**: Basic usage and performance
 

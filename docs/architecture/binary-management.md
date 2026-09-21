@@ -134,7 +134,7 @@ The project maintains **version compatibility** with specific DuckDB releases:
 
 ```toml
 # Cargo.toml
-duckdb = { version = "1.4.0", default-features = false, features = [
+duckdb = { version = "1.5.5", default-features = false, features = [
   "json",
   "parquet",
   "appender-arrow",
@@ -160,7 +160,7 @@ duckdb = { version = "1.4.0", default-features = false, features = [
 
 ### Manual Update Process
 
-1. **Download binaries**: Get official DuckDB v1.4.0 binaries
+1. **Download binaries**: Get official DuckDB v1.5.5 binaries
 2. **Architecture split**: Separate universal binary into architecture-specific versions
 3. **Verification**: Test that new binaries work correctly
 4. **Update symlinks**: Ensure compatibility links are current
