@@ -12,6 +12,12 @@ categories.workspace = true
 
 description = "Pre-compiled DuckDB binary for fast Rust builds - Drop-in replacement for duckdb-rs"
 
+[lib]
+# Vendored duckdb-rs doc examples are illustrative pseudo-code written for the
+# upstream `duckdb` crate name (and `?` without a Result main); they are not
+# runnable doctests in this fork. Unit/integration tests remain the gate.
+doctest = false
+
 [[bin]]
 name = "frozen-duckdb-cli"
 path = "src/main.rs"

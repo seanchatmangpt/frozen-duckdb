@@ -12,6 +12,16 @@ fn verbose_log(msg: &str) {
     info!("{}", msg);
 }
 
+/// Returns true when an Ollama server answers on the default local port.
+/// The inference tests below REQUIRE a live Ollama (see file header); in
+/// environments without one (e.g. CI) they skip instead of failing.
+fn ollama_available() -> bool {
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+    let addr: SocketAddr = "127.0.0.1:11434".parse().unwrap();
+    TcpStream::connect_timeout(&addr, Duration::from_millis(300)).is_ok()
+}
+
 /// Test Flock extension loading and basic setup
 #[test]
 fn test_flock_extension_loading() {
@@ -59,6 +69,10 @@ fn test_flock_extension_loading() {
 /// Test Ollama secret creation and model setup
 #[test]
 fn test_ollama_setup_and_models() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -107,6 +121,10 @@ fn test_ollama_setup_and_models() {
 /// Test LLM completion with qwen3-coder:30b
 #[test]
 fn test_llm_complete_with_coder() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -147,6 +165,10 @@ fn test_llm_complete_with_coder() {
 /// Test LLM embedding generation with qwen3-embedding:8b
 #[test]
 fn test_llm_embedding_generation() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -205,6 +227,10 @@ fn test_llm_embedding_generation() {
 /// Test LLM filter with qwen3-coder:30b
 #[test]
 fn test_llm_filter_boolean() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -254,6 +280,10 @@ fn test_llm_filter_boolean() {
 /// Test semantic similarity search using embeddings
 #[test]
 fn test_semantic_similarity_search() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -315,6 +345,10 @@ fn test_semantic_similarity_search() {
 /// Test hybrid search combining BM25 and embeddings
 #[test]
 fn test_hybrid_search_rag() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -382,6 +416,10 @@ fn test_hybrid_search_rag() {
 /// Test performance with multiple LLM calls
 #[test]
 fn test_llm_performance() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -437,6 +475,10 @@ fn test_llm_performance() {
 /// Test aggregate LLM functions
 #[test]
 fn test_llm_aggregate_functions() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();
@@ -526,6 +568,10 @@ fn test_fusion_functions() {
 /// Test complete RAG pipeline
 #[test]
 fn test_complete_rag_pipeline() {
+    if !ollama_available() {
+        eprintln!("skipping: Ollama not reachable at 127.0.0.1:11434");
+        return;
+    }
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")
         .unwrap();

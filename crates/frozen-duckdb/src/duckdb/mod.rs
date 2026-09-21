@@ -617,8 +617,13 @@ impl fmt::Debug for Connection {
     }
 }
 
-#[cfg(doctest)]
-doc_comment::doctest!("../../../README.md");
+// Vendored from duckdb-rs, which ran README.md doctests through the
+// doc_comment crate (not a dependency here) — and this fork's README targets
+// the frozen-duckdb crate name anyway, so the upstream doctests do not apply.
+#[cfg(any())]
+mod readme_doctests {
+    doc_comment::doctest!("../../../README.md");
+}
 
 #[cfg(test)]
 mod test {

@@ -36,6 +36,12 @@ fn main() {
     // Link against the DuckDB library
     println!("cargo:rustc-link-lib=dylib=duckdb");
 
+    // Runtime resolution too: link-time -L does not survive to load time. The
+    // unscoped rustc-link-arg applies to this crate's own test harness as well
+    // (its lib unittest otherwise aborts in the loader with
+    // "Library not loaded: @rpath/libduckdb.dylib").
+    println!("cargo:rustc-link-arg=-Wl,-rpath,{}", lib_dir.display());
+
     // Set environment variables for dependent crates
     println!("cargo:DUCKDB_LIB_DIR={}", lib_dir.display());
     println!("cargo:DUCKDB_INCLUDE_DIR={}", lib_dir.display());
