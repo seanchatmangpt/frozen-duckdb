@@ -1,0 +1,18 @@
+# frozen-duckdb project domain ontology (consumer-side facts)
+# Standard vocabularies only (dcterms, prov, skos) per marketplace law.
+
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix fd:     <https://seanchatmangpt.github.io/frozen-duckdb/ns#> .
+
+fd:project a prov:Entity ;
+    dcterms:title "frozen-duckdb" ;
+    dcterms:description "Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement" ;
+    dcterms:version "1.5.5" ;
+    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v1.5.5> .
+
+# DuckDB version law: crate version mirrors the bundled upstream release
+fd:duckdbVersionLaw a skos:Concept ;
+    skos:prefLabel "crate version mirrors bundled DuckDB release" ;
+    skos:notation "1.5.5" .

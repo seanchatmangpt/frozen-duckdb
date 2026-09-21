@@ -1,0 +1,38 @@
+# ggen consumer configuration — frozen-duckdb
+# 源 hierarchy: ~/ggen-marketplace/marketplace.toml → packs/<name>/pack.toml
+#   → ontology.ttl → templates/ → gates/ → THIS projection.
+# Generated files are consequences: edit the owning pack/ontology, never the
+# projection. Hand-edits to frozen artifacts are detected by freeze_policy.
+[project]
+name = "frozen-duckdb"
+version = "1.5.5"
+description = "Drop-in replacement for the duckdb (duckdb-rs) crate backed by prebuilt DuckDB binaries"
+authors = ["Sean Chatman"]
+license = "MIT"
+
+[ontology]
+source = "schema/domain.ttl"
+standard_only = true
+
+[generation]
+output_dir = "."
+# Capability waves append [[generation.rules]] entries: each renders one
+# consequence (gate/template output) from the pack ontologies. See
+# docs/sjira/v26.9.21/ wave tickets for the owning ticket per rule.
+rules = []
+
+# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) are declared as
+# [[ontology.pack]] entries: name/version must exist in ~/ggen-marketplace/packs/.
+# Capability waves append their pack entries here; each pack's facts render
+# this repo's gates/templates as consequences.
+
+[sync]
+enabled = true
+on_change = "manual"
+validate_after = true
+conflict_mode = "fail"
+
+[rdf]
+formats = ["turtle"]
+default_format = "turtle"
+strict_validation = false
