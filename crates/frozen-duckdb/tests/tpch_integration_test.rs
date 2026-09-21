@@ -4,12 +4,25 @@
 //! using the frozen DuckDB binary with industry-standard benchmark data.
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
+use std::sync::Mutex;
 use std::time::Instant;
 use tracing::info;
 
+/// Serializes dbgen across tests: the TPC-H extension's `dbgen` carries
+/// process-global state and is not thread-safe across independent
+/// connections — concurrent `CALL dbgen` under the default parallel test
+/// harness segfaults (SIGSEGV observed against DuckDB 1.5.5). Every test
+/// below runs real dbgen + real queries; the lock only removes the race.
+static TPC_LOCK: Mutex<()> = Mutex::new(());
+
+fn tpc_lock() -> std::sync::MutexGuard<'static, ()> {
+    TPC_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[test]
 fn test_tpch_extension_available() -> Result<()> {
+    let _tpc_guard = tpc_lock(); // serialize process-global dbgen (see TPC_LOCK)
     let conn = Connection::open_in_memory()?;
 
     // Install and load TPC-H extension
@@ -29,6 +42,7 @@ fn test_tpch_extension_available() -> Result<()> {
 
 #[test]
 fn test_tpch_data_generation() -> Result<()> {
+    let _tpc_guard = tpc_lock(); // serialize process-global dbgen (see TPC_LOCK)
     let conn = Connection::open_in_memory()?;
 
     // Install and load TPC-H extension
@@ -66,6 +80,7 @@ fn test_tpch_data_generation() -> Result<()> {
 
 #[test]
 fn test_tpch_query_execution() -> Result<()> {
+    let _tpc_guard = tpc_lock(); // serialize process-global dbgen (see TPC_LOCK)
     let conn = Connection::open_in_memory()?;
 
     // Install and load TPC-H extension
@@ -116,6 +131,7 @@ fn test_tpch_query_execution() -> Result<()> {
 
 #[test]
 fn test_tpch_expected_row_counts() -> Result<()> {
+    let _tpc_guard = tpc_lock(); // serialize process-global dbgen (see TPC_LOCK)
     let conn = Connection::open_in_memory()?;
 
     // Install and load TPC-H extension
@@ -166,6 +182,7 @@ fn test_tpch_expected_row_counts() -> Result<()> {
 
 #[test]
 fn test_tpch_relationships() -> Result<()> {
+    let _tpc_guard = tpc_lock(); // serialize process-global dbgen (see TPC_LOCK)
     let conn = Connection::open_in_memory()?;
 
     // Install and load TPC-H extension
@@ -206,6 +223,7 @@ fn test_tpch_relationships() -> Result<()> {
 
 #[test]
 fn test_tpch_performance_characteristics() -> Result<()> {
+    let _tpc_guard = tpc_lock(); // serialize process-global dbgen (see TPC_LOCK)
     let conn = Connection::open_in_memory()?;
 
     // Install and load TPC-H extension
