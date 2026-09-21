@@ -15,6 +15,11 @@ const VERSION: &str = "1.5.5";
 const CACHE_DIR: &str = ".frozen-duckdb";
 const BINARY_NAME: &str = "libduckdb";
 
+/// Absolute path of this crate's vendored-headers directory, captured when this
+/// crate is compiled (build-dependency scripts see their own CARGO_MANIFEST_DIR,
+/// not this crate's, so it cannot be read at call time)
+const VENDORED_HEADERS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/vendored-headers");
+
 /// Ensure the prebuilt DuckDB binary is available
 /// 
 /// This function:
@@ -28,53 +33,96 @@ pub fn ensure_binary() -> Result<PathBuf> {
     let versioned_cache = cache_dir.join(format!("v{}-{}", VERSION, arch));
     let binary_path = get_binary_path(&versioned_cache, &arch);
 
-    // Check if we already have a cached binary
     if binary_path.exists() {
         info!("Using cached DuckDB binary: {}", binary_path.display());
-        return Ok(binary_path);
-    }
-
-    // Check if prebuilt binary exists in project directory
-    if let Ok(prebuilt_path) = check_prebuilt_binary(&arch) {
+    } else if let Ok(prebuilt_path) = check_prebuilt_binary(&arch) {
         info!("Found prebuilt binary, copying to cache: {}", prebuilt_path.display());
         copy_prebuilt_to_cache(&prebuilt_path, &binary_path)?;
         info!("Successfully set up prebuilt binary and headers");
-        return Ok(binary_path);
-    }
+    } else {
+        info!("No cached binary found at: {}", binary_path.display());
+        info!("Cache directory: {}", versioned_cache.display());
 
-    info!("No cached binary found at: {}", binary_path.display());
-    info!("Cache directory: {}", versioned_cache.display());
-
-    // Debug: show what's in the cache directory
-    if let Ok(entries) = fs::read_dir(&versioned_cache) {
-        info!("Versioned cache directory contents:");
-        for entry in entries {
-            if let Ok(entry) = entry {
+        // Debug: show what's in the cache directory
+        if let Ok(entries) = fs::read_dir(&versioned_cache) {
+            info!("Versioned cache directory contents:");
+            for entry in entries.flatten() {
                 info!("  {}", entry.path().display());
+            }
+        }
+
+        info!("Attempting to download...");
+
+        // Try to download from GitHub Release
+        match download_from_github_release(&versioned_cache, &arch) {
+            Ok(path) => {
+                info!("Successfully downloaded frozen DuckDB binary: {}", path.display());
+            }
+            Err(e) => {
+                warn!("Failed to download from GitHub Release: {}", e);
+                info!("Falling back to local compilation...");
+
+                // Fallback to local compilation
+                let path = compile_duckdb_locally(&versioned_cache, &arch)
+                    .context("Failed to compile DuckDB locally")?;
+                info!("Successfully compiled DuckDB binary: {}", path.display());
             }
         }
     }
 
-    info!("Attempting to download...");
-    
-    // Try to download from GitHub Release
-    match download_from_github_release(&versioned_cache, &arch) {
-        Ok(path) => {
-            info!("Successfully downloaded frozen DuckDB binary: {}", path.display());
-            return Ok(path);
-        }
-        Err(e) => {
-            warn!("Failed to download from GitHub Release: {}", e);
-            info!("Falling back to local compilation...");
-        }
+    // Normalize the cache layout so downstream builds always work:
+    // headers under duckdb/ for bindgen, plain libduckdb.dylib for -lduckdb
+    ensure_headers(&versioned_cache)?;
+    ensure_link_name(&versioned_cache, &arch)?;
+
+    Ok(binary_path)
+}
+
+/// Copy the vendored headers into the cache when missing.
+///
+/// bindgen expects `{cache}/duckdb/duckdb.h`, but release downloads carry only
+/// the dylib, so the headers for the pinned DuckDB version ship inside this
+/// crate.
+fn ensure_headers(versioned_cache: &Path) -> Result<()> {
+    let headers_dir = versioned_cache.join("duckdb");
+    if headers_dir.join("duckdb.h").exists() {
+        return Ok(());
     }
-    
-    // Fallback to local compilation
-    let path = compile_duckdb_locally(&versioned_cache, &arch)
-        .context("Failed to compile DuckDB locally")?;
-    
-    info!("Successfully compiled DuckDB binary: {}", path.display());
-    Ok(path)
+    fs::create_dir_all(&headers_dir)
+        .context("Failed to create cache headers directory")?;
+    for header_name in ["duckdb.h", "duckdb.hpp"] {
+        let src = Path::new(VENDORED_HEADERS_DIR).join(header_name);
+        if !src.exists() {
+            anyhow::bail!("Vendored header missing: {}", src.display());
+        }
+        let dest = headers_dir.join(header_name);
+        fs::copy(&src, &dest)
+            .with_context(|| format!("Failed to copy vendored header {}", src.display()))?;
+        info!("Copied vendored header: {}", dest.display());
+    }
+    Ok(())
+}
+
+/// Create the plain `libduckdb.dylib` link name next to the arch-suffixed
+/// cached binary when missing, so `-lduckdb` resolves.
+fn ensure_link_name(versioned_cache: &Path, arch: &str) -> Result<()> {
+    let link_name = versioned_cache.join("libduckdb.dylib");
+    if link_name.exists() {
+        return Ok(());
+    }
+    let target = get_binary_path(versioned_cache, arch);
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&target, &link_name)
+            .with_context(|| format!("Failed to symlink {}", link_name.display()))?;
+    }
+    #[cfg(not(unix))]
+    {
+        fs::copy(&target, &link_name)
+            .with_context(|| format!("Failed to copy binary to link name {}", link_name.display()))?;
+    }
+    info!("Linked {} -> {}", link_name.display(), target.display());
+    Ok(())
 }
 
 /// Check if prebuilt binary exists in project directory
@@ -132,7 +180,9 @@ fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
         .context("Failed to get current directory")?;
 
     let prebuilt_dir = current_dir.join("prebuilt");
-    let headers_dest = cache_path.parent().unwrap();
+    let headers_dest = cache_path.parent().unwrap().join("duckdb");
+    fs::create_dir_all(&headers_dest)
+        .context("Failed to create cache headers directory")?;
 
     // Copy header files directly to cache directory (expected by bindgen)
     let header_files = ["duckdb.h", "duckdb.hpp"];
@@ -311,7 +361,7 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
         .context("Failed to copy built library to cache")?;
 
     // Also copy header files for FFI bindings generation
-    let headers_dir = cache_dir.join("include");
+    let headers_dir = cache_dir.join("duckdb");
     fs::create_dir_all(&headers_dir)?;
 
     // Copy DuckDB headers
