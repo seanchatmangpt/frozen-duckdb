@@ -14,7 +14,7 @@
 //! duckdb = "1.4.0"
 //!
 //! # After (99% faster builds)
-//! frozen-duckdb = "1.4.0"
+//! frozen-duckdb = "1.5.5"
 //! ```
 //!
 //! **No code changes needed** - same API, same functionality, 99% faster builds!

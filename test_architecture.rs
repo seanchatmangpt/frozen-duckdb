@@ -60,7 +60,7 @@ fn main() {
     // Test 4: Binary naming convention
     println!("\n4. Testing binary naming...");
     let expected_name = format!("libfrozen_mega_{}.dylib", arch);
-    let binary_path = cache_dir.join("v1.4.0-x86_64").join(&expected_name);
+    let binary_path = cache_dir.join("v1.5.5-x86_64").join(&expected_name);
     if binary_path.exists() {
         println!("✅ Expected binary exists: {}", expected_name);
     } else {
