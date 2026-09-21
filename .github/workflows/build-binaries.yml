@@ -77,20 +77,28 @@ jobs:
 
       - name: Find built binary
         run: |
-          # Find the built binary in the cache
-          BINARY_PATH=$(find ~/.frozen-duckdb/cache -name "libfrozen_mega_${{ matrix.arch }}.dylib" | head -1)
+          # frozen-duckdb-builder::ensure_binary() downloads
+          # releases/download/v{VERSION}/libduckdb_{arch}.dylib, so the released
+          # asset must carry exactly that name. Search the versioned cache for
+          # it first, fall back to the legacy mega-library name, then stage a
+          # copy under the canonical download name.
+          BINARY_PATH=$(find "$HOME/.frozen-duckdb/cache" -path "*/v*/libduckdb_${{ matrix.arch }}.dylib" | head -1)
+          if [ -z "$BINARY_PATH" ]; then
+            BINARY_PATH=$(find "$HOME/.frozen-duckdb/cache" -name "libfrozen_mega_${{ matrix.arch }}.dylib" | head -1)
+          fi
           if [ -z "$BINARY_PATH" ]; then
             echo "Could not find built binary"
             exit 1
           fi
-          echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_ENV
-          echo "Found binary: $BINARY_PATH"
+          mkdir -p stage
+          cp "$BINARY_PATH" "stage/libduckdb_${{ matrix.arch }}.dylib"
+          echo "Staged asset: stage/libduckdb_${{ matrix.arch }}.dylib (from $BINARY_PATH)"
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: libfrozen_mega_${{ matrix.arch }}
-          path: ${{ env.BINARY_PATH }}
+          name: libduckdb_${{ matrix.arch }}
+          path: stage/libduckdb_${{ matrix.arch }}.dylib
 
   release:
     needs: build-binaries
@@ -124,7 +132,7 @@ jobs:
             - ICU internationalization
             - All modern DuckDB features
           files: |
-            libfrozen_mega_x86_64/libfrozen_mega_x86_64.dylib
-            libfrozen_mega_arm64/libfrozen_mega_arm64.dylib
+            libduckdb_x86_64/libduckdb_x86_64.dylib
+            libduckdb_arm64/libduckdb_arm64.dylib
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
