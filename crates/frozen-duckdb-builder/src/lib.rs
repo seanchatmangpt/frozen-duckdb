@@ -20,6 +20,63 @@ const BINARY_NAME: &str = "libduckdb";
 /// not this crate's, so it cannot be read at call time)
 const VENDORED_HEADERS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/vendored-headers");
 
+/// Name of the host target OS ("macos" | "linux" | "windows" | "other"),
+/// separated from `library_extension_for` so the naming law is unit-testable
+/// on every host.
+fn target_os_name() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "macos"
+    } else if cfg!(target_os = "linux") {
+        "linux"
+    } else if cfg!(target_os = "windows") {
+        "windows"
+    } else {
+        "other"
+    }
+}
+
+/// Shared-library file extension for a target OS.
+///
+/// Asset law (TR7): `.dylib` on macOS, `.so` on Linux/other, `.dll` on
+/// Windows. Windows is on the documented local-compile fallback — the
+/// extension is kept only so `get_binary_path` stays consistent with the
+/// local-compile output; no `.dll` release asset exists or is planned.
+fn library_extension_for(os: &str) -> &'static str {
+    match os {
+        "macos" => "dylib",
+        "linux" => "so",
+        "windows" => "dll",
+        _ => "so", // Default fallback
+    }
+}
+
+/// Shared-library file extension for the host platform.
+fn library_extension() -> &'static str {
+    library_extension_for(target_os_name())
+}
+
+/// Name of the frozen-duckdb release asset carrying the shared library for
+/// `arch` on `os` (parameterized form, unit-testable cross-platform).
+///
+/// Asset law (TR7): `libduckdb_{arch}.dylib` on macOS, `libduckdb_{arch}.so`
+/// on Linux. This must stay in lockstep with `get_binary_path`, which names
+/// the cached copy with the same platform extension.
+///
+/// NOTE: `.so` release assets do NOT exist in any published frozen-duckdb
+/// release yet — the v1.5.5 workflow ships macOS assets only, and the Linux
+/// asset set first lands with a tag AFTER v1.5.5 (TR2 coordinates the
+/// workflow side). Until that tag exists, a Linux download attempt returns
+/// HTTP 404 and `ensure_binary` falls back to `compile_duckdb_locally`,
+/// which is the supported Linux path today.
+fn release_asset_name_for(os: &str, arch: &str) -> String {
+    format!("libduckdb_{}.{}", arch, library_extension_for(os))
+}
+
+/// Name of the frozen-duckdb release asset for `arch` on the host platform.
+fn release_asset_name(arch: &str) -> String {
+    release_asset_name_for(target_os_name(), arch)
+}
+
 /// Ensure the prebuilt DuckDB binary is available
 ///
 /// This function:
@@ -108,10 +165,12 @@ fn ensure_headers(versioned_cache: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Create the plain `libduckdb.dylib` link name next to the arch-suffixed
-/// cached binary when missing, so `-lduckdb` resolves.
+/// Create the plain `libduckdb.{dylib,so}` link name next to the arch-suffixed
+/// cached binary when missing, so `-lduckdb` resolves. The link name carries
+/// the platform extension (TR7): `libduckdb.dylib` on macOS, `libduckdb.so`
+/// on Linux.
 fn ensure_link_name(versioned_cache: &Path, arch: &str) -> Result<()> {
-    let link_name = versioned_cache.join("libduckdb.dylib");
+    let link_name = versioned_cache.join(format!("{}.{}", BINARY_NAME, library_extension()));
     if link_name.exists() {
         return Ok(());
     }
@@ -141,7 +200,9 @@ fn check_prebuilt_binary(arch: &str) -> Result<PathBuf> {
         anyhow::bail!("Prebuilt directory not found: {}", prebuilt_dir.display());
     }
 
-    let binary_name = format!("libduckdb_{}.dylib", arch);
+    // prebuilt/ mirrors the release asset naming law (TR7):
+    // libduckdb_{arch}.dylib on macOS, libduckdb_{arch}.so on Linux.
+    let binary_name = release_asset_name(arch);
     let binary_path = prebuilt_dir.join(&binary_name);
 
     if binary_path.exists() {
@@ -233,25 +294,21 @@ fn get_cache_dir() -> Result<PathBuf> {
 
 /// Get the expected binary path for the given architecture
 fn get_binary_path(cache_dir: &Path, arch: &str) -> PathBuf {
-    let extension = if cfg!(target_os = "macos") {
-        "dylib"
-    } else if cfg!(target_os = "linux") {
-        "so"
-    } else if cfg!(target_os = "windows") {
-        "dll"
-    } else {
-        "so" // Default fallback
-    };
-
-    cache_dir.join(format!("{}_{}.{}", BINARY_NAME, arch, extension))
+    cache_dir.join(format!("{}_{}.{}", BINARY_NAME, arch, library_extension()))
 }
 
 /// Download prebuilt binary from GitHub Release
 fn download_from_github_release(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     let binary_path = get_binary_path(cache_dir, arch);
+    // Asset law (TR7): the URL must request the platform-correct asset name —
+    // libduckdb_{arch}.dylib on macOS, libduckdb_{arch}.so on Linux — matching
+    // both the published release assets and get_binary_path's cache name. See
+    // release_asset_name_for: Linux .so assets only exist from the release
+    // AFTER v1.5.5; until then Linux downloads 404 and local compile runs.
     let url = format!(
-        "https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v{}/libduckdb_{}.dylib",
-        VERSION, arch
+        "https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v{}/{}",
+        VERSION,
+        release_asset_name(arch)
     );
 
     info!("Downloading from: {}", url);
@@ -319,8 +376,15 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     let build_dir = duckdb_dir.join("build");
     fs::create_dir_all(&build_dir).context("Failed to create build directory")?;
 
-    // Configure with CMake - enable all extensions
-    Command::new("cmake")
+    // Configure with CMake - enable all extensions.
+    // TR7/TR2 coordination: the build-binaries workflow (TR2) exports
+    // CMAKE_OSX_ARCHITECTURES per matrix arch; if the operator/workflow set
+    // it in the environment, pass it through to cmake so a local compile can
+    // target a specific macOS arch (or arch list) instead of the host
+    // default. The flag is only meaningful for Apple targets; cmake ignores
+    // it elsewhere.
+    let mut configure = Command::new("cmake");
+    configure
         .args([
             "..",
             "-DCMAKE_BUILD_TYPE=Release",
@@ -342,7 +406,15 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
             "-DBUILD_ARROW=ON",
             "-DBUILD_POLARS=ON",
         ])
-        .current_dir(&build_dir)
+        .current_dir(&build_dir);
+    if let Ok(osx_archs) = env::var("CMAKE_OSX_ARCHITECTURES") {
+        let osx_archs = osx_archs.trim();
+        if !osx_archs.is_empty() {
+            info!("Configuring with CMAKE_OSX_ARCHITECTURES={}", osx_archs);
+            configure.arg(format!("-DCMAKE_OSX_ARCHITECTURES={}", osx_archs));
+        }
+    }
+    configure
         .output()
         .context("Failed to configure DuckDB with CMake")?;
 
@@ -457,5 +529,65 @@ mod tests {
         } else if cfg!(target_os = "linux") {
             assert!(path.to_string_lossy().ends_with("libduckdb_x86_64.so"));
         }
+    }
+
+    #[test]
+    fn test_library_extension_for_platforms() {
+        // Asset law (TR7): dylib on macOS, so on Linux, dll on Windows
+        // (local-compile fallback only), so for unknown platforms.
+        assert_eq!(library_extension_for("macos"), "dylib");
+        assert_eq!(library_extension_for("linux"), "so");
+        assert_eq!(library_extension_for("windows"), "dll");
+        assert_eq!(library_extension_for("other"), "so");
+    }
+
+    #[test]
+    fn test_release_asset_name_per_platform() {
+        assert_eq!(
+            release_asset_name_for("macos", "arm64"),
+            "libduckdb_arm64.dylib"
+        );
+        assert_eq!(
+            release_asset_name_for("macos", "x86_64"),
+            "libduckdb_x86_64.dylib"
+        );
+        assert_eq!(
+            release_asset_name_for("linux", "arm64"),
+            "libduckdb_arm64.so"
+        );
+        assert_eq!(
+            release_asset_name_for("linux", "x86_64"),
+            "libduckdb_x86_64.so"
+        );
+    }
+
+    #[test]
+    fn test_release_asset_name_matches_host_binary_path() {
+        // The download URL asset and the cached binary name must carry the
+        // same platform extension on the host, or download would write a file
+        // get_binary_path would never find.
+        for arch in ["x86_64", "arm64"] {
+            let asset = release_asset_name(arch);
+            let binary = get_binary_path(Path::new("/tmp/test"), arch);
+            let binary_name = binary.file_name().unwrap().to_string_lossy();
+            assert_eq!(asset, binary_name);
+        }
+    }
+
+    #[test]
+    fn test_ensure_link_name_platform_extension() {
+        // Cache normalization must produce libduckdb.dylib on macOS and
+        // libduckdb.so on Linux, and be idempotent.
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path();
+        let arch = "arm64";
+        let target = get_binary_path(cache, arch);
+        fs::write(&target, b"fake dylib bytes").unwrap();
+
+        ensure_link_name(cache, arch).unwrap();
+        let link = cache.join(format!("{}.{}", BINARY_NAME, library_extension()));
+        assert!(link.exists(), "link name missing: {}", link.display());
+
+        ensure_link_name(cache, arch).unwrap(); // second call must not fail
     }
 }
