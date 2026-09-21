@@ -12,6 +12,10 @@ license = "MIT"
 
 [ontology]
 source = "schema/domain.ttl"
+imports = [
+  "/Users/sac/ggen-marketplace/packs/castle-changelog-release-pack/ontology.ttl",
+  "schema/changelog.ttl",
+]
 standard_only = true
 
 [generation]
@@ -19,12 +23,24 @@ output_dir = "."
 # Capability waves append [[generation.rules]] entries: each renders one
 # consequence (gate/template output) from the pack ontologies. See
 # docs/sjira/v26.9.21/ wave tickets for the owning ticket per rule.
-rules = []
+rules = [
+  # CHANGELOG.md is a consequence of the castle-changelog-release-pack
+  # ontology + schema/changelog.ttl facts (pack template body, adapted
+  # for the declarative-rules schema — see templates/CHANGELOG.md.tmpl).
+  { name = "changelog", query = { inline = "PREFIX rel: <http://seanchatmangpt.github.io/packs/changelog-release#> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> SELECT ?kind ?rel ?version ?date ?yanked ?category ?entryOrder ?description WHERE { { BIND(0 AS ?kind) ?rel a rel:Release ; rel:version ?version . OPTIONAL { ?rel rel:date ?date } OPTIONAL { ?rel rel:yanked ?yanked } } UNION { BIND(1 AS ?kind) ?entry a rel:ChangeEntry ; rel:inRelease ?rel ; rel:category ?catConcept ; rel:description ?description . ?catConcept skos:notation ?category . OPTIONAL { ?entry rel:entryOrder ?ord0 } BIND(COALESCE(?ord0, 0) AS ?entryOrder) } } ORDER BY ?kind DESC(?date) DESC(?version) ?rel ?category ?entryOrder" }, template = { file = "templates/CHANGELOG.md.tmpl" }, output_file = "CHANGELOG.md", mode = "Overwrite" },
+]
 
 # Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) are declared as
-# [[ontology.pack]] entries: name/version must exist in ~/ggen-marketplace/packs/.
-# Capability waves append their pack entries here; each pack's facts render
-# this repo's gates/templates as consequences.
+# [[packs]] entries (ggen 26.8.18 declarative schema; note: the [[ontology.pack]]
+# key named by the original bootstrap comment does not exist in this ggen —
+# pack ontologies are unioned via [ontology].imports, see failed-edge ledger in
+# docs/sjira/v26.9.21/C7.md). Capability waves append their pack entries here;
+# each pack's facts render this repo's gates/templates as consequences.
+
+[[packs]]
+name = "castle-changelog-release-pack"
+version = "0.1.0"
+path = "/Users/sac/ggen-marketplace/packs/castle-changelog-release-pack"
 
 [sync]
 enabled = true
