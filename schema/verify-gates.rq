@@ -1,0 +1,35 @@
+# C8 verify-gate chain — the one row-source both rendered consequences
+# (scripts/verify-gates.sh and Makefile) select from. Single source: edit
+# here or in schema/verify.ttl, never the projections.
+#
+# Rows:
+#   kind="check"    — one ver:RequiredCheck with its command and the
+#                     es:standingName (looked up from the evidence-standing-pack
+#                     individual fdv:redStanding points at) to report if red.
+#   kind="standing" — the es:Standing vocabulary itself (es:standingName),
+#                     rendered as data so the standing ladder in the
+#                     projections comes from pack facts, not ad-hoc literals.
+PREFIX ver: <http://seanchatmangpt.github.io/packs/ggen-verify#>
+PREFIX es:  <https://ggen.dev/ontology/evidence-standing#>
+PREFIX fdv: <https://frozen-duckdb.dev/ontology/verify#>
+
+SELECT ?kind ?name ?command ?standing
+WHERE {
+  {
+    ?req a ver:RequiredCheck ;
+         ver:name ?name ;
+         ver:checkCommand ?command ;
+         fdv:redStanding ?st .
+    OPTIONAL { ?st es:standingName ?standing }
+    BIND("check" AS ?kind)
+  }
+  UNION
+  {
+    ?s a es:Standing ;
+       es:standingName ?name .
+    BIND("standing" AS ?kind)
+    BIND("" AS ?command)
+    BIND("" AS ?standing)
+  }
+}
+ORDER BY ?kind ?name
