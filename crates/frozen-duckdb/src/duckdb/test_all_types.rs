@@ -39,7 +39,11 @@ fn test_with_database(database: &Connection) -> crate::duckdb::Result<()> {
         for column in row.stmt.column_names() {
             let value = row.get_ref_unwrap(row.stmt.column_index(&column)?);
             if idx != 2 {
-                assert_ne!(value.data_type(), Type::Null, "column {column} is null: {value:?}");
+                assert_ne!(
+                    value.data_type(),
+                    Type::Null,
+                    "column {column} is null: {value:?}"
+                );
             }
             test_single(&mut idx, column, value);
         }
@@ -76,8 +80,14 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             _ => assert_eq!(value, ValueRef::Null),
         },
         "hugeint" => match idx {
-            0 => assert_eq!(value, ValueRef::HugeInt(-170141183460469231731687303715884105728)),
-            1 => assert_eq!(value, ValueRef::HugeInt(170141183460469231731687303715884105727)),
+            0 => assert_eq!(
+                value,
+                ValueRef::HugeInt(-170141183460469231731687303715884105728)
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::HugeInt(170141183460469231731687303715884105727)
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "utinyint" => match idx {
@@ -116,8 +126,14 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             _ => assert_eq!(value, ValueRef::Null),
         },
         "decimal" => match idx {
-            0 => assert_eq!(value, ValueRef::Decimal(Decimal::from_i128_with_scale(0, 0))),
-            1 => assert_eq!(value, ValueRef::Decimal(Decimal::from_i128_with_scale(1, 0))),
+            0 => assert_eq!(
+                value,
+                ValueRef::Decimal(Decimal::from_i128_with_scale(0, 0))
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Decimal(Decimal::from_i128_with_scale(1, 0))
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "date" => match idx {
@@ -131,8 +147,14 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             _ => assert_eq!(value, ValueRef::Null),
         },
         "timestamp" => match idx {
-            0 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Microsecond, -9223372022400000000)),
-            1 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Microsecond, 9223372036854775806)),
+            0 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Microsecond, -9223372022400000000)
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Microsecond, 9223372036854775806)
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "timestamp_s" => match idx {
@@ -141,28 +163,58 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             _ => assert_eq!(value, ValueRef::Null),
         },
         "timestamp_ms" => match idx {
-            0 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Millisecond, -9223372022400000)),
-            1 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Millisecond, 9223372036854775)),
+            0 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Millisecond, -9223372022400000)
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Millisecond, 9223372036854775)
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "timestamp_ns" => match idx {
-            0 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Nanosecond, -9223286400000000000)),
-            1 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Nanosecond, 9223372036854775806)),
+            0 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Nanosecond, -9223286400000000000)
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Nanosecond, 9223372036854775806)
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "timestamp_tz" => match idx {
-            0 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Microsecond, -9223372022400000000)),
-            1 => assert_eq!(value, ValueRef::Timestamp(TimeUnit::Microsecond, 9223372036854775806)),
+            0 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Microsecond, -9223372022400000000)
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Timestamp(TimeUnit::Microsecond, 9223372036854775806)
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "dec_4_1" => match idx {
-            0 => assert_eq!(value, ValueRef::Decimal(Decimal::from_i128_with_scale(-9999, 1))),
-            1 => assert_eq!(value, ValueRef::Decimal(Decimal::from_i128_with_scale(9999, 1))),
+            0 => assert_eq!(
+                value,
+                ValueRef::Decimal(Decimal::from_i128_with_scale(-9999, 1))
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Decimal(Decimal::from_i128_with_scale(9999, 1))
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "dec_9_4" => match idx {
-            0 => assert_eq!(value, ValueRef::Decimal(Decimal::from_i128_with_scale(-999999999, 4))),
-            1 => assert_eq!(value, ValueRef::Decimal(Decimal::from_i128_with_scale(999999999, 4))),
+            0 => assert_eq!(
+                value,
+                ValueRef::Decimal(Decimal::from_i128_with_scale(-999999999, 4))
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Decimal(Decimal::from_i128_with_scale(999999999, 4))
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "dec_18_6" => match idx {
@@ -177,8 +229,14 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             _ => assert_eq!(value, ValueRef::Null),
         },
         "uuid" => match idx {
-            0 => assert_eq!(value, ValueRef::Text("00000000-0000-0000-0000-000000000000".as_bytes())),
-            1 => assert_eq!(value, ValueRef::Text("ffffffff-ffff-ffff-ffff-ffffffffffff".as_bytes())),
+            0 => assert_eq!(
+                value,
+                ValueRef::Text("00000000-0000-0000-0000-000000000000".as_bytes())
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Text("ffffffff-ffff-ffff-ffff-ffffffffffff".as_bytes())
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "varchar" => match idx {
@@ -190,8 +248,8 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             0 => assert_eq!(
                 value,
                 ValueRef::Blob(&[
-                    116, 104, 105, 115, 105, 115, 97, 108, 111, 110, 103, 98, 108, 111, 98, 0, 119, 105, 116, 104, 110,
-                    117, 108, 108, 98, 121, 116, 101, 115
+                    116, 104, 105, 115, 105, 115, 97, 108, 111, 110, 103, 98, 108, 111, 98, 0, 119,
+                    105, 116, 104, 110, 117, 108, 108, 98, 121, 116, 101, 115
                 ])
             ),
             1 => assert_eq!(value, ValueRef::Blob(&[0, 0, 0, 97])),
@@ -395,8 +453,14 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             1 => assert_eq!(
                 value.to_owned(),
                 Value::Map(OrderedMap::from(vec![
-                    (Value::Text("key1".to_string()), Value::Text("🦆🦆🦆🦆🦆🦆".to_string())),
-                    (Value::Text("key2".to_string()), Value::Text("goose".to_string())),
+                    (
+                        Value::Text("key1".to_string()),
+                        Value::Text("🦆🦆🦆🦆🦆🦆".to_string())
+                    ),
+                    (
+                        Value::Text("key2".to_string()),
+                        Value::Text("goose".to_string())
+                    ),
                 ]))
             ),
             _ => assert_eq!(value, ValueRef::Null),

@@ -120,7 +120,9 @@ impl Statement<'_> {
     /// or when column name is not valid UTF-8.
     #[inline]
     pub fn column_name(&self, col: usize) -> Result<&String> {
-        self.stmt.column_name(col).ok_or(Error::InvalidColumnIndex(col))
+        self.stmt
+            .column_name(col)
+            .ok_or(Error::InvalidColumnIndex(col))
     }
 
     /// Returns the column index in the result set for a given column name.

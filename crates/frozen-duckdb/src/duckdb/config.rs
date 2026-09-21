@@ -49,7 +49,8 @@ pub struct Config {
 
 impl Config {
     pub(crate) fn duckdb_config(&self) -> ffi::duckdb_config {
-        self.config.unwrap_or(std::ptr::null_mut() as ffi::duckdb_config)
+        self.config
+            .unwrap_or(std::ptr::null_mut() as ffi::duckdb_config)
     }
 
     /// enable autoload extensions

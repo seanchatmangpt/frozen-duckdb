@@ -193,9 +193,13 @@ impl FromSql for String {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         match value {
             #[cfg(feature = "chrono")]
-            ValueRef::Date32(_) => Ok(chrono::NaiveDate::column_result(value)?.format("%F").to_string()),
+            ValueRef::Date32(_) => Ok(chrono::NaiveDate::column_result(value)?
+                .format("%F")
+                .to_string()),
             #[cfg(feature = "chrono")]
-            ValueRef::Time64(..) => Ok(chrono::NaiveTime::column_result(value)?.format("%T%.f").to_string()),
+            ValueRef::Time64(..) => Ok(chrono::NaiveTime::column_result(value)?
+                .format("%T%.f")
+                .to_string()),
             #[cfg(feature = "chrono")]
             ValueRef::Timestamp(..) => Ok(chrono::NaiveDateTime::column_result(value)?
                 .format("%F %T%.f")
@@ -238,13 +242,14 @@ impl FromSql for uuid::Uuid {
     #[inline]
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         match value {
-            ValueRef::Text(..) => value
-                .as_str()
-                .and_then(|s| Self::parse_str(s).map_err(|_| FromSqlError::InvalidUuidSize(s.len()))),
+            ValueRef::Text(..) => value.as_str().and_then(|s| {
+                Self::parse_str(s).map_err(|_| FromSqlError::InvalidUuidSize(s.len()))
+            }),
             ValueRef::Blob(..) => value
                 .as_blob()
                 .and_then(|bytes| {
-                    uuid::Builder::from_slice(bytes).map_err(|_| FromSqlError::InvalidUuidSize(bytes.len()))
+                    uuid::Builder::from_slice(bytes)
+                        .map_err(|_| FromSqlError::InvalidUuidSize(bytes.len()))
                 })
                 .map(|builder| builder.into_uuid()),
             _ => Err(FromSqlError::InvalidType),
@@ -289,7 +294,15 @@ mod test {
             [],
             |row| <(i64, i64, i64, i64)>::try_from(row),
         )?;
-        assert_eq!(v, (1199145601, 1199145601594, 1199145601889260, 1199145601889268000));
+        assert_eq!(
+            v,
+            (
+                1199145601,
+                1199145601594,
+                1199145601889260,
+                1199145601889268000
+            )
+        );
         Ok(())
     }
 
@@ -343,7 +356,9 @@ mod test {
         let i128max: i128 = i128::MAX;
         let i128min: i128 = i128::MIN + 1;
         db.execute("INSERT INTO huge_int VALUES (?, ?);", [&i128max, &i128min])?;
-        let v = db.query_row("SELECT * FROM huge_int", [], |row| <(i128, i128)>::try_from(row))?;
+        let v = db.query_row("SELECT * FROM huge_int", [], |row| {
+            <(i128, i128)>::try_from(row)
+        })?;
         assert_eq!(v, (i128max, i128min));
         Ok(())
     }
@@ -357,14 +372,21 @@ mod test {
             T: Into<i128> + FromSql + ::std::fmt::Debug,
         {
             for n in out_of_range {
-                let err = db.query_row("SELECT ?", [n], |r| r.get::<_, T>(0)).unwrap_err();
+                let err = db
+                    .query_row("SELECT ?", [n], |r| r.get::<_, T>(0))
+                    .unwrap_err();
                 match err {
                     Error::IntegralValueOutOfRange(_, value) => assert_eq!(*n, value),
                     _ => panic!("unexpected error: {err}"),
                 }
             }
             for n in in_range {
-                assert_eq!(*n, db.query_row("SELECT ?", [n], |r| r.get::<_, T>(0)).unwrap().into());
+                assert_eq!(
+                    *n,
+                    db.query_row("SELECT ?", [n], |r| r.get::<_, T>(0))
+                        .unwrap()
+                        .into()
+                );
             }
         }
 
@@ -390,9 +412,11 @@ mod test {
                    INSERT INTO uuid VALUES ('10203040-5060-7080-0102-030405060708'),(NULL),('47183823-2574-4bfd-b411-99ed177d3e43');
                    END;";
         db.execute_batch(sql)?;
-        let v = db.query_row("SELECT u FROM uuid order by u desc nulls last limit 1", [], |row| {
-            <(String,)>::try_from(row)
-        })?;
+        let v = db.query_row(
+            "SELECT u FROM uuid order by u desc nulls last limit 1",
+            [],
+            |row| <(String,)>::try_from(row),
+        )?;
         assert_eq!(v, ("47183823-2574-4bfd-b411-99ed177d3e43".to_string(),));
         let v = db.query_row(
             "SELECT u FROM uuid where u>?::UUID",
@@ -412,9 +436,11 @@ mod test {
                    INSERT INTO uuid VALUES ('10203040-5060-7080-0102-030405060708'),(NULL),('47183823-2574-4bfd-b411-99ed177d3e43');
                    END;";
         db.execute_batch(sql)?;
-        let v = db.query_row("SELECT u FROM uuid order by u desc nulls last limit 1", [], |row| {
-            <(uuid::Uuid,)>::try_from(row)
-        })?;
+        let v = db.query_row(
+            "SELECT u FROM uuid order by u desc nulls last limit 1",
+            [],
+            |row| <(uuid::Uuid,)>::try_from(row),
+        )?;
         assert_eq!(v.0.to_string(), "47183823-2574-4bfd-b411-99ed177d3e43");
         Ok(())
     }

@@ -18,7 +18,11 @@ impl Sql {
         Self { buf: String::new() }
     }
 
-    pub fn push_pragma(&mut self, schema_name: Option<DatabaseName<'_>>, pragma_name: &str) -> Result<()> {
+    pub fn push_pragma(
+        &mut self,
+        schema_name: Option<DatabaseName<'_>>,
+        pragma_name: &str,
+    ) -> Result<()> {
         self.push_keyword("PRAGMA")?;
         self.push_space();
         if let Some(schema_name) = schema_name {
@@ -146,7 +150,12 @@ impl Connection {
     ///
     /// Some pragmas will return multiple rows/values which cannot be retrieved
     /// with this method.
-    pub fn pragma_query_value<T, F>(&self, schema_name: Option<DatabaseName<'_>>, pragma_name: &str, f: F) -> Result<T>
+    pub fn pragma_query_value<T, F>(
+        &self,
+        schema_name: Option<DatabaseName<'_>>,
+        pragma_name: &str,
+        f: F,
+    ) -> Result<T>
     where
         F: FnOnce(&Row<'_>) -> Result<T>,
     {
@@ -156,7 +165,12 @@ impl Connection {
     }
 
     /// Query the current rows/values of `pragma_name`.
-    pub fn pragma_query<F>(&self, schema_name: Option<DatabaseName<'_>>, pragma_name: &str, mut f: F) -> Result<()>
+    pub fn pragma_query<F>(
+        &self,
+        schema_name: Option<DatabaseName<'_>>,
+        pragma_name: &str,
+        mut f: F,
+    ) -> Result<()>
     where
         F: FnMut(&Row<'_>) -> Result<()>,
     {

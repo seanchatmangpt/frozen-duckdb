@@ -38,7 +38,10 @@ mod tests {
 
     unsafe fn print_int_result(result: &mut duckdb_result) {
         for i in 0..duckdb_column_count(result) {
-            print!("{} ", CStr::from_ptr(duckdb_column_name(result, i)).to_string_lossy());
+            print!(
+                "{} ",
+                CStr::from_ptr(duckdb_column_name(result, i)).to_string_lossy()
+            );
         }
         println!();
         // print the data of the result
@@ -65,14 +68,19 @@ mod tests {
             }
             // create a table
             let sql = CString::new("CREATE TABLE integers(i INTEGER, j INTEGER);").unwrap();
-            if duckdb_query(con, sql.as_ptr() as *const c_char, ptr::null_mut()) != duckdb_state_DuckDBSuccess {
+            if duckdb_query(con, sql.as_ptr() as *const c_char, ptr::null_mut())
+                != duckdb_state_DuckDBSuccess
+            {
                 panic!("CREATE TABLE error")
             }
 
             // insert three rows into the table
-            let sql = CString::new("INSERT INTO integers VALUES (3, 4), (5, 6), (7, NULL);").unwrap();
+            let sql =
+                CString::new("INSERT INTO integers VALUES (3, 4), (5, 6), (7, NULL);").unwrap();
             let mut result: duckdb_arrow = ptr::null_mut();
-            if duckdb_query_arrow(con, sql.as_ptr() as *const c_char, &mut result) != duckdb_state_DuckDBSuccess {
+            if duckdb_query_arrow(con, sql.as_ptr() as *const c_char, &mut result)
+                != duckdb_state_DuckDBSuccess
+            {
                 panic!("INSERT error")
             }
             assert_eq!(duckdb_arrow_rows_changed(result), 3);
@@ -81,7 +89,9 @@ mod tests {
             // query rows again
             let mut result: duckdb_arrow = ptr::null_mut();
             let sql = CString::new("select i, j from integers order by i desc").unwrap();
-            if duckdb_query_arrow(con, sql.as_ptr() as *const c_char, &mut result) != duckdb_state_DuckDBSuccess {
+            if duckdb_query_arrow(con, sql.as_ptr() as *const c_char, &mut result)
+                != duckdb_state_DuckDBSuccess
+            {
                 panic!("SELECT error")
             }
             assert_eq!(duckdb_arrow_row_count(result), 3);
@@ -109,11 +119,19 @@ mod tests {
             assert_eq!(struct_array.columns().len(), 2);
             assert_eq!(struct_array.column(0).data_type(), &DataType::Int32);
             assert_eq!(struct_array.column(1).data_type(), &DataType::Int32);
-            let arr_i = struct_array.column(0).as_any().downcast_ref::<Int32Array>().unwrap();
+            let arr_i = struct_array
+                .column(0)
+                .as_any()
+                .downcast_ref::<Int32Array>()
+                .unwrap();
             assert_eq!(arr_i.value(0), 7);
             assert_eq!(arr_i.value(1), 5);
             assert_eq!(arr_i.value(2), 3);
-            let arr_j = struct_array.column(1).as_any().downcast_ref::<Int32Array>().unwrap();
+            let arr_j = struct_array
+                .column(1)
+                .as_any()
+                .downcast_ref::<Int32Array>()
+                .unwrap();
             assert!(arr_j.is_null(0));
             assert_eq!(arr_j.value(1), 6);
             assert_eq!(arr_j.value(2), 4);
@@ -143,18 +161,25 @@ mod tests {
             }
             // create a table
             let sql = CString::new("CREATE TABLE integers(i INTEGER, j INTEGER);").unwrap();
-            if duckdb_query(con, sql.as_ptr() as *const c_char, ptr::null_mut()) != duckdb_state_DuckDBSuccess {
+            if duckdb_query(con, sql.as_ptr() as *const c_char, ptr::null_mut())
+                != duckdb_state_DuckDBSuccess
+            {
                 panic!("CREATE TABLE error")
             }
             // insert three rows into the table
-            let sql = CString::new("INSERT INTO integers VALUES (3, 4), (5, 6), (7, NULL);").unwrap();
-            if duckdb_query(con, sql.as_ptr() as *const c_char, ptr::null_mut()) != duckdb_state_DuckDBSuccess {
+            let sql =
+                CString::new("INSERT INTO integers VALUES (3, 4), (5, 6), (7, NULL);").unwrap();
+            if duckdb_query(con, sql.as_ptr() as *const c_char, ptr::null_mut())
+                != duckdb_state_DuckDBSuccess
+            {
                 panic!("INSERT error")
             }
             // query rows again
             let mut result: duckdb_result = mem::zeroed();
             let sql = CString::new("select * from integers").unwrap();
-            if duckdb_query(con, sql.as_ptr() as *const c_char, &mut result) != duckdb_state_DuckDBSuccess {
+            if duckdb_query(con, sql.as_ptr() as *const c_char, &mut result)
+                != duckdb_state_DuckDBSuccess
+            {
                 panic!(
                     "SELECT error: {}",
                     CStr::from_ptr(duckdb_result_error(&mut result)).to_string_lossy()
@@ -168,7 +193,9 @@ mod tests {
             // test prepare
             let mut stmt: duckdb_prepared_statement = ptr::null_mut();
             let sql = CString::new("select * from integers where i>?").unwrap();
-            if duckdb_prepare(con, sql.as_ptr() as *const c_char, &mut stmt) != duckdb_state_DuckDBSuccess {
+            if duckdb_prepare(con, sql.as_ptr() as *const c_char, &mut stmt)
+                != duckdb_state_DuckDBSuccess
+            {
                 panic!("Prepare error");
             }
             if duckdb_bind_int32(stmt, 1, 4) != duckdb_state_DuckDBSuccess {

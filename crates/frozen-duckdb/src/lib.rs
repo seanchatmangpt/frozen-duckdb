@@ -153,22 +153,27 @@ pub mod duckdb;
 // Re-export duckdb-rs API for drop-in replacement compatibility
 // This enables frozen-duckdb to be a true drop-in replacement
 pub use duckdb::{
-    Connection, Config, Statement, Row, Rows, Result as DuckDBResult,
     // params! is exported at the crate root via #[macro_export] in the
     // vendored module; params_from_iter comes through the duckdb module
     params_from_iter,
-    // Common types
-    ToSql,
-    // Error types
-    Error as DuckDBError,
-    // Transaction support
-    Transaction,
     // Appender for bulk inserts
     Appender,
+    Config,
+    Connection,
+    // Error types
+    Error as DuckDBError,
+    Result as DuckDBResult,
+    Row,
+    Rows,
+    Statement,
+    // Common types
+    ToSql,
+    // Transaction support
+    Transaction,
 };
 
 // Re-export types from duckdb::types for convenience
-pub use duckdb::types::{FromSql, Value, Type};
+pub use duckdb::types::{FromSql, Type, Value};
 
 // Re-export Result type for convenience (DuckDB's Result, not anyhow)
 pub type Result<T> = DuckDBResult<T>;

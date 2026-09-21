@@ -117,7 +117,7 @@ impl From<&DataType> for Type {
             DataType::UInt32 => Self::UInt,
             DataType::UInt64 => Self::UBigInt,
             // DataType::Float16 => Self::Float16,
-            DataType::Float32 => Self::Float,  // Single precision (4 bytes)
+            DataType::Float32 => Self::Float, // Single precision (4 bytes)
             DataType::Float64 => Self::Double, // Double precision (8 bytes)
             DataType::Timestamp(_, _) => Self::Timestamp,
             DataType::Date32 => Self::Date32,
@@ -131,9 +131,10 @@ impl From<&DataType> for Type {
             // DataType::LargeBinary => Self::LargeBinary,
             DataType::LargeUtf8 | DataType::Utf8 => Self::Text,
             DataType::List(inner) => Self::List(Box::new(Self::from(inner.data_type()))),
-            DataType::FixedSizeList(field, size) => {
-                Self::Array(Box::new(Self::from(field.data_type())), (*size).try_into().unwrap())
-            }
+            DataType::FixedSizeList(field, size) => Self::Array(
+                Box::new(Self::from(field.data_type())),
+                (*size).try_into().unwrap(),
+            ),
             // DataType::LargeList(_) => Self::LargeList,
             DataType::Struct(inner) => Self::Struct(
                 inner
@@ -262,7 +263,10 @@ mod test {
 
         db.execute("INSERT INTO foo(i) VALUES (?)", [Value::BigInt(10)])?;
 
-        assert_eq!(10i64, db.query_row::<i64, _, _>("SELECT i FROM foo", [], |r| r.get(0))?);
+        assert_eq!(
+            10i64,
+            db.query_row::<i64, _, _>("SELECT i FROM foo", [], |r| r.get(0))?
+        );
         Ok(())
     }
 
@@ -302,14 +306,20 @@ mod test {
         use super::Value;
         let db = checked_memory_handle()?;
 
-        db.execute("INSERT INTO foo(b, t, i, f) VALUES (X'0102', 'text', 1, 1.5)", [])?;
+        db.execute(
+            "INSERT INTO foo(b, t, i, f) VALUES (X'0102', 'text', 1, 1.5)",
+            [],
+        )?;
 
         let mut stmt = db.prepare("SELECT b, t, i, f, n FROM foo")?;
         let mut rows = stmt.query([])?;
         let row = rows.next()?.unwrap();
         // NOTE: this is different from SQLite
         // assert_eq!(Value::Blob(vec![1, 2]), row.get::<_, Value>(0)?);
-        assert_eq!(Value::Blob(vec![120, 48, 49, 48, 50]), row.get::<_, Value>(0)?);
+        assert_eq!(
+            Value::Blob(vec![120, 48, 49, 48, 50]),
+            row.get::<_, Value>(0)?
+        );
         assert_eq!(Value::Text(String::from("text")), row.get::<_, Value>(1)?);
         assert_eq!(Value::Int(1), row.get::<_, Value>(2)?);
         match row.get::<_, Value>(3)? {

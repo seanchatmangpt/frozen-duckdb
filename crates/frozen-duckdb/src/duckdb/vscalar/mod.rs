@@ -1,10 +1,10 @@
 use std::ffi::CString;
 
-use function::{ScalarFunction, ScalarFunctionSet};
 use frozen_duckdb_sys::{
-    duckdb_data_chunk, duckdb_function_info, duckdb_scalar_function_get_extra_info, duckdb_scalar_function_set_error,
-    duckdb_vector,
+    duckdb_data_chunk, duckdb_function_info, duckdb_scalar_function_get_extra_info,
+    duckdb_scalar_function_set_error, duckdb_vector,
 };
+use function::{ScalarFunction, ScalarFunctionSet};
 
 use crate::duckdb::{
     core::{DataChunkHandle, LogicalTypeHandle},
@@ -119,8 +119,11 @@ impl ScalarFunctionInfo {
     }
 }
 
-unsafe extern "C" fn scalar_func<T>(info: duckdb_function_info, input: duckdb_data_chunk, mut output: duckdb_vector)
-where
+unsafe extern "C" fn scalar_func<T>(
+    info: duckdb_function_info,
+    input: duckdb_data_chunk,
+    mut output: duckdb_vector,
+) where
     T: VScalar,
 {
     let info = ScalarFunctionInfo::from(info);
@@ -151,7 +154,11 @@ impl Connection {
 
     /// Register the given ScalarFunction with custom state
     #[inline]
-    pub fn register_scalar_function_with_state<S: VScalar>(&self, name: &str, state: &S::State) -> crate::duckdb::Result<()>
+    pub fn register_scalar_function_with_state<S: VScalar>(
+        &self,
+        name: &str,
+        state: &S::State,
+    ) -> crate::duckdb::Result<()>
     where
         S::State: Clone,
     {
@@ -169,7 +176,10 @@ impl Connection {
 
 impl InnerConnection {
     /// Register the given ScalarFunction with the current db
-    pub fn register_scalar_function_set(&mut self, f: ScalarFunctionSet) -> crate::duckdb::Result<()> {
+    pub fn register_scalar_function_set(
+        &mut self,
+        f: ScalarFunctionSet,
+    ) -> crate::duckdb::Result<()> {
         f.register_with_connection(self.con)
     }
 }
@@ -200,7 +210,9 @@ mod test {
             input: &mut DataChunkHandle,
             _: &mut dyn WritableVector,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            let mut msg = input.flat_vector(0).as_slice_with_len::<duckdb_string_t>(input.len())[0];
+            let mut msg = input
+                .flat_vector(0)
+                .as_slice_with_len::<duckdb_string_t>(input.len())[0];
             let string = DuckString::new(&mut msg).as_str();
             Err(format!("Error: {string}").into())
         }
@@ -363,7 +375,10 @@ mod test {
 
         for batch in batches.iter() {
             let array = batch.column(0);
-            let array = array.as_any().downcast_ref::<::arrow::array::StringArray>().unwrap();
+            let array = array
+                .as_any()
+                .downcast_ref::<::arrow::array::StringArray>()
+                .unwrap();
             for i in 0..array.len() {
                 assert_eq!(array.value(i), "Ho ho ho 🎅🎄Ho ho ho 🎅🎄Ho ho ho 🎅🎄");
             }

@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     // Create test schema
     let start = Instant::now();
-        conn.execute(
+    conn.execute(
         "CREATE TABLE performance_test (
             id INTEGER,
             name TEXT,

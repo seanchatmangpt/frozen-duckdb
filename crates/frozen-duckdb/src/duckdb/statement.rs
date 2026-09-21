@@ -2,7 +2,10 @@ use std::{convert, ffi::c_void, fmt, mem, os::raw::c_char, ptr, str};
 
 use arrow::{array::StructArray, datatypes::SchemaRef};
 
-use super::{ffi, AndThenRows, Connection, Error, MappedRows, Params, RawStatement, Result, Row, Rows, ValueRef};
+use super::{
+    ffi, AndThenRows, Connection, Error, MappedRows, Params, RawStatement, Result, Row, Rows,
+    ValueRef,
+};
 #[cfg(feature = "polars")]
 use crate::duckdb::{arrow2, polars_dataframe::Polars};
 use crate::duckdb::{
@@ -127,7 +130,11 @@ impl Statement<'_> {
     ///
     /// Will return `Err` if binding parameters fails.
     #[inline]
-    pub fn stream_arrow<P: Params>(&mut self, params: P, schema: SchemaRef) -> Result<ArrowStream<'_>> {
+    pub fn stream_arrow<P: Params>(
+        &mut self,
+        params: P,
+        schema: SchemaRef,
+    ) -> Result<ArrowStream<'_>> {
         params.__bind_in(self)?;
         self.stmt.execute_streaming()?;
         Ok(ArrowStream::new(self, schema))
@@ -467,7 +474,11 @@ impl Statement<'_> {
     /// }
     /// ```
     #[inline]
-    pub fn raw_bind_parameter<T: ToSql>(&mut self, one_based_col_index: usize, param: T) -> Result<()> {
+    pub fn raw_bind_parameter<T: ToSql>(
+        &mut self,
+        one_based_col_index: usize,
+        param: T,
+    ) -> Result<()> {
         // This is the same as `bind_parameter` but slightly more ergonomic and
         // correctly takes `&mut self`.
         self.bind_parameter(&param, one_based_col_index)
@@ -549,7 +560,12 @@ impl Statement<'_> {
             ValueRef::Float(r) => unsafe { ffi::duckdb_bind_float(ptr, col as u64, r) },
             ValueRef::Double(r) => unsafe { ffi::duckdb_bind_double(ptr, col as u64, r) },
             ValueRef::Text(s) => unsafe {
-                ffi::duckdb_bind_varchar_length(ptr, col as u64, s.as_ptr() as *const c_char, s.len() as u64)
+                ffi::duckdb_bind_varchar_length(
+                    ptr,
+                    col as u64,
+                    s.as_ptr() as *const c_char,
+                    s.len() as u64,
+                )
             },
             ValueRef::Blob(b) => unsafe {
                 ffi::duckdb_bind_blob(ptr, col as u64, b.as_ptr() as *const c_void, b.len() as u64)
@@ -563,9 +579,21 @@ impl Statement<'_> {
                 };
                 ffi::duckdb_bind_timestamp(ptr, col as u64, ffi::duckdb_timestamp { micros })
             },
-            ValueRef::Interval { months, days, nanos } => unsafe {
+            ValueRef::Interval {
+                months,
+                days,
+                nanos,
+            } => unsafe {
                 let micros = nanos / 1_000;
-                ffi::duckdb_bind_interval(ptr, col as u64, ffi::duckdb_interval { months, days, micros })
+                ffi::duckdb_bind_interval(
+                    ptr,
+                    col as u64,
+                    ffi::duckdb_interval {
+                        months,
+                        days,
+                        micros,
+                    },
+                )
             },
             _ => unreachable!("not supported: {}", value.data_type()),
         };
@@ -722,7 +750,8 @@ mod test {
         let mut stmt = db.prepare("INSERT INTO test (x) VALUES (?)")?;
         stmt.execute([&"one"])?;
 
-        let result: Option<String> = db.query_row("SELECT y FROM test WHERE x = 'one'", [], |row| row.get(0))?;
+        let result: Option<String> =
+            db.query_row("SELECT y FROM test WHERE x = 'one'", [], |row| row.get(0))?;
         assert!(result.is_none());
         Ok(())
     }
@@ -839,7 +868,10 @@ mod test {
         assert_eq!(changes, 1);
 
         // INSERT with RETURNING using execute - returns 0 (known limitation)
-        let changes = db.execute("INSERT INTO location (name) VALUES (?) RETURNING id", ["test2"])?;
+        let changes = db.execute(
+            "INSERT INTO location (name) VALUES (?) RETURNING id",
+            ["test2"],
+        )?;
         assert_eq!(changes, 0);
 
         // Verify the row was actually inserted despite returning 0
@@ -860,9 +892,11 @@ mod test {
         assert_eq!(count, 4);
 
         // Proper way to use RETURNING - with query_row
-        let id: i64 = db.query_row("INSERT INTO location (name) VALUES (?) RETURNING id", ["test5"], |r| {
-            r.get(0)
-        })?;
+        let id: i64 = db.query_row(
+            "INSERT INTO location (name) VALUES (?) RETURNING id",
+            ["test5"],
+            |r| r.get(0),
+        )?;
         assert_eq!(id, 5);
 
         // Proper way to use RETURNING - with query_map
@@ -1054,25 +1088,37 @@ mod test {
     fn test_bind_parameters() -> Result<()> {
         let db = Connection::open_in_memory()?;
         // dynamic slice:
-        db.query_row("SELECT ?1, ?2, ?3", [&1u8 as &dyn ToSql, &"one", &Some("one")], |row| {
-            row.get::<_, u8>(0)
-        })?;
+        db.query_row(
+            "SELECT ?1, ?2, ?3",
+            [&1u8 as &dyn ToSql, &"one", &Some("one")],
+            |row| row.get::<_, u8>(0),
+        )?;
         // existing collection:
         let data = vec![1, 2, 3];
-        db.query_row("SELECT ?1, ?2, ?3", params_from_iter(&data), |row| row.get::<_, u8>(0))?;
-        db.query_row("SELECT ?1, ?2, ?3", params_from_iter(data.as_slice()), |row| {
+        db.query_row("SELECT ?1, ?2, ?3", params_from_iter(&data), |row| {
             row.get::<_, u8>(0)
         })?;
-        db.query_row("SELECT ?1, ?2, ?3", params_from_iter(data), |row| row.get::<_, u8>(0))?;
+        db.query_row(
+            "SELECT ?1, ?2, ?3",
+            params_from_iter(data.as_slice()),
+            |row| row.get::<_, u8>(0),
+        )?;
+        db.query_row("SELECT ?1, ?2, ?3", params_from_iter(data), |row| {
+            row.get::<_, u8>(0)
+        })?;
 
-        let data: std::collections::BTreeSet<String> =
-            ["one", "two", "three"].iter().map(|s| (*s).to_string()).collect();
+        let data: std::collections::BTreeSet<String> = ["one", "two", "three"]
+            .iter()
+            .map(|s| (*s).to_string())
+            .collect();
         db.query_row("SELECT ?1, ?2, ?3", params_from_iter(&data), |row| {
             row.get::<_, String>(0)
         })?;
 
         let data = [0; 3];
-        db.query_row("SELECT ?1, ?2, ?3", params_from_iter(&data), |row| row.get::<_, u8>(0))?;
+        db.query_row("SELECT ?1, ?2, ?3", params_from_iter(&data), |row| {
+            row.get::<_, u8>(0)
+        })?;
         db.query_row("SELECT ?1, ?2, ?3", params_from_iter(data.iter()), |row| {
             row.get::<_, u8>(0)
         })?;
@@ -1108,7 +1154,8 @@ mod test {
     fn test_nul_byte() -> Result<()> {
         let db = Connection::open_in_memory()?;
         let expected = "a\x00b";
-        let actual: String = db.query_row("SELECT CAST(? AS VARCHAR)", [expected], |row| row.get(0))?;
+        let actual: String =
+            db.query_row("SELECT CAST(? AS VARCHAR)", [expected], |row| row.get(0))?;
         assert_eq!(expected, actual);
         Ok(())
     }

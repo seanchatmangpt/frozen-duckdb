@@ -64,7 +64,10 @@ pub trait VTab: Sized {
     /// The implementation should populate the `output` parameter with the rows to be returned.
     ///
     /// When the table function is done, the implementation should set the length of the output to 0.
-    fn func(func: &TableFunctionInfo<Self>, output: &mut DataChunkHandle) -> Result<(), Box<dyn std::error::Error>>;
+    fn func(
+        func: &TableFunctionInfo<Self>,
+        output: &mut DataChunkHandle,
+    ) -> Result<(), Box<dyn std::error::Error>>;
 
     /// Does the table function support pushdown
     /// default is false
@@ -240,7 +243,10 @@ mod test {
             HelloVTab::init(init_info)
         }
 
-        fn func(func: &TableFunctionInfo<Self>, output: &mut DataChunkHandle) -> Result<(), Box<dyn Error>> {
+        fn func(
+            func: &TableFunctionInfo<Self>,
+            output: &mut DataChunkHandle,
+        ) -> Result<(), Box<dyn Error>> {
             let init_data = func.get_init_data();
             let bind_data = func.get_bind_data();
 
@@ -268,7 +274,9 @@ mod test {
         let conn = Connection::open_in_memory()?;
         conn.register_table_function::<HelloVTab>("hello")?;
 
-        let val = conn.query_row("select * from hello('duckdb')", [], |row| <(String,)>::try_from(row))?;
+        let val = conn.query_row("select * from hello('duckdb')", [], |row| {
+            <(String,)>::try_from(row)
+        })?;
         assert_eq!(val, ("Hello duckdb".to_string(),));
 
         Ok(())

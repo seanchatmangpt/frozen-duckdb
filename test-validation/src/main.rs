@@ -60,7 +60,9 @@ fn main() {
     // Test 4: Binary naming convention
     println!("\n4. Testing binary naming...");
     let expected_name = format!("libduckdb_{}.dylib", arch);
-    let binary_path = cache_dir.join(format!("v1.5.5-{}", arch)).join(&expected_name);
+    let binary_path = cache_dir
+        .join(format!("v1.5.5-{}", arch))
+        .join(&expected_name);
     if binary_path.exists() {
         println!("✅ Expected binary exists: {}", expected_name);
     } else {

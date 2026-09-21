@@ -21,7 +21,10 @@ impl ScalarFunctionSet {
         Ok(())
     }
 
-    pub(crate) fn register_with_connection(&self, con: duckdb_connection) -> crate::duckdb::Result<()> {
+    pub(crate) fn register_with_connection(
+        &self,
+        con: duckdb_connection,
+    ) -> crate::duckdb::Result<()> {
         unsafe {
             let rc = ffi::duckdb_register_scalar_function_set(con, self.ptr);
             if rc != ffi::DuckDBSuccess {
@@ -49,11 +52,13 @@ impl Drop for ScalarFunction {
 use std::ffi::{c_void, CString};
 
 use frozen_duckdb_sys::{
-    self as ffi, duckdb_add_scalar_function_to_set, duckdb_connection, duckdb_create_scalar_function,
-    duckdb_create_scalar_function_set, duckdb_data_chunk, duckdb_delete_callback_t, duckdb_destroy_scalar_function,
-    duckdb_function_info, duckdb_scalar_function, duckdb_scalar_function_add_parameter, duckdb_scalar_function_set,
-    duckdb_scalar_function_set_extra_info, duckdb_scalar_function_set_function, duckdb_scalar_function_set_name,
-    duckdb_scalar_function_set_return_type, duckdb_scalar_function_set_varargs, duckdb_vector, DuckDBSuccess,
+    self as ffi, duckdb_add_scalar_function_to_set, duckdb_connection,
+    duckdb_create_scalar_function, duckdb_create_scalar_function_set, duckdb_data_chunk,
+    duckdb_delete_callback_t, duckdb_destroy_scalar_function, duckdb_function_info,
+    duckdb_scalar_function, duckdb_scalar_function_add_parameter, duckdb_scalar_function_set,
+    duckdb_scalar_function_set_extra_info, duckdb_scalar_function_set_function,
+    duckdb_scalar_function_set_name, duckdb_scalar_function_set_return_type,
+    duckdb_scalar_function_set_varargs, duckdb_vector, DuckDBSuccess,
 };
 
 use crate::duckdb::{core::LogicalTypeHandle, Error};
@@ -104,7 +109,13 @@ impl ScalarFunction {
     ///  * `function`: The function
     pub fn set_function(
         &self,
-        func: Option<unsafe extern "C" fn(info: duckdb_function_info, input: duckdb_data_chunk, output: duckdb_vector)>,
+        func: Option<
+            unsafe extern "C" fn(
+                info: duckdb_function_info,
+                input: duckdb_data_chunk,
+                output: duckdb_vector,
+            ),
+        >,
     ) -> &Self {
         unsafe {
             duckdb_scalar_function_set_function(self.ptr, func);
@@ -119,7 +130,11 @@ impl ScalarFunction {
     /// * `destroy`: The callback that will be called to destroy the bind data (if any)
     ///
     /// # Safety
-    unsafe fn set_extra_info_impl(&self, extra_info: *mut c_void, destroy: duckdb_delete_callback_t) {
+    unsafe fn set_extra_info_impl(
+        &self,
+        extra_info: *mut c_void,
+        destroy: duckdb_delete_callback_t,
+    ) {
         duckdb_scalar_function_set_extra_info(self.ptr, extra_info, destroy);
     }
 

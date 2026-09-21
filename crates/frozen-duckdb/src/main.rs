@@ -86,7 +86,6 @@ use std::io;
 use std::path::Path;
 use tracing::{error, info};
 
-
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -156,7 +155,12 @@ fn main() -> Result<()> {
                 std::process::exit(4);
             }
 
-            flock_manager.setup_ollama(&ollama_url, &text_model, &embedding_model, skip_verification)?;
+            flock_manager.setup_ollama(
+                &ollama_url,
+                &text_model,
+                &embedding_model,
+                skip_verification,
+            )?;
         }
 
         Commands::Complete {
@@ -195,7 +199,8 @@ fn main() -> Result<()> {
                 buffer.trim().to_string()
             };
 
-            let response = flock_manager.complete_text(&text_to_complete, model.as_str())
+            let response = flock_manager
+                .complete_text(&text_to_complete, model.as_str())
                 .unwrap_or_else(|_| {
                     error!("❌ Text completion failed - check if Ollama is running");
                     std::process::exit(1);
@@ -246,7 +251,8 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             };
 
-            let embeddings = flock_manager.generate_embeddings(texts_to_embed, &model, normalize)
+            let embeddings = flock_manager
+                .generate_embeddings(texts_to_embed, &model, normalize)
                 .expect("Embedding generation not implemented yet");
 
             if let Some(output_file) = output {
@@ -282,7 +288,8 @@ fn main() -> Result<()> {
                 std::process::exit(4);
             }
 
-            let results = flock_manager.semantic_search(&query, &corpus, threshold, limit)
+            let results = flock_manager
+                .semantic_search(&query, &corpus, threshold, limit)
                 .expect("Semantic search not implemented yet");
 
             match format.as_str() {
@@ -301,7 +308,10 @@ fn main() -> Result<()> {
                 _ => {
                     // Text format
                     if results.is_empty() {
-                        info!("🔍 No similar documents found above threshold {:.3}", threshold);
+                        info!(
+                            "🔍 No similar documents found above threshold {:.3}",
+                            threshold
+                        );
                     } else {
                         info!("🔍 Found {} similar documents:", results.len());
                         for (i, (doc, score)) in results.iter().enumerate() {
@@ -338,7 +348,8 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             };
 
-            let results = flock_manager.llm_filter(&filter_criteria, &input, &model, true)
+            let results = flock_manager
+                .llm_filter(&filter_criteria, &input, &model, true)
                 .expect("LLM filtering not implemented yet");
 
             if let Some(output_file) = output {
@@ -411,7 +422,8 @@ fn main() -> Result<()> {
                 }
             };
 
-            let summary = flock_manager.summarize_texts(texts, &strategy, max_length, &model)
+            let summary = flock_manager
+                .summarize_texts(texts, &strategy, max_length, &model)
                 .expect("Text summarization not implemented yet");
 
             if let Some(output_file) = output {
@@ -453,7 +465,7 @@ fn main() -> Result<()> {
             verbose,
         } => {
             info!("🦆 Starting FFI validation for frozen-duckdb");
-            
+
             // Create FlockManager for validation
             let flock_manager = match FlockManager::new() {
                 Ok(manager) => manager,

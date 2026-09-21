@@ -192,7 +192,6 @@ pub enum Commands {
     Info,
 
     // === FLOCK/LLM COMMANDS ===
-
     /// Setup Ollama models and secrets for Flock LLM operations.
     ///
     /// This command configures the necessary models and secrets for using

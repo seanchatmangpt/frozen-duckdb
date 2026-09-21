@@ -22,11 +22,12 @@ fn is_compiler(compiler_name: &str) -> bool {
 
 fn main() {
     // Ensure the frozen DuckDB mega-library is available
-    let binary_path = frozen_duckdb_builder::ensure_binary()
-        .expect("Failed to get frozen DuckDB binary");
+    let binary_path =
+        frozen_duckdb_builder::ensure_binary().expect("Failed to get frozen DuckDB binary");
 
     // Get the directory containing the binary and headers
-    let lib_dir = binary_path.parent()
+    let lib_dir = binary_path
+        .parent()
         .expect("Binary path has no parent directory");
 
     // Tell rustc where to find the library
@@ -53,7 +54,10 @@ fn main() {
     println!("cargo:rerun-if-env-changed=DUCKDB_LIB_DIR");
     println!("cargo:rerun-if-env-changed=DUCKDB_INCLUDE_DIR");
 
-    println!("cargo:warning=Using prebuilt DuckDB binary: {}", binary_path.display());
+    println!(
+        "cargo:warning=Using prebuilt DuckDB binary: {}",
+        binary_path.display()
+    );
 }
 
 #[cfg(not(feature = "bundled"))]

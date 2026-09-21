@@ -238,7 +238,11 @@ impl Value {
             Self::Date32(_) => Type::Date32,
             Self::Time64(..) => Type::Time64,
             Self::Interval { .. } => Type::Interval,
-            Self::Union(..) | Self::Struct(..) | Self::List(..) | Self::Array(..) | Self::Map(..) => todo!(),
+            Self::Union(..)
+            | Self::Struct(..)
+            | Self::List(..)
+            | Self::Array(..)
+            | Self::Map(..) => todo!(),
             Self::Enum(..) => Type::Enum,
         }
     }

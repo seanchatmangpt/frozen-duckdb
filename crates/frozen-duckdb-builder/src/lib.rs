@@ -1,5 +1,5 @@
 //! # Frozen DuckDB Builder
-//! 
+//!
 //! This crate handles downloading prebuilt mega-libraries from GitHub Releases
 //! or compiling them locally as a fallback. It manages caching in `~/.frozen-duckdb/`
 //! to ensure fast subsequent builds.
@@ -21,7 +21,7 @@ const BINARY_NAME: &str = "libduckdb";
 const VENDORED_HEADERS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/vendored-headers");
 
 /// Ensure the prebuilt DuckDB binary is available
-/// 
+///
 /// This function:
 /// 1. Checks for cached binary in ~/.frozen-duckdb/cache/v1.5.5-{arch}/
 /// 2. If missing, tries to download from GitHub Release
@@ -36,7 +36,10 @@ pub fn ensure_binary() -> Result<PathBuf> {
     if binary_path.exists() {
         info!("Using cached DuckDB binary: {}", binary_path.display());
     } else if let Ok(prebuilt_path) = check_prebuilt_binary(&arch) {
-        info!("Found prebuilt binary, copying to cache: {}", prebuilt_path.display());
+        info!(
+            "Found prebuilt binary, copying to cache: {}",
+            prebuilt_path.display()
+        );
         copy_prebuilt_to_cache(&prebuilt_path, &binary_path)?;
         info!("Successfully set up prebuilt binary and headers");
     } else {
@@ -56,7 +59,10 @@ pub fn ensure_binary() -> Result<PathBuf> {
         // Try to download from GitHub Release
         match download_from_github_release(&versioned_cache, &arch) {
             Ok(path) => {
-                info!("Successfully downloaded frozen DuckDB binary: {}", path.display());
+                info!(
+                    "Successfully downloaded frozen DuckDB binary: {}",
+                    path.display()
+                );
             }
             Err(e) => {
                 warn!("Failed to download from GitHub Release: {}", e);
@@ -88,8 +94,7 @@ fn ensure_headers(versioned_cache: &Path) -> Result<()> {
     if headers_dir.join("duckdb.h").exists() {
         return Ok(());
     }
-    fs::create_dir_all(&headers_dir)
-        .context("Failed to create cache headers directory")?;
+    fs::create_dir_all(&headers_dir).context("Failed to create cache headers directory")?;
     for header_name in ["duckdb.h", "duckdb.hpp"] {
         let src = Path::new(VENDORED_HEADERS_DIR).join(header_name);
         if !src.exists() {
@@ -118,8 +123,9 @@ fn ensure_link_name(versioned_cache: &Path, arch: &str) -> Result<()> {
     }
     #[cfg(not(unix))]
     {
-        fs::copy(&target, &link_name)
-            .with_context(|| format!("Failed to copy binary to link name {}", link_name.display()))?;
+        fs::copy(&target, &link_name).with_context(|| {
+            format!("Failed to copy binary to link name {}", link_name.display())
+        })?;
     }
     info!("Linked {} -> {}", link_name.display(), target.display());
     Ok(())
@@ -128,8 +134,7 @@ fn ensure_link_name(versioned_cache: &Path, arch: &str) -> Result<()> {
 /// Check if prebuilt binary exists in project directory
 fn check_prebuilt_binary(arch: &str) -> Result<PathBuf> {
     // Try to find the project root by looking for prebuilt directory
-    let current_dir = env::current_dir()
-        .context("Failed to get current directory")?;
+    let current_dir = env::current_dir().context("Failed to get current directory")?;
 
     let prebuilt_dir = current_dir.join("prebuilt");
     if !prebuilt_dir.exists() {
@@ -150,13 +155,11 @@ fn check_prebuilt_binary(arch: &str) -> Result<PathBuf> {
 fn copy_prebuilt_to_cache(prebuilt_path: &Path, cache_path: &Path) -> Result<()> {
     // Ensure cache directory exists
     if let Some(parent) = cache_path.parent() {
-        fs::create_dir_all(parent)
-            .context("Failed to create cache directory")?;
+        fs::create_dir_all(parent).context("Failed to create cache directory")?;
     }
 
     // Copy the binary
-    fs::copy(prebuilt_path, cache_path)
-        .context("Failed to copy prebuilt binary to cache")?;
+    fs::copy(prebuilt_path, cache_path).context("Failed to copy prebuilt binary to cache")?;
 
     // Make binary executable on Unix systems
     #[cfg(unix)]
@@ -170,19 +173,20 @@ fn copy_prebuilt_to_cache(prebuilt_path: &Path, cache_path: &Path) -> Result<()>
     // Copy headers as well
     copy_prebuilt_headers(cache_path)?;
 
-    info!("Copied prebuilt binary and headers to cache: {}", cache_path.display());
+    info!(
+        "Copied prebuilt binary and headers to cache: {}",
+        cache_path.display()
+    );
     Ok(())
 }
 
 /// Copy prebuilt headers to cache directory
 fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
-    let current_dir = env::current_dir()
-        .context("Failed to get current directory")?;
+    let current_dir = env::current_dir().context("Failed to get current directory")?;
 
     let prebuilt_dir = current_dir.join("prebuilt");
     let headers_dest = cache_path.parent().unwrap().join("duckdb");
-    fs::create_dir_all(&headers_dest)
-        .context("Failed to create cache headers directory")?;
+    fs::create_dir_all(&headers_dest).context("Failed to create cache headers directory")?;
 
     // Copy header files directly to cache directory (expected by bindgen)
     let header_files = ["duckdb.h", "duckdb.hpp"];
@@ -190,8 +194,7 @@ fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
         let src_path = prebuilt_dir.join(header_name);
         if src_path.exists() {
             let dest_path = headers_dest.join(header_name);
-            fs::copy(&src_path, &dest_path)
-                .context("Failed to copy header file")?;
+            fs::copy(&src_path, &dest_path).context("Failed to copy header file")?;
             info!("Copied header: {}", dest_path.display());
         }
     }
@@ -205,12 +208,12 @@ fn detect_architecture() -> Result<String> {
         .arg("-m")
         .output()
         .context("Failed to run uname command")?;
-    
+
     let arch = String::from_utf8(output.stdout)
         .context("Invalid UTF-8 in uname output")?
         .trim()
         .to_string();
-    
+
     match arch.as_str() {
         "x86_64" => Ok("x86_64".to_string()),
         "arm64" | "aarch64" => Ok("arm64".to_string()),
@@ -220,13 +223,11 @@ fn detect_architecture() -> Result<String> {
 
 /// Get the cache directory (~/.frozen-duckdb)
 fn get_cache_dir() -> Result<PathBuf> {
-    let home = env::var("HOME")
-        .context("HOME environment variable not set")?;
-    
+    let home = env::var("HOME").context("HOME environment variable not set")?;
+
     let cache_dir = Path::new(&home).join(CACHE_DIR).join("cache");
-    fs::create_dir_all(&cache_dir)
-        .context("Failed to create cache directory")?;
-    
+    fs::create_dir_all(&cache_dir).context("Failed to create cache directory")?;
+
     Ok(cache_dir)
 }
 
@@ -241,7 +242,7 @@ fn get_binary_path(cache_dir: &Path, arch: &str) -> PathBuf {
     } else {
         "so" // Default fallback
     };
-    
+
     cache_dir.join(format!("{}_{}.{}", BINARY_NAME, arch, extension))
 }
 
@@ -252,27 +253,24 @@ fn download_from_github_release(cache_dir: &Path, arch: &str) -> Result<PathBuf>
         "https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v{}/libduckdb_{}.dylib",
         VERSION, arch
     );
-    
+
     info!("Downloading from: {}", url);
-    
+
     // Create cache directory
-    fs::create_dir_all(cache_dir)
-        .context("Failed to create cache directory")?;
-    
+    fs::create_dir_all(cache_dir).context("Failed to create cache directory")?;
+
     // Download the binary
-    let response = reqwest::blocking::get(&url)
-        .context("Failed to download binary from GitHub Release")?;
-    
+    let response =
+        reqwest::blocking::get(&url).context("Failed to download binary from GitHub Release")?;
+
     if !response.status().is_success() {
         anyhow::bail!("HTTP error: {}", response.status());
     }
-    
-    let content = response.bytes()
-        .context("Failed to read response body")?;
-    
-    fs::write(&binary_path, content)
-        .context("Failed to write downloaded binary")?;
-    
+
+    let content = response.bytes().context("Failed to read response body")?;
+
+    fs::write(&binary_path, content).context("Failed to write downloaded binary")?;
+
     // Make binary executable on Unix systems
     #[cfg(unix)]
     {
@@ -281,7 +279,7 @@ fn download_from_github_release(cache_dir: &Path, arch: &str) -> Result<PathBuf>
         perms.set_mode(0o755);
         fs::set_permissions(&binary_path, perms)?;
     }
-    
+
     debug!("Downloaded binary to: {}", binary_path.display());
     Ok(binary_path)
 }
@@ -291,12 +289,10 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     info!("Compiling DuckDB locally for {}...", arch);
 
     // Create cache directory
-    fs::create_dir_all(cache_dir)
-        .context("Failed to create cache directory")?;
+    fs::create_dir_all(cache_dir).context("Failed to create cache directory")?;
 
     // Create temporary directory for compilation
-    let temp_dir = tempfile::tempdir()
-        .context("Failed to create temporary directory")?;
+    let temp_dir = tempfile::tempdir().context("Failed to create temporary directory")?;
 
     let temp_path = temp_dir.path();
 
@@ -305,7 +301,14 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     let duckdb_dir = temp_path.join("duckdb");
 
     Command::new("git")
-        .args(["clone", "--depth", "1", "--branch", "v1.5.5", "https://github.com/duckdb/duckdb.git"])
+        .args([
+            "clone",
+            "--depth",
+            "1",
+            "--branch",
+            "v1.5.5",
+            "https://github.com/duckdb/duckdb.git",
+        ])
         .arg(&duckdb_dir)
         .current_dir(temp_path)
         .output()
@@ -314,8 +317,7 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     // Build DuckDB with all features
     info!("Building DuckDB with all features...");
     let build_dir = duckdb_dir.join("build");
-    fs::create_dir_all(&build_dir)
-        .context("Failed to create build directory")?;
+    fs::create_dir_all(&build_dir).context("Failed to create build directory")?;
 
     // Configure with CMake - enable all extensions
     Command::new("cmake")
@@ -352,13 +354,11 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
         .context("Failed to build DuckDB")?;
 
     // Find the built library
-    let built_lib = find_built_library(&build_dir, arch)
-        .context("Failed to find built library")?;
+    let built_lib = find_built_library(&build_dir, arch).context("Failed to find built library")?;
 
     // Copy library to cache directory with proper name
     let binary_path = get_binary_path(cache_dir, arch);
-    fs::copy(&built_lib, &binary_path)
-        .context("Failed to copy built library to cache")?;
+    fs::copy(&built_lib, &binary_path).context("Failed to copy built library to cache")?;
 
     // Also copy header files for FFI bindings generation
     let headers_dir = cache_dir.join("duckdb");
@@ -397,7 +397,10 @@ fn find_built_library(build_dir: &Path, _arch: &str) -> Result<PathBuf> {
         build_dir.join("libduckdb.so"),
         build_dir.join("libduckdb.dll"),
         // Sometimes it's in a subdirectory
-        build_dir.join("src").join("Release").join("libduckdb.dylib"),
+        build_dir
+            .join("src")
+            .join("Release")
+            .join("libduckdb.dylib"),
         build_dir.join("src").join("Release").join("libduckdb.so"),
         build_dir.join("src").join("Release").join("libduckdb.dll"),
     ];
@@ -422,31 +425,35 @@ fn find_built_library(build_dir: &Path, _arch: &str) -> Result<PathBuf> {
         }
     }
 
-    anyhow::bail!("Could not find built DuckDB library in {:?}. Tried: {:?}", build_dir, possible_paths);
+    anyhow::bail!(
+        "Could not find built DuckDB library in {:?}. Tried: {:?}",
+        build_dir,
+        possible_paths
+    );
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_detect_architecture() {
         let arch = detect_architecture().unwrap();
         assert!(arch == "x86_64" || arch == "arm64");
     }
-    
+
     #[test]
     fn test_get_cache_dir() {
         let cache_dir = get_cache_dir().unwrap();
         assert!(cache_dir.to_string_lossy().contains(CACHE_DIR));
     }
-    
+
     #[test]
     fn test_get_binary_path() {
         let cache_dir = Path::new("/tmp/test");
         let arch = "x86_64";
         let path = get_binary_path(cache_dir, arch);
-        
+
         if cfg!(target_os = "macos") {
             assert!(path.to_string_lossy().ends_with("libduckdb_x86_64.dylib"));
         } else if cfg!(target_os = "linux") {

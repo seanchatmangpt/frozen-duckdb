@@ -316,7 +316,9 @@ mod test {
 
         db.execute("INSERT INTO foo (id) VALUES (gen_random_uuid())", [])?;
 
-        let found_id: String = db.prepare("SELECT id FROM foo")?.query_one([], |r| r.get(0))?;
+        let found_id: String = db
+            .prepare("SELECT id FROM foo")?
+            .query_one([], |r| r.get(0))?;
         assert_eq!(found_id.len(), 36);
         Ok(())
     }
@@ -332,7 +334,10 @@ mod test {
 
         let id = Uuid::new_v4();
         let id_vec = id.as_bytes().to_vec();
-        db.execute("INSERT INTO foo (id, label) VALUES (?, ?)", params![id_vec, "target"])?;
+        db.execute(
+            "INSERT INTO foo (id, label) VALUES (?, ?)",
+            params![id_vec, "target"],
+        )?;
 
         let (found_id, found_label): (Uuid, String) = db
             .prepare("SELECT id, label FROM foo WHERE id = ?")?
@@ -352,7 +357,10 @@ mod test {
         db.execute_batch("CREATE TABLE foo (id uuid, label TEXT);")?;
 
         let id = Uuid::new_v4();
-        db.execute("INSERT INTO foo (id, label) VALUES (?, ?)", params![id, "target"])?;
+        db.execute(
+            "INSERT INTO foo (id, label) VALUES (?, ?)",
+            params![id, "target"],
+        )?;
 
         let (found_id, found_label): (Uuid, String) = db
             .prepare("SELECT id, label FROM foo WHERE id = ?")?

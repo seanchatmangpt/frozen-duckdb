@@ -93,7 +93,9 @@ impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::DuckDBFailure(e1, s1), Self::DuckDBFailure(e2, s2)) => e1 == e2 && s1 == s2,
-            (Self::IntegralValueOutOfRange(i1, n1), Self::IntegralValueOutOfRange(i2, n2)) => i1 == i2 && n1 == n2,
+            (Self::IntegralValueOutOfRange(i1, n1), Self::IntegralValueOutOfRange(i2, n2)) => {
+                i1 == i2 && n1 == n2
+            }
             (Self::Utf8Error(e1), Self::Utf8Error(e2)) => e1 == e2,
             (Self::NulError(e1), Self::NulError(e2)) => e1 == e2,
             (Self::InvalidParameterName(n1), Self::InvalidParameterName(n2)) => n1 == n2,
@@ -107,7 +109,9 @@ impl PartialEq for Error {
                 i1 == i2 && t1 == t2 && n1 == n2
             }
             (Self::StatementChangedRows(n1), Self::StatementChangedRows(n2)) => n1 == n2,
-            (Self::InvalidParameterCount(i1, n1), Self::InvalidParameterCount(i2, n2)) => i1 == i2 && n1 == n2,
+            (Self::InvalidParameterCount(i1, n1), Self::InvalidParameterCount(i2, n2)) => {
+                i1 == i2 && n1 == n2
+            }
             (..) => false,
         }
     }
@@ -142,7 +146,9 @@ impl From<FromSqlError> for Error {
             FromSqlError::InvalidUuidSize(_) => {
                 Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Blob, Box::new(err))
             }
-            FromSqlError::Other(source) => Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Null, source),
+            FromSqlError::Other(source) => {
+                Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Null, source)
+            }
             _ => Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Null, Box::new(err)),
         }
     }
@@ -185,7 +191,10 @@ impl fmt::Display for Error {
                 write!(f, "Invalid column type {t} , name: {name}")
             }
             Self::InvalidParameterCount(i1, n1) => {
-                write!(f, "Wrong number of parameters passed to query. Got {i1}, needed {n1}")
+                write!(
+                    f,
+                    "Wrong number of parameters passed to query. Got {i1}, needed {n1}"
+                )
             }
             Self::StatementChangedRows(i) => write!(f, "Query changed {i} rows"),
             Self::ToSqlConversionFailure(ref err) => err.fmt(f),
@@ -218,7 +227,8 @@ impl error::Error for Error {
             | Self::AppendError
             | Self::ArrowTypeToDuckdbType(..)
             | Self::MultipleStatement => None,
-            Self::FromSqlConversionFailure(_, _, ref err) | Self::ToSqlConversionFailure(ref err) => Some(&**err),
+            Self::FromSqlConversionFailure(_, _, ref err)
+            | Self::ToSqlConversionFailure(ref err) => Some(&**err),
         }
     }
 }
@@ -232,7 +242,10 @@ fn error_from_duckdb_code(code: ffi::duckdb_state, message: Option<String>) -> R
 
 #[cold]
 #[inline]
-pub fn result_from_duckdb_appender(code: ffi::duckdb_state, appender: *mut ffi::duckdb_appender) -> Result<()> {
+pub fn result_from_duckdb_appender(
+    code: ffi::duckdb_state,
+    appender: *mut ffi::duckdb_appender,
+) -> Result<()> {
     if code == ffi::DuckDBSuccess {
         return Ok(());
     }
@@ -251,7 +264,10 @@ pub fn result_from_duckdb_appender(code: ffi::duckdb_state, appender: *mut ffi::
 
 #[cold]
 #[inline]
-pub fn result_from_duckdb_prepare(code: ffi::duckdb_state, mut prepare: ffi::duckdb_prepared_statement) -> Result<()> {
+pub fn result_from_duckdb_prepare(
+    code: ffi::duckdb_state,
+    mut prepare: ffi::duckdb_prepared_statement,
+) -> Result<()> {
     if code == ffi::DuckDBSuccess {
         return Ok(());
     }

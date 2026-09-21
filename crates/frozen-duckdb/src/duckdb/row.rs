@@ -4,7 +4,10 @@ use super::{Error, Result, Statement};
 use crate::duckdb::types::{self, EnumType, FromSql, FromSqlError, ListType, ValueRef};
 
 use arrow::{
-    array::{self, Array, ArrayRef, DictionaryArray, FixedSizeListArray, ListArray, MapArray, StructArray},
+    array::{
+        self, Array, ArrayRef, DictionaryArray, FixedSizeListArray, ListArray, MapArray,
+        StructArray,
+    },
     datatypes::*,
 };
 use fallible_iterator::FallibleIterator;
@@ -193,7 +196,10 @@ where
     #[inline]
     fn next(&mut self) -> Option<Result<T>> {
         let map = &mut self.map;
-        self.rows.next().transpose().map(|row_result| row_result.and_then(map))
+        self.rows
+            .next()
+            .transpose()
+            .map(|row_result| row_result.and_then(map))
     }
 }
 
@@ -329,15 +335,21 @@ impl<'stmt> Row<'stmt> {
         let idx = idx.idx(self.stmt)?;
         let value = self.value_ref(self.current_row, idx);
         FromSql::column_result(value).map_err(|err| match err {
-            FromSqlError::InvalidType => {
-                Error::InvalidColumnType(idx, self.stmt.column_name_unwrap(idx).into(), value.data_type())
-            }
+            FromSqlError::InvalidType => Error::InvalidColumnType(
+                idx,
+                self.stmt.column_name_unwrap(idx).into(),
+                value.data_type(),
+            ),
             FromSqlError::OutOfRange(i) => Error::IntegralValueOutOfRange(idx, i),
-            FromSqlError::Other(err) => Error::FromSqlConversionFailure(idx, value.data_type(), err),
-            #[cfg(feature = "uuid")]
-            FromSqlError::InvalidUuidSize(_) => {
-                Error::InvalidColumnType(idx, self.stmt.column_name_unwrap(idx).into(), value.data_type())
+            FromSqlError::Other(err) => {
+                Error::FromSqlConversionFailure(idx, value.data_type(), err)
             }
+            #[cfg(feature = "uuid")]
+            FromSqlError::InvalidUuidSize(_) => Error::InvalidColumnType(
+                idx,
+                self.stmt.column_name_unwrap(idx).into(),
+                value.data_type(),
+            ),
         })
     }
 
@@ -378,7 +390,10 @@ impl<'stmt> Row<'stmt> {
         // https://github.com/duckdb/duckdb/blob/71f1c7a7e4b8737cff5e78d1f090c54f5e78e17b/src/main/query_result.cpp#L148
         match column.data_type() {
             DataType::Utf8 => {
-                let array = column.as_any().downcast_ref::<array::StringArray>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::StringArray>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -386,7 +401,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::from(array.value(row))
             }
             DataType::LargeUtf8 => {
-                let array = column.as_any().downcast_ref::<array::LargeStringArray>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::LargeStringArray>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -394,7 +412,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::from(array.value(row))
             }
             DataType::Binary => {
-                let array = column.as_any().downcast_ref::<array::BinaryArray>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::BinaryArray>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -402,7 +423,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Blob(array.value(row))
             }
             DataType::LargeBinary => {
-                let array = column.as_any().downcast_ref::<array::LargeBinaryArray>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::LargeBinaryArray>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -410,7 +434,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Blob(array.value(row))
             }
             DataType::Boolean => {
-                let array = column.as_any().downcast_ref::<array::BooleanArray>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::BooleanArray>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -458,7 +485,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::UTinyInt(array.value(row))
             }
             DataType::UInt16 => {
-                let array = column.as_any().downcast_ref::<array::UInt16Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::UInt16Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -466,7 +496,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::USmallInt(array.value(row))
             }
             DataType::UInt32 => {
-                let array = column.as_any().downcast_ref::<array::UInt32Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::UInt32Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -474,7 +507,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::UInt(array.value(row))
             }
             DataType::UInt64 => {
-                let array = column.as_any().downcast_ref::<array::UInt64Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::UInt64Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -482,7 +518,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::UBigInt(array.value(row))
             }
             DataType::Float16 => {
-                let array = column.as_any().downcast_ref::<array::Float32Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::Float32Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -490,7 +529,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Float(array.value(row))
             }
             DataType::Float32 => {
-                let array = column.as_any().downcast_ref::<array::Float32Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::Float32Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -498,7 +540,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Float(array.value(row))
             }
             DataType::Float64 => {
-                let array = column.as_any().downcast_ref::<array::Float64Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::Float64Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -506,7 +551,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Double(array.value(row))
             }
             DataType::Decimal128(..) => {
-                let array = column.as_any().downcast_ref::<array::Decimal128Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::Decimal128Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -515,10 +563,16 @@ impl<'stmt> Row<'stmt> {
                 if array.scale() == 0 {
                     return ValueRef::HugeInt(array.value(row));
                 }
-                ValueRef::Decimal(Decimal::from_i128_with_scale(array.value(row), array.scale() as u32))
+                ValueRef::Decimal(Decimal::from_i128_with_scale(
+                    array.value(row),
+                    array.scale() as u32,
+                ))
             }
             DataType::Timestamp(unit, _) if *unit == TimeUnit::Second => {
-                let array = column.as_any().downcast_ref::<array::TimestampSecondArray>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::TimestampSecondArray>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -559,7 +613,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Timestamp(types::TimeUnit::Nanosecond, array.value(row))
             }
             DataType::Date32 => {
-                let array = column.as_any().downcast_ref::<array::Date32Array>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::Date32Array>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -567,7 +624,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Date32(array.value(row))
             }
             DataType::Time64(TimeUnit::Microsecond) => {
-                let array = column.as_any().downcast_ref::<array::Time64MicrosecondArray>().unwrap();
+                let array = column
+                    .as_any()
+                    .downcast_ref::<array::Time64MicrosecondArray>()
+                    .unwrap();
 
                 if array.is_null(row) {
                     return ValueRef::Null;
@@ -608,7 +668,10 @@ impl<'stmt> Row<'stmt> {
             //     make_string_time!(array::Time64NanosecondArray, column, row)
             // }
             DataType::LargeList(..) => {
-                let arr = column.as_any().downcast_ref::<array::LargeListArray>().unwrap();
+                let arr = column
+                    .as_any()
+                    .downcast_ref::<array::LargeListArray>()
+                    .unwrap();
 
                 ValueRef::List(ListType::Large(arr), row)
             }
@@ -621,15 +684,19 @@ impl<'stmt> Row<'stmt> {
                 let column = column.as_any();
                 ValueRef::Enum(
                     match key_type.as_ref() {
-                        DataType::UInt8 => {
-                            EnumType::UInt8(column.downcast_ref::<DictionaryArray<UInt8Type>>().unwrap())
-                        }
-                        DataType::UInt16 => {
-                            EnumType::UInt16(column.downcast_ref::<DictionaryArray<UInt16Type>>().unwrap())
-                        }
-                        DataType::UInt32 => {
-                            EnumType::UInt32(column.downcast_ref::<DictionaryArray<UInt32Type>>().unwrap())
-                        }
+                        DataType::UInt8 => EnumType::UInt8(
+                            column.downcast_ref::<DictionaryArray<UInt8Type>>().unwrap(),
+                        ),
+                        DataType::UInt16 => EnumType::UInt16(
+                            column
+                                .downcast_ref::<DictionaryArray<UInt16Type>>()
+                                .unwrap(),
+                        ),
+                        DataType::UInt32 => EnumType::UInt32(
+                            column
+                                .downcast_ref::<DictionaryArray<UInt32Type>>()
+                                .unwrap(),
+                        ),
                         typ => panic!("Unsupported key type: {typ:?}"),
                     },
                     row,
@@ -644,7 +711,10 @@ impl<'stmt> Row<'stmt> {
                 ValueRef::Map(arr, row)
             }
             DataType::FixedSizeList(..) => {
-                let arr = column.as_any().downcast_ref::<FixedSizeListArray>().unwrap();
+                let arr = column
+                    .as_any()
+                    .downcast_ref::<FixedSizeListArray>()
+                    .unwrap();
                 ValueRef::Array(arr, row)
             }
             DataType::Union(..) => ValueRef::Union(column, row),
@@ -777,9 +847,13 @@ mod tests {
         let conn = Connection::open_in_memory()?;
         conn.execute("CREATE TABLE test (a INTEGER, b INTEGER)", [])?;
         conn.execute("INSERT INTO test VALUES (42, 47)", [])?;
-        let val = conn.query_row("SELECT a, b FROM test", [], |row| <(u32, u32)>::try_from(row))?;
+        let val = conn.query_row("SELECT a, b FROM test", [], |row| {
+            <(u32, u32)>::try_from(row)
+        })?;
         assert_eq!(val, (42, 47));
-        let fail = conn.query_row("SELECT a, b FROM test", [], |row| <(u32, u32, u32)>::try_from(row));
+        let fail = conn.query_row("SELECT a, b FROM test", [], |row| {
+            <(u32, u32, u32)>::try_from(row)
+        });
         assert!(fail.is_err());
         Ok(())
     }

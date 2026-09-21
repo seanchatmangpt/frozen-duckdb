@@ -111,14 +111,21 @@ impl VTab for ExcelVTab {
 
         let width = range.get_size().1;
         let height = range.get_size().0;
-        Ok(ExcelBindData { range, width, height })
+        Ok(ExcelBindData {
+            range,
+            width,
+            height,
+        })
     }
 
     fn init(_: &InitInfo) -> Result<Self::InitData, Box<dyn std::error::Error>> {
         Ok(ExcelInitData { start: 1.into() })
     }
 
-    fn func(func: &TableFunctionInfo<Self>, output: &mut DataChunkHandle) -> Result<(), Box<dyn std::error::Error>> {
+    fn func(
+        func: &TableFunctionInfo<Self>,
+        output: &mut DataChunkHandle,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let init_info = func.get_init_data();
         let bind_info = func.get_bind_data();
 
@@ -185,7 +192,9 @@ mod test {
         db.register_table_function::<ExcelVTab>("excel")?;
 
         let val = db
-            .prepare("select count(*) from excel('./examples/Movies_Social_metadata.xlsx', 'Data')")?
+            .prepare(
+                "select count(*) from excel('./examples/Movies_Social_metadata.xlsx', 'Data')",
+            )?
             .query_row::<i64, _, _>([], |row| row.get(0))?;
         assert_eq!(3039, val);
         let mut stmt = db.prepare("select genres, sum(movie_facebook_likes) from excel('./examples/Movies_Social_metadata.xlsx', 'Data') group by genres order by genres limit 4")?;
@@ -206,7 +215,11 @@ mod test {
         assert_eq!(column.value(1), "Adventure");
         assert_eq!(column.value(2), "Animation");
         assert_eq!(column.value(3), "Biography");
-        let column = rb.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+        let column = rb
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
         assert_eq!(column.len(), 4);
         assert_eq!(column.value(0), 9773520.0);
         assert_eq!(column.value(1), 4355937.0);
@@ -228,7 +241,11 @@ mod test {
         assert_eq!(column.len(), 2);
         assert_eq!(column.value_as_date(0).unwrap().to_string(), "2021-01-01");
         assert_eq!(column.value_as_date(1).unwrap().to_string(), "2021-01-02");
-        let column = rb.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+        let column = rb
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
         assert_eq!(column.len(), 2);
         assert_eq!(column.value(0), 15.0);
         assert_eq!(column.value(1), 16.0);
@@ -255,7 +272,11 @@ mod test {
         assert!(column.is_null(0));
         assert_eq!(column.value_as_date(1).unwrap().to_string(), "2021-01-01");
         assert_eq!(column.value_as_date(2).unwrap().to_string(), "2021-01-02");
-        let column = rb.column(1).as_any().downcast_ref::<Float64Array>().unwrap();
+        let column = rb
+            .column(1)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
         assert_eq!(column.len(), 3);
         assert!(column.is_null(0));
         assert_eq!(column.value(1), 15.0);
