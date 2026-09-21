@@ -5,7 +5,7 @@ use arrow::{
     datatypes::DataType,
 };
 
-use crate::{
+use crate::duckdb::{
     core::DataChunkHandle,
     vtab::arrow::{data_chunk_to_arrow, to_duckdb_logical_type, write_arrow_array_to_vector, WritableVector},
 };
@@ -121,7 +121,7 @@ mod test {
         datatypes::DataType,
     };
 
-    use crate::{vscalar::arrow::ArrowFunctionSignature, Connection};
+    use crate::duckdb::{vscalar::arrow::ArrowFunctionSignature, Connection};
 
     use super::VArrowScalar;
 

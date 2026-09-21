@@ -3,7 +3,7 @@ use std::{
     fmt::Debug,
 };
 
-use crate::ffi::*;
+use crate::duckdb::ffi::*;
 
 /// Logical Type Id
 /// <https://duckdb.org/docs/api/c/types>
@@ -293,30 +293,30 @@ impl LogicalTypeHandle {
 
 #[cfg(test)]
 mod test {
-    use crate::core::{LogicalTypeHandle, LogicalTypeId};
+    use crate::duckdb::core::{LogicalTypeHandle, LogicalTypeId};
 
     #[test]
     fn test_struct() {
-        let fields = &[("hello", LogicalTypeHandle::from(crate::core::LogicalTypeId::Boolean))];
+        let fields = &[("hello", LogicalTypeHandle::from(crate::duckdb::core::LogicalTypeId::Boolean))];
         let typ = LogicalTypeHandle::struct_type(fields);
 
         assert_eq!(typ.num_children(), 1);
         assert_eq!(typ.child_name(0), "hello");
-        assert_eq!(typ.child(0).id(), crate::core::LogicalTypeId::Boolean);
+        assert_eq!(typ.child(0).id(), crate::duckdb::core::LogicalTypeId::Boolean);
     }
 
     #[test]
     fn test_decimal() {
         let typ = LogicalTypeHandle::decimal(10, 2);
 
-        assert_eq!(typ.id(), crate::core::LogicalTypeId::Decimal);
+        assert_eq!(typ.id(), crate::duckdb::core::LogicalTypeId::Decimal);
         assert_eq!(typ.decimal_width(), 10);
         assert_eq!(typ.decimal_scale(), 2);
     }
 
     #[test]
     fn test_decimal_methods() {
-        let typ = LogicalTypeHandle::from(crate::core::LogicalTypeId::Varchar);
+        let typ = LogicalTypeHandle::from(crate::duckdb::core::LogicalTypeId::Varchar);
 
         assert_eq!(typ.decimal_width(), 0);
         assert_eq!(typ.decimal_scale(), 0);

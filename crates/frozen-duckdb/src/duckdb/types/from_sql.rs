@@ -272,7 +272,7 @@ impl FromSql for Value {
 #[cfg(test)]
 mod test {
     use super::FromSql;
-    use crate::{Connection, Error, Result};
+    use crate::duckdb::{Connection, Error, Result};
 
     #[test]
     fn test_timestamp_raw() -> Result<()> {
@@ -405,7 +405,7 @@ mod test {
 
     #[cfg(feature = "uuid")]
     #[test]
-    fn test_uuid_from_string() -> crate::Result<()> {
+    fn test_uuid_from_string() -> crate::duckdb::Result<()> {
         let db = Connection::open_in_memory()?;
         let sql = "BEGIN;
                    CREATE TABLE uuid (u uuid);

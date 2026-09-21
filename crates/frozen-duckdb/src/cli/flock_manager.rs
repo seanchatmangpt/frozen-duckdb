@@ -6,7 +6,7 @@
 
 use anyhow::{Context, Result};
 use chrono;
-use duckdb::Connection;
+use crate::duckdb::Connection;
 use tracing::info;
 
 /// Flock LLM Manager for handling LLM operations via DuckDB Flock extension.

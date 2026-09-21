@@ -6,7 +6,7 @@ use frozen_duckdb_sys::{
     duckdb_vector,
 };
 
-use crate::{
+use crate::duckdb::{
     core::{DataChunkHandle, LogicalTypeHandle},
     inner_connection::InnerConnection,
     vtab::arrow::WritableVector,
@@ -134,7 +134,7 @@ where
 impl Connection {
     /// Register the given ScalarFunction with default state
     #[inline]
-    pub fn register_scalar_function<S: VScalar>(&self, name: &str) -> crate::Result<()>
+    pub fn register_scalar_function<S: VScalar>(&self, name: &str) -> crate::duckdb::Result<()>
     where
         S::State: Default,
     {
@@ -151,7 +151,7 @@ impl Connection {
 
     /// Register the given ScalarFunction with custom state
     #[inline]
-    pub fn register_scalar_function_with_state<S: VScalar>(&self, name: &str, state: &S::State) -> crate::Result<()>
+    pub fn register_scalar_function_with_state<S: VScalar>(&self, name: &str, state: &S::State) -> crate::duckdb::Result<()>
     where
         S::State: Clone,
     {
@@ -169,7 +169,7 @@ impl Connection {
 
 impl InnerConnection {
     /// Register the given ScalarFunction with the current db
-    pub fn register_scalar_function_set(&mut self, f: ScalarFunctionSet) -> crate::Result<()> {
+    pub fn register_scalar_function_set(&mut self, f: ScalarFunctionSet) -> crate::duckdb::Result<()> {
         f.register_with_connection(self.con)
     }
 }
@@ -181,7 +181,7 @@ mod test {
     use arrow::array::Array;
     use frozen_duckdb_sys::duckdb_string_t;
 
-    use crate::{
+    use crate::duckdb::{
         core::{DataChunkHandle, Inserter, LogicalTypeHandle, LogicalTypeId},
         types::DuckString,
         vtab::arrow::WritableVector,

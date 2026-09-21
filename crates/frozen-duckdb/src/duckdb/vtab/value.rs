@@ -1,4 +1,4 @@
-use crate::ffi::{duckdb_destroy_value, duckdb_free, duckdb_get_int64, duckdb_get_varchar, duckdb_value};
+use crate::duckdb::ffi::{duckdb_destroy_value, duckdb_free, duckdb_get_int64, duckdb_get_varchar, duckdb_value};
 use std::{ffi::CStr, fmt, os::raw::c_void};
 
 /// The Value object holds a single arbitrary value of any type that can be
@@ -47,7 +47,7 @@ impl fmt::Display for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ffi::duckdb_create_varchar;
+    use crate::duckdb::ffi::duckdb_create_varchar;
     use std::ffi::CString;
 
     #[test]

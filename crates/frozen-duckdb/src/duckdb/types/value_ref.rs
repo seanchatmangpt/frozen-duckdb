@@ -1,7 +1,7 @@
 use super::{Type, Value};
-use crate::types::{FromSqlError, FromSqlResult, OrderedMap};
+use crate::duckdb::types::{FromSqlError, FromSqlResult, OrderedMap};
 
-use crate::Row;
+use crate::duckdb::Row;
 use rust_decimal::prelude::*;
 
 use arrow::{
@@ -170,7 +170,7 @@ impl ValueRef<'_> {
 
 impl<'a> ValueRef<'a> {
     /// If `self` is case `Text`, returns the string value. Otherwise, returns
-    /// [`Err(Error::InvalidColumnType)`](crate::Error::InvalidColumnType).
+    /// [`Err(Error::InvalidColumnType)`](crate::duckdb::Error::InvalidColumnType).
     #[inline]
     pub fn as_str(&self) -> FromSqlResult<&'a str> {
         match *self {
@@ -180,7 +180,7 @@ impl<'a> ValueRef<'a> {
     }
 
     /// If `self` is case `Blob`, returns the byte slice. Otherwise, returns
-    /// [`Err(Error::InvalidColumnType)`](crate::Error::InvalidColumnType).
+    /// [`Err(Error::InvalidColumnType)`](crate::duckdb::Error::InvalidColumnType).
     #[inline]
     pub fn as_blob(&self) -> FromSqlResult<&'a [u8]> {
         match *self {
@@ -372,8 +372,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::types::Type;
-    use crate::{Connection, Result};
+    use crate::duckdb::types::Type;
+    use crate::duckdb::{Connection, Result};
 
     #[test]
     fn test_list_types() -> Result<()> {

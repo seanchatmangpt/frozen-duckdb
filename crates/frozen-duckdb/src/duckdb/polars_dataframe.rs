@@ -38,7 +38,7 @@ mod tests {
     use polars::prelude::*;
     use polars_core::utils::accumulate_dataframes_vertical_unchecked;
 
-    use crate::{test::checked_memory_handle, Result};
+    use crate::duckdb::{test::checked_memory_handle, Result};
 
     #[test]
     fn test_query_polars_small() -> Result<()> {

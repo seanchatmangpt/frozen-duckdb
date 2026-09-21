@@ -2,7 +2,7 @@ use std::str;
 
 use arrow::datatypes::DataType;
 
-use crate::{Error, Result, Statement};
+use crate::duckdb::{Error, Result, Statement};
 
 /// Information about a column of a DuckDB query.
 #[derive(Debug)]
@@ -164,11 +164,11 @@ impl Statement<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
 
     #[test]
     fn test_column_name_in_error() -> Result<()> {
-        use crate::{types::Type, Error};
+        use crate::duckdb::{types::Type, Error};
         let db = Connection::open_in_memory()?;
         db.execute_batch(
             "BEGIN;

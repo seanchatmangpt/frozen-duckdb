@@ -1,7 +1,7 @@
 use std::{convert, sync::Arc};
 
 use super::{Error, Result, Statement};
-use crate::types::{self, EnumType, FromSql, FromSqlError, ListType, ValueRef};
+use crate::duckdb::types::{self, EnumType, FromSql, FromSqlError, ListType, ValueRef};
 
 use arrow::{
     array::{self, Array, ArrayRef, DictionaryArray, FixedSizeListArray, ListArray, MapArray, StructArray},
@@ -38,8 +38,8 @@ impl<'stmt> Rows<'stmt> {
     /// This interface is not compatible with Rust's `Iterator` trait, because
     /// the lifetime of the returned row is tied to the lifetime of `self`.
     /// This is a fallible "streaming iterator". For a more natural interface,
-    /// consider using [`query_map`](crate::Statement::query_map) or
-    /// [`query_and_then`](crate::Statement::query_and_then) instead, which
+    /// consider using [`query_map`](crate::duckdb::Statement::query_map) or
+    /// [`query_and_then`](crate::duckdb::Statement::query_and_then) instead, which
     /// return types that implement `Iterator`.
     #[allow(clippy::should_implement_trait)] // cannot implement Iterator
     #[inline]
@@ -716,7 +716,7 @@ impl RowIndex for &'_ str {
 macro_rules! tuple_try_from_row {
     ($($field:ident),*) => {
         impl<'a, $($field,)*> convert::TryFrom<&'a Row<'a>> for ($($field,)*) where $($field: FromSql,)* {
-            type Error = crate::Error;
+            type Error = crate::duckdb::Error;
 
             // we end with index += 1, which rustc warns about
             // unused_variables and unused_mut are allowed for ()
@@ -750,17 +750,17 @@ tuples_try_from_row!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 #[cfg(test)]
 mod tests {
     #![allow(clippy::redundant_closure)] // false positives due to lifetime issues; clippy issue #5594
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
 
     #[test]
     fn test_try_from_row_for_tuple_1() -> Result<()> {
-        use crate::ToSql;
+        use crate::duckdb::ToSql;
         use std::convert::TryFrom;
 
         let conn = Connection::open_in_memory()?;
         conn.execute(
             "CREATE TABLE test (a INTEGER)",
-            crate::params_from_iter(std::iter::empty::<&dyn ToSql>()),
+            crate::duckdb::params_from_iter(std::iter::empty::<&dyn ToSql>()),
         )?;
         conn.execute("INSERT INTO test VALUES (42)", [])?;
         let val = conn.query_row("SELECT a FROM test", [], |row| <(u32,)>::try_from(row))?;

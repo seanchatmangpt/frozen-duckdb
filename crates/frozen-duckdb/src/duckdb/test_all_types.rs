@@ -1,25 +1,25 @@
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 
-use crate::{
+use crate::duckdb::{
     types::{OrderedMap, TimeUnit, Type, Value, ValueRef},
     Connection,
 };
 
 #[test]
-fn test_all_types() -> crate::Result<()> {
+fn test_all_types() -> crate::duckdb::Result<()> {
     test_with_database(&Connection::open_in_memory()?)
 }
 
 #[test]
-fn test_large_arrow_types() -> crate::Result<()> {
-    let cfg = crate::Config::default().with("arrow_large_buffer_size", "true")?;
+fn test_large_arrow_types() -> crate::duckdb::Result<()> {
+    let cfg = crate::duckdb::Config::default().with("arrow_large_buffer_size", "true")?;
     let database = Connection::open_in_memory_with_flags(cfg)?;
 
     test_with_database(&database)
 }
 
-fn test_with_database(database: &Connection) -> crate::Result<()> {
+fn test_with_database(database: &Connection) -> crate::duckdb::Result<()> {
     // These aren't supported in the DuckDB Arrow layer
     let excluded = ["uhugeint", "time_tz", "dec38_10", "bignum"];
 

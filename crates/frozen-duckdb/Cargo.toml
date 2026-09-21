@@ -26,8 +26,17 @@ tracing-subscriber.workspace = true
 tempfile.workspace = true
 reqwest.workspace = true
 
+# Dependencies carried over from the vendored duckdb-rs API layer
+arrow = { version = "56", default-features = false, features = ["ffi", "prettyprint"] }
+cast = "0.3"
+fallible-iterator = "0.3"
+fallible-streaming-iterator = "0.1"
+hashlink = "0.10"
+rust_decimal = "1.14"
+strum = { version = "0.27", features = ["derive"] }
+
 # Use our FFI crate instead of duckdb-rs
-frozen-duckdb-sys = { path = "../frozen-duckdb-sys" }
+frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "1.5.5" }
 
 [[example]]
 name = "dropin_replacement"

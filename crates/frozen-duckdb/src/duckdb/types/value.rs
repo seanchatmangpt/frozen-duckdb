@@ -4,7 +4,7 @@ use rust_decimal::prelude::*;
 /// Owning [dynamic type value](https://duckdb.org/docs/stable/sql/data_types/overview.html).
 /// Value's type is typically dictated by DuckDB (not by the caller).
 ///
-/// See [`ValueRef`](crate::types::ValueRef) for a non-owning dynamic type
+/// See [`ValueRef`](crate::duckdb::types::ValueRef) for a non-owning dynamic type
 /// value.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {

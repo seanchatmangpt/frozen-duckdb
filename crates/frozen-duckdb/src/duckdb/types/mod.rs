@@ -197,7 +197,7 @@ impl fmt::Display for Type {
 #[cfg(test)]
 mod test {
     use super::Value;
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
 
     fn checked_memory_handle() -> Result<Connection> {
         let db = Connection::open_in_memory()?;

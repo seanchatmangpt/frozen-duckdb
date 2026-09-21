@@ -1,5 +1,5 @@
 use super::{ffi, Result};
-use crate::error::Error;
+use crate::duckdb::error::Error;
 use std::{default::Default, ffi::CString, os::raw::c_char, ptr};
 
 use strum::{AsRefStr, Display, EnumString};
@@ -158,7 +158,7 @@ impl Drop for Config {
 
 #[cfg(test)]
 mod test {
-    use crate::{types::Value, Config, Connection, Result};
+    use crate::duckdb::{types::Value, Config, Connection, Result};
 
     #[test]
     fn test_default_config() -> Result<()> {
@@ -191,9 +191,9 @@ mod test {
     #[test]
     fn test_all_config() -> Result<()> {
         let config = Config::default()
-            .access_mode(crate::AccessMode::ReadWrite)?
-            .default_null_order(crate::DefaultNullOrder::NullsLast)?
-            .default_order(crate::DefaultOrder::Desc)?
+            .access_mode(crate::duckdb::AccessMode::ReadWrite)?
+            .default_null_order(crate::duckdb::DefaultNullOrder::NullsLast)?
+            .default_order(crate::duckdb::DefaultOrder::Desc)?
             .enable_external_access(true)?
             .enable_object_cache(false)?
             .enable_autoload_extension(true)?

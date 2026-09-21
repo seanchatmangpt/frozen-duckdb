@@ -154,7 +154,9 @@ pub mod duckdb;
 // This enables frozen-duckdb to be a true drop-in replacement
 pub use duckdb::{
     Connection, Config, Statement, Row, Rows, Result as DuckDBResult,
-    params, params_from_iter, 
+    // params! is exported at the crate root via #[macro_export] in the
+    // vendored module; params_from_iter comes through the duckdb module
+    params_from_iter,
     // Common types
     ToSql,
     // Error types
@@ -163,9 +165,6 @@ pub use duckdb::{
     Transaction,
     // Appender for bulk inserts
     Appender,
-    // Arrow integration
-    arrow::array::Array,
-    arrow::record_batch::RecordBatch,
 };
 
 // Re-export types from duckdb::types for convenience

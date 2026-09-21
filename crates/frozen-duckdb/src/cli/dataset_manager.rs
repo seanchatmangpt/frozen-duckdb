@@ -6,7 +6,7 @@
 //! processing operations.
 
 use anyhow::{Context, Result};
-use duckdb::Connection;
+use crate::duckdb::Connection;
 use std::fs;
 use std::path::Path;
 use tracing::{info, warn};

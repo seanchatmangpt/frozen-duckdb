@@ -1,4 +1,4 @@
-use crate::{Connection, Result};
+use crate::duckdb::{Connection, Result};
 use std::ops::Deref;
 
 /// Options for how a Transaction should behave when it is dropped.
@@ -221,7 +221,7 @@ impl Connection {
 #[cfg(test)]
 mod test {
     use super::DropBehavior;
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
 
     fn checked_no_autocommit_memory_handle() -> Result<Connection> {
         let db = Connection::open_in_memory()?;

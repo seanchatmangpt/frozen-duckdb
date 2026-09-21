@@ -1,5 +1,5 @@
 use super::{ffi, Appender, Result};
-use crate::{
+use crate::duckdb::{
     core::{DataChunkHandle, LogicalTypeHandle},
     error::result_from_duckdb_appender,
     vtab::{record_batch_to_duckdb_data_chunk, to_duckdb_logical_type},
@@ -62,7 +62,7 @@ impl Appender<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
     use arrow::{
         array::{Int32Array, Int8Array, StringArray},
         datatypes::{DataType, Field, Schema},

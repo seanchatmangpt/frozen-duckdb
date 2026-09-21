@@ -5,7 +5,7 @@ use frozen_duckdb_sys::{
 };
 
 use super::LogicalTypeHandle;
-use crate::ffi::{
+use crate::duckdb::ffi::{
     duckdb_list_entry, duckdb_list_vector_get_child, duckdb_list_vector_get_size, duckdb_list_vector_reserve,
     duckdb_list_vector_set_size, duckdb_struct_type_child_count, duckdb_struct_type_child_name,
     duckdb_struct_vector_get_child, duckdb_validity_set_row_invalid, duckdb_vector,
@@ -368,7 +368,7 @@ impl StructVector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{DataChunkHandle, LogicalTypeId};
+    use crate::duckdb::core::{DataChunkHandle, LogicalTypeId};
     use std::ffi::CString;
 
     #[test]

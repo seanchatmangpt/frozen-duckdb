@@ -66,11 +66,11 @@ use std::{
     result, str,
 };
 
-use crate::{cache::StatementCache, inner_connection::InnerConnection, raw_statement::RawStatement, types::ValueRef};
+use crate::duckdb::{cache::StatementCache, inner_connection::InnerConnection, raw_statement::RawStatement, types::ValueRef};
 
 #[cfg(feature = "r2d2")]
-pub use crate::r2d2::DuckdbConnectionManager;
-pub use crate::{
+pub use crate::duckdb::r2d2::DuckdbConnectionManager;
+pub use crate::duckdb::{
     appender::Appender,
     appender_params::{appender_params_from_iter, AppenderParams, AppenderParamsFromIter},
     arrow_batch::{Arrow, ArrowStream},
@@ -161,10 +161,10 @@ const STATEMENT_CACHE_DEFAULT_CAPACITY: usize = 16;
 #[macro_export]
 macro_rules! params {
     () => {
-        &[] as &[&dyn $crate::ToSql]
+        &[] as &[&dyn $crate::duckdb::ToSql]
     };
     ($($param:expr),+ $(,)?) => {
-        &[$(&$param as &dyn $crate::ToSql),+] as &[&dyn $crate::ToSql]
+        &[$(&$param as &dyn $crate::duckdb::ToSql),+] as &[&dyn $crate::duckdb::ToSql]
     };
 }
 
@@ -605,7 +605,7 @@ doc_comment::doctest!("../../../README.md");
 
 #[cfg(test)]
 mod test {
-    use crate::types::Value;
+    use crate::duckdb::types::Value;
 
     use super::*;
     use std::{error::Error as StdError, fmt};

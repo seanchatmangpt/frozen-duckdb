@@ -1,7 +1,7 @@
 use arrow::datatypes::DataType;
 
 use super::Result;
-use crate::{
+use crate::duckdb::{
     ffi,
     types::{FromSqlError, Type},
 };
@@ -39,16 +39,16 @@ pub enum Error {
     /// Error converting a file path to a string.
     InvalidPath(PathBuf),
 
-    /// Error returned when an [`execute`](crate::Connection::execute) call
+    /// Error returned when an [`execute`](crate::duckdb::Connection::execute) call
     /// returns rows.
     ExecuteReturnedResults,
 
     /// Error when a query that was expected to return at least one row (e.g.,
-    /// for [`query_row`](crate::Connection::query_row)) did not return any.
+    /// for [`query_row`](crate::duckdb::Connection::query_row)) did not return any.
     QueryReturnedNoRows,
 
     /// Error when a query that was expected to return only one row (e.g.,
-    /// for [`query_one`](crate::Connection::query_one)) did return more than one.
+    /// for [`query_one`](crate::duckdb::Connection::query_one)) did return more than one.
     QueryReturnedMoreThanOneRow,
 
     /// Error when the value of a particular column is requested, but the index
@@ -72,7 +72,7 @@ pub enum Error {
     StatementChangedRows(usize),
 
     /// Error available for the implementors of the
-    /// [`ToSql`](crate::types::ToSql) trait.
+    /// [`ToSql`](crate::duckdb::types::ToSql) trait.
     ToSqlConversionFailure(Box<dyn error::Error + Send + Sync + 'static>),
 
     /// Error when the SQL is not a `SELECT`, is not read-only.

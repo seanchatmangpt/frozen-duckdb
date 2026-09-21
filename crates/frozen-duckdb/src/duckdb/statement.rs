@@ -4,8 +4,8 @@ use arrow::{array::StructArray, datatypes::SchemaRef};
 
 use super::{ffi, AndThenRows, Connection, Error, MappedRows, Params, RawStatement, Result, Row, Rows, ValueRef};
 #[cfg(feature = "polars")]
-use crate::{arrow2, polars_dataframe::Polars};
-use crate::{
+use crate::duckdb::{arrow2, polars_dataframe::Polars};
+use crate::duckdb::{
     arrow_batch::{Arrow, ArrowStream},
     error::result_from_duckdb_prepare,
     types::{TimeUnit, ToSql, ToSqlOutput},
@@ -334,7 +334,7 @@ impl Statement<'_> {
     ///
     /// Returns `Err(QueryReturnedNoRows)` if no results are returned. If the
     /// query truly is optional, you can call
-    /// [`.optional()`](crate::OptionalExt::optional) on the result of
+    /// [`.optional()`](crate::duckdb::OptionalExt::optional) on the result of
     /// this to get a `Result<Option<T>>` (requires that the trait
     /// `duckdb::OptionalExt` is imported).
     ///
@@ -356,7 +356,7 @@ impl Statement<'_> {
     ///
     /// Returns `Err(QueryReturnedNoRows)` if no results are returned. If the
     /// query truly is optional, you can call
-    /// [`.optional()`](crate::OptionalExt::optional) on the result of
+    /// [`.optional()`](crate::duckdb::OptionalExt::optional) on the result of
     /// this to get a `Result<Option<T>>` (requires that the trait
     /// `duckdb::OptionalExt` is imported).
     ///
@@ -612,7 +612,7 @@ impl Statement<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::{params_from_iter, types::ToSql, Connection, Error, Result};
+    use crate::duckdb::{params_from_iter, types::ToSql, Connection, Error, Result};
 
     #[test]
     fn test_execute() -> Result<()> {
@@ -953,7 +953,7 @@ mod test {
 
     #[test]
     fn test_query_one_optional() -> Result<()> {
-        use crate::OptionalExt;
+        use crate::duckdb::OptionalExt;
 
         let db = Connection::open_in_memory()?;
         let sql = "BEGIN;

@@ -2,7 +2,7 @@
 
 use std::ffi::c_void;
 
-use crate::{error::Error, inner_connection::InnerConnection, Connection, Result};
+use crate::duckdb::{error::Error, inner_connection::InnerConnection, Connection, Result};
 
 use super::ffi;
 
@@ -23,7 +23,7 @@ mod excel;
 pub use function::{BindInfo, InitInfo, TableFunction, TableFunctionInfo};
 pub use value::Value;
 
-use crate::core::{DataChunkHandle, LogicalTypeHandle};
+use crate::duckdb::core::{DataChunkHandle, LogicalTypeHandle};
 use ffi::{duckdb_bind_info, duckdb_data_chunk, duckdb_function_info, duckdb_init_info};
 
 /// Given a raw pointer to a box, free the box and the data contained within it.
@@ -168,7 +168,7 @@ impl InnerConnection {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::core::{Inserter, LogicalTypeId};
+    use crate::duckdb::core::{Inserter, LogicalTypeId};
     use std::{
         error::Error,
         ffi::CString,

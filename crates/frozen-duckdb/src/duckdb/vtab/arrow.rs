@@ -1,7 +1,7 @@
 use super::{BindInfo, DataChunkHandle, InitInfo, LogicalTypeHandle, TableFunctionInfo, VTab};
 use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
-use crate::{
+use crate::duckdb::{
     core::{ArrayVector, FlatVector, Inserter, ListVector, LogicalTypeId, StructVector, Vector},
     types::DuckString,
 };
@@ -1156,7 +1156,7 @@ fn set_nulls_in_list_vector(array: &dyn Array, out_vector: &mut ListVector) {
 #[cfg(test)]
 mod test {
     use super::{arrow_recordbatch_to_query_params, ArrowVTab};
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
     use arrow::{
         array::{
             Array, ArrayRef, AsArray, BinaryArray, BinaryViewArray, BooleanArray, Date32Array, Date64Array,
@@ -1722,9 +1722,9 @@ mod test {
 
         assert_eq!(
             res,
-            crate::error::Error::DuckDBFailure(
-                crate::ffi::Error {
-                    code: crate::ffi::ErrorCode::Unknown,
+            crate::duckdb::error::Error::DuckDBFailure(
+                crate::duckdb::ffi::Error {
+                    code: crate::duckdb::ffi::ErrorCode::Unknown,
                     extended_code: 1
                 },
                 Some("Invalid Input Error: Data type \"Decimal256(76, 10)\" not yet supported by ArrowVTab".to_owned())

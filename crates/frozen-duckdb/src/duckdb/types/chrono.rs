@@ -3,7 +3,7 @@
 use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use num_integer::Integer;
 
-use crate::{
+use crate::duckdb::{
     types::{FromSql, FromSqlError, FromSqlResult, TimeUnit, ToSql, ToSqlOutput, ValueRef},
     Result,
 };
@@ -173,7 +173,7 @@ impl ToSql for Duration {
 
 #[cfg(test)]
 mod test {
-    use crate::{
+    use crate::duckdb::{
         types::{FromSql, FromSqlError, ToSql, ToSqlOutput, ValueRef},
         Connection, Result,
     };

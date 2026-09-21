@@ -2,7 +2,7 @@
 
 use std::ops::Deref;
 
-use crate::{
+use crate::duckdb::{
     error::Error,
     ffi,
     types::{ToSql, ToSqlOutput, ValueRef},
@@ -271,7 +271,7 @@ fn is_identifier_continue(c: char) -> bool {
 #[cfg(test)]
 mod test {
     use super::Sql;
-    use crate::{pragma, Connection, DatabaseName, Result};
+    use crate::duckdb::{pragma, Connection, DatabaseName, Result};
 
     #[test]
     fn pragma_query_value() -> Result<()> {
@@ -315,7 +315,7 @@ mod test {
     fn test_pragma_update_and_check() -> Result<()> {
         let db = Connection::open_in_memory()?;
         let res = db.pragma_update_and_check(None, "explain_output", &"OPTIMIZED_ONLY", |_| Ok(()));
-        assert_eq!(res.unwrap_err(), crate::Error::QueryReturnedNoRows);
+        assert_eq!(res.unwrap_err(), crate::duckdb::Error::QueryReturnedNoRows);
         Ok(())
     }
 

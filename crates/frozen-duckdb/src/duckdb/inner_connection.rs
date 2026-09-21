@@ -7,7 +7,7 @@ use std::{
 };
 
 use super::{ffi, Appender, Config, Connection, Result};
-use crate::{
+use crate::duckdb::{
     error::{
         result_from_duckdb_appender, result_from_duckdb_arrow, result_from_duckdb_extract, result_from_duckdb_prepare,
         Error,
@@ -231,7 +231,7 @@ impl InterruptHandle {
     /// `Error::DuckDBFailure`. If the connection was dropped after obtaining
     /// this interrupt handle, calling this method results in a noop.
     ///
-    /// See [`crate::Connection::interrupt_handle`] for an example.
+    /// See [`crate::duckdb::Connection::interrupt_handle`] for an example.
     pub fn interrupt(&self) {
         let db_handle = self.conn.lock().unwrap();
 

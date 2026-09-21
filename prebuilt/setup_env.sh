@@ -16,7 +16,9 @@ else
     echo "⚠️  Unknown architecture ($ARCH), using universal binary (105MB)"
 fi
 
-# Create symlinks for compatibility
+# Create symlinks for compatibility. DuckDB >= 1.5 dylibs carry the neutral
+# install name @rpath/libduckdb.dylib, so the plain link name is what matters;
+# the versioned names remain for older 1.4-era consumers
 ln -sf "$DUCKDB_LIB" "$DUCKDB_LIB_DIR/libduckdb.dylib"
 ln -sf "$DUCKDB_LIB" "$DUCKDB_LIB_DIR/libduckdb.1.dylib"
 ln -sf "$DUCKDB_LIB" "$DUCKDB_LIB_DIR/libduckdb.1.4.dylib"

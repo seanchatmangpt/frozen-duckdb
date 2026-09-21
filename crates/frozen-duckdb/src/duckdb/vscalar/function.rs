@@ -10,7 +10,7 @@ impl ScalarFunctionSet {
         }
     }
 
-    pub fn add_function(&self, func: ScalarFunction) -> crate::Result<()> {
+    pub fn add_function(&self, func: ScalarFunction) -> crate::duckdb::Result<()> {
         unsafe {
             let rc = duckdb_add_scalar_function_to_set(self.ptr, func.ptr);
             if rc != DuckDBSuccess {
@@ -21,7 +21,7 @@ impl ScalarFunctionSet {
         Ok(())
     }
 
-    pub(crate) fn register_with_connection(&self, con: duckdb_connection) -> crate::Result<()> {
+    pub(crate) fn register_with_connection(&self, con: duckdb_connection) -> crate::duckdb::Result<()> {
         unsafe {
             let rc = ffi::duckdb_register_scalar_function_set(con, self.ptr);
             if rc != ffi::DuckDBSuccess {
@@ -56,7 +56,7 @@ use frozen_duckdb_sys::{
     duckdb_scalar_function_set_return_type, duckdb_scalar_function_set_varargs, duckdb_vector, DuckDBSuccess,
 };
 
-use crate::{core::LogicalTypeHandle, Error};
+use crate::duckdb::{core::LogicalTypeHandle, Error};
 
 impl ScalarFunction {
     /// Creates a new empty scalar function.

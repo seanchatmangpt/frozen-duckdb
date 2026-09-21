@@ -1,5 +1,5 @@
 use super::{Null, TimeUnit, Value, ValueRef};
-use crate::Result;
+use crate::duckdb::Result;
 use std::borrow::Cow;
 
 /// `ToSqlOutput` represents the possible output types for implementers of the
@@ -203,7 +203,7 @@ impl<T: ToSql> ToSql for Option<T> {
 }
 
 impl ToSql for std::time::Duration {
-    fn to_sql(&self) -> crate::Result<ToSqlOutput<'_>> {
+    fn to_sql(&self) -> crate::duckdb::Result<ToSqlOutput<'_>> {
         Ok(ToSqlOutput::Owned(Value::Timestamp(
             TimeUnit::Microsecond,
             self.as_micros() as i64,
@@ -239,13 +239,13 @@ mod test {
         let r = cow.to_sql();
         assert!(r.is_ok());
         // Ensure this compiles.
-        let _p: &[&dyn ToSql] = crate::params![cow];
+        let _p: &[&dyn ToSql] = crate::duckdb::params![cow];
     }
 
     #[test]
     fn test_box_dyn() {
         let s: Box<dyn ToSql> = Box::new("Hello world!");
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = ToSql::to_sql(&s);
 
         assert!(r.is_ok());
@@ -254,7 +254,7 @@ mod test {
     #[test]
     fn test_box_deref() {
         let s: Box<str> = "Hello world!".into();
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = s.to_sql();
 
         assert!(r.is_ok());
@@ -263,7 +263,7 @@ mod test {
     #[test]
     fn test_box_direct() {
         let s: Box<str> = "Hello world!".into();
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = ToSql::to_sql(&s);
 
         assert!(r.is_ok());
@@ -276,40 +276,40 @@ mod test {
         let source_str: Box<str> = "Hello world!".into();
 
         let s: Rc<Box<str>> = Rc::new(source_str.clone());
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = s.to_sql();
         assert!(r.is_ok());
 
         let s: Arc<Box<str>> = Arc::new(source_str.clone());
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = s.to_sql();
         assert!(r.is_ok());
 
         let s: Arc<str> = Arc::from(&*source_str);
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = s.to_sql();
         assert!(r.is_ok());
 
         let s: Arc<dyn ToSql> = Arc::new(source_str.clone());
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = s.to_sql();
         assert!(r.is_ok());
 
         let s: Rc<str> = Rc::from(&*source_str);
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = s.to_sql();
         assert!(r.is_ok());
 
         let s: Rc<dyn ToSql> = Rc::new(source_str);
-        let _s: &[&dyn ToSql] = crate::params![s];
+        let _s: &[&dyn ToSql] = crate::duckdb::params![s];
         let r = s.to_sql();
         assert!(r.is_ok());
     }
 
     // Use gen_random_uuid() to generate uuid
     #[test]
-    fn test_uuid_gen() -> crate::Result<()> {
-        use crate::Connection;
+    fn test_uuid_gen() -> crate::duckdb::Result<()> {
+        use crate::duckdb::Connection;
 
         let db = Connection::open_in_memory()?;
         db.execute_batch("CREATE TABLE foo (id uuid NOT NULL);")?;
@@ -323,8 +323,8 @@ mod test {
 
     #[cfg(feature = "uuid")]
     #[test]
-    fn test_uuid_blob_type() -> crate::Result<()> {
-        use crate::{params, Connection};
+    fn test_uuid_blob_type() -> crate::duckdb::Result<()> {
+        use crate::duckdb::{params, Connection};
         use uuid::Uuid;
 
         let db = Connection::open_in_memory()?;
@@ -344,8 +344,8 @@ mod test {
 
     #[cfg(feature = "uuid")]
     #[test]
-    fn test_uuid_type() -> crate::Result<()> {
-        use crate::{params, Connection};
+    fn test_uuid_type() -> crate::duckdb::Result<()> {
+        use crate::duckdb::{params, Connection};
         use uuid::Uuid;
 
         let db = Connection::open_in_memory()?;

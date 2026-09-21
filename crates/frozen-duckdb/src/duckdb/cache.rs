@@ -1,6 +1,6 @@
 //! Prepared statements cache for faster execution.
 
-use crate::{raw_statement::RawStatement, Connection, Result, Statement};
+use crate::duckdb::{raw_statement::RawStatement, Connection, Result, Statement};
 use hashlink::LruCache;
 use std::{
     cell::RefCell,
@@ -176,7 +176,7 @@ impl StatementCache {
 #[cfg(test)]
 mod test {
     use super::StatementCache;
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
     use fallible_iterator::FallibleIterator;
 
     impl StatementCache {

@@ -8,8 +8,8 @@ use arrow::{
 
 use super::{ffi, Result};
 #[cfg(feature = "polars")]
-use crate::arrow2;
-use crate::{error::result_from_duckdb_arrow, Error};
+use crate::duckdb::arrow2;
+use crate::duckdb::{error::result_from_duckdb_arrow, Error};
 
 // Private newtype for raw sqlite3_stmts that finalize themselves when dropped.
 // TODO: destroy statement and result
