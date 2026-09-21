@@ -194,7 +194,8 @@ impl fmt::Debug for Appender<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::duckdb::{params, Connection, Error, Result};
+    use crate::params;
+    use crate::duckdb::{Connection, Error, Result};
 
     #[test]
     fn test_append_one_row() -> Result<()> {
