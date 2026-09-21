@@ -15,7 +15,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "📦 Installing DuckDB system-wide..."
         
         # Download and install DuckDB
-        DUCKDB_VERSION="1.4.0"
+        DUCKDB_VERSION="1.5.5"
         DUCKDB_URL="https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/duckdb_cli-osx-universal.zip"
         
         mkdir -p /tmp/duckdb-install
@@ -65,7 +65,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
             sudo apt-get install -y wget unzip
         fi
         
-        DUCKDB_VERSION="1.4.0"
+        DUCKDB_VERSION="1.5.5"
         DUCKDB_URL="https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/duckdb_cli-linux-amd64.zip"
         
         mkdir -p /tmp/duckdb-install

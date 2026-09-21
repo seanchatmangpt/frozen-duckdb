@@ -26,7 +26,7 @@ edition = "2021"
 
 [dependencies]
 # Pre-compile DuckDB with all features
-duckdb = { version = "1.4.0", features = ["bundled"] }
+duckdb = { version = "1.10505.0", features = ["bundled"] }
 
 # Pre-compile Arrow ecosystem
 arrow = { version = "56.2.0", features = ["default"] }

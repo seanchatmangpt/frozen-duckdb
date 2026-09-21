@@ -8,7 +8,7 @@ echo "🦆 Downloading Pre-compiled DuckDB Binaries (No Compilation Ever!)"
 echo "=================================================================="
 
 # Configuration
-DUCKDB_VERSION="1.4.0"
+DUCKDB_VERSION="1.5.5"
 PREBUILT_DIR="target/duckdb-prebuilt"
 
 # Create prebuilt directory
@@ -16,6 +16,11 @@ mkdir -p "$PREBUILT_DIR"
 cd "$PREBUILT_DIR"
 
 # Detect platform
+# NOTE: since DuckDB v1.5.x, macOS libduckdb is published ONLY as
+# libduckdb-osx-universal.zip (universal arm64+x86_64); the per-arch
+# libduckdb-osx-arm64.zip / libduckdb-osx-amd64.zip assets no longer exist.
+# duckdb_cli-osx-universal.zip still exists for the CLI. The zip extracts a
+# single universal libduckdb.dylib, which serves both arches.
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [[ $(uname -m) == "arm64" ]]; then
         PLATFORM="osx-universal"

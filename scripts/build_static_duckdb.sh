@@ -90,7 +90,7 @@ echo "  Binary: $(ls -1 *.dylib *.so *.a 2>/dev/null | head -1)"
 echo ""
 echo "To use in your project:"
 echo "  source $DUCKDB_LIB_DIR/setup_env.sh"
-echo "  Update kcura-duck to use: duckdb = { version = \"1.4.0\", default-features = false }"
+echo "  Update kcura-duck to use: duckdb = { version = \"1.10505.0\", default-features = false }"
 echo "  cargo build -p kcura-duck"
 EOF
 

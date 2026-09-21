@@ -119,7 +119,7 @@ This directory contains a pre-compiled, fully-featured DuckDB binary that can be
 
 2. **Update kcura-duck Cargo.toml**:
    ```toml
-   duckdb = { version = "1.4.0", default-features = false, features = [
+   duckdb = { version = "1.10505.0", default-features = false, features = [
        "json", "parquet", "appender-arrow", "vtab-full", "extensions-full"
    ] }
    ```
@@ -137,7 +137,7 @@ This directory contains a pre-compiled, fully-featured DuckDB binary that can be
 
 ## Maintenance
 
-This frozen binary should work with DuckDB 1.4.0. For newer versions, rebuild using:
+This frozen binary should work with DuckDB 1.5.5. For newer versions, rebuild using:
 ```bash
 ./scripts/build_frozen_duckdb.sh
 ```
@@ -306,7 +306,7 @@ export LD_LIBRARY_PATH="$DUCKDB_LIB_DIR:$LD_LIBRARY_PATH"
 
 ```toml
 [dependencies]
-duckdb = { version = "1.4.0", default-features = false, features = [
+duckdb = { version = "1.10505.0", default-features = false, features = [
     "json", "parquet", "appender-arrow", "vtab-full", "extensions-full"
 ] }
 ```
@@ -560,7 +560,7 @@ echo "  - Test build: cargo check -p kcura-duck"
 echo ""
 
 echo "💡 MAINTENANCE:"
-echo "  - This binary works with DuckDB 1.4.0"
+echo "  - This binary works with DuckDB 1.5.5"
 echo "  - For updates: ./scripts/build_frozen_duckdb.sh"
 echo "  - Version info in: $PREBUILT_DIR/README.md"
 echo ""

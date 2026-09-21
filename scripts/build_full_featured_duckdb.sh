@@ -19,7 +19,7 @@ echo "=============================================="
 echo ""
 
 # Configuration
-DUCKDB_VERSION="1.4.1"
+DUCKDB_VERSION="1.5.5"
 BUILD_DIR="duckdb-build"
 PREBUILT_DIR="prebuilt"
 
@@ -177,7 +177,7 @@ echo "   1. Use this binary in your project:"
 echo "      source $PREBUILT_DIR/setup_env.sh"
 echo ""
 echo "   2. Enable ALL features in your Cargo.toml:"
-echo "      duckdb = { version = \"1.4.0\", features = [\"json\", \"parquet\", \"appender-arrow\"] }"
+echo "      duckdb = { version = \"1.10505.0\", features = [\"json\", \"parquet\", \"appender-arrow\"] }"
 echo ""
 echo "   3. Build with 99% faster builds:"
 echo "      cargo build"

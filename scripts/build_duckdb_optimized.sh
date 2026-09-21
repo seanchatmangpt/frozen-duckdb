@@ -9,7 +9,10 @@ echo "🚀 KCura Optimized DuckDB Build - Pre-compiling heavy dependencies..."
 # Configuration
 BUILD_DIR="target/duckdb-optimized"
 ARROW_VERSION="56.2.0"
-DUCKDB_VERSION="1.4.0"
+DUCKDB_VERSION="1.5.5"
+# crates.io version of the `duckdb` crate that bundles DuckDB ${DUCKDB_VERSION};
+# duckdb-rs encodes the engine version as 1.MAJOR_MINOR_PATCH.x since v1.5.0
+DUCKDB_CRATE_VERSION="1.10505.0"
 
 # Create build directory
 mkdir -p "$BUILD_DIR"
@@ -85,7 +88,7 @@ version = "$DUCKDB_VERSION"
 edition = "2021"
 
 [dependencies]
-duckdb = { version = "$DUCKDB_VERSION", features = [
+duckdb = { version = "$DUCKDB_CRATE_VERSION", features = [
     "bundled",
     "json",
     "parquet", 
