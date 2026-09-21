@@ -1,47 +1,60 @@
-use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 
-use crate::duckdb::{
+use frozen_duckdb::duckdb::{
     types::{OrderedMap, TimeUnit, Type, Value, ValueRef},
     Connection,
 };
 
 #[test]
-fn test_all_types() -> crate::duckdb::Result<()> {
+fn test_all_types() -> frozen_duckdb::duckdb::Result<()> {
     test_with_database(&Connection::open_in_memory()?)
 }
 
 #[test]
-fn test_large_arrow_types() -> crate::duckdb::Result<()> {
-    let cfg = crate::duckdb::Config::default().with("arrow_large_buffer_size", "true")?;
+fn test_large_arrow_types() -> frozen_duckdb::duckdb::Result<()> {
+    let cfg = frozen_duckdb::duckdb::Config::default().with("arrow_large_buffer_size", "true")?;
     let database = Connection::open_in_memory_with_flags(cfg)?;
 
     test_with_database(&database)
 }
 
-fn test_with_database(database: &Connection) -> crate::duckdb::Result<()> {
-    // These aren't supported in the DuckDB Arrow layer
-    let excluded = ["uhugeint", "time_tz", "dec38_10", "bignum"];
+fn test_with_database(database: &Connection) -> frozen_duckdb::duckdb::Result<()> {
+    // Not convertible by the 1.5.5 Arrow/ValueRef layer:
+    // - dec38_10: DECIMAL(38,10) overflows rust_decimal's 96-bit mantissa on read
+    // - time_ns:  Time64(Nanosecond) has no ValueRef conversion (unreachable in row.rs)
+    // uhugeint, time_tz and bignum were excluded against older engines; 1.5.5 handles them.
+    let excluded = ["dec38_10", "time_ns"];
 
-    let mut binding = database.prepare(&format!(
+    let sql = format!(
         "SELECT * EXCLUDE ({}) FROM test_all_types()",
         excluded
             .iter()
             .map(|s| format!("'{s}'"))
             .collect::<Vec<String>>()
             .join(",")
-    ))?;
+    );
+
+    // Row hides its statement and Statement::schema() needs an executed query,
+    // so drive the column list from DESCRIBE instead.
+    let mut describe = database.prepare(&format!("DESCRIBE {sql}"))?;
+    let mut drows = describe.query([])?;
+    let mut column_names: Vec<String> = Vec::new();
+    while let Some(name_row) = drows.next()? {
+        column_names.push(name_row.get(0)?);
+    }
+
+    let mut binding = database.prepare(&sql)?;
     let mut rows = binding.query([])?;
 
     let mut idx = -1;
     while let Some(row) = rows.next()? {
         idx += 1;
-        for column in row.stmt.column_names() {
-            let value = row.get_ref_unwrap(row.stmt.column_index(&column)?);
+        for (i, column) in column_names.iter().enumerate() {
+            let value = row.get_ref_unwrap(i);
             if idx != 2 {
                 assert_ne!(value.data_type(), Type::Null, "column {column} is null: {value:?}");
             }
-            test_single(&mut idx, column, value);
+            test_single(&mut idx, column.clone(), value);
         }
     }
 
@@ -101,8 +114,41 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             _ => assert_eq!(value, ValueRef::Null),
         },
         "uhugeint" => match idx {
-            0 => assert_eq!(value, ValueRef::UBigInt(0)),
-            1 => assert_eq!(value, ValueRef::UBigInt(18446744073709551615)),
+            // 1.5.5 Arrow layer surfaces UHUGEINT as its i128 bit pattern:
+            // min 0 -> 0, max 2^128-1 -> -1.
+            0 => assert_eq!(value, ValueRef::HugeInt(0)),
+            1 => assert_eq!(value, ValueRef::HugeInt(-1)),
+            _ => assert_eq!(value, ValueRef::Null),
+        },
+        "bignum" => match idx {
+            0 => assert_eq!(
+                value,
+                ValueRef::Blob(&[
+                    127,255,127,0,0,0,0,0,0,7,255,255,255,255,255,255,
+                    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                    255,255,255,
+                ])
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Blob(&[
+                    128,0,128,255,255,255,255,255,255,248,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,
+                ])
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "float" => match idx {
@@ -126,6 +172,11 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
             _ => assert_eq!(value, ValueRef::Null),
         },
         "time" => match idx {
+            0 => assert_eq!(value, ValueRef::Time64(TimeUnit::Microsecond, 0)),
+            1 => assert_eq!(value, ValueRef::Time64(TimeUnit::Microsecond, 86400000000)),
+            _ => assert_eq!(value, ValueRef::Null),
+        },
+        "time_tz" => match idx {
             0 => assert_eq!(value, ValueRef::Time64(TimeUnit::Microsecond, 0)),
             1 => assert_eq!(value, ValueRef::Time64(TimeUnit::Microsecond, 86400000000)),
             _ => assert_eq!(value, ValueRef::Null),
@@ -622,6 +673,61 @@ fn test_single(idx: &mut i32, column: String, value: ValueRef<'_>) {
         "bit" => match idx {
             0 => assert_eq!(value, ValueRef::Blob(&[1, 145, 46, 42, 215]),),
             1 => assert_eq!(value, ValueRef::Blob(&[3, 245])),
+            _ => assert_eq!(value, ValueRef::Null),
+        },
+        "geometry" => match idx {
+            0 => assert_eq!(
+                value,
+                ValueRef::Blob(&[
+                    1,1,0,0,0,0,0,0,0,0,0,248,127,0,0,0,
+                    0,0,0,248,127,
+                ])
+            ),
+            1 => assert_eq!(
+                value,
+                ValueRef::Blob(&[
+                    1,7,0,0,0,13,0,0,0,1,1,0,0,0,0,0,
+                    0,0,0,0,240,63,0,0,0,0,0,0,0,64,1,1,
+                    0,0,0,0,0,0,0,0,0,248,127,0,0,0,0,0,
+                    0,248,127,1,2,0,0,0,2,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,240,63,0,0,0,0,0,0,240,63,1,2,0,0,
+                    0,0,0,0,0,1,3,0,0,0,1,0,0,0,5,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    240,63,0,0,0,0,0,0,240,63,0,0,0,0,0,0,
+                    240,63,0,0,0,0,0,0,240,63,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,1,3,0,0,0,0,0,0,0,1,4,0,0,0,
+                    2,0,0,0,1,1,0,0,0,0,0,0,0,0,0,20,
+                    64,0,0,0,0,0,0,24,64,1,1,0,0,0,0,0,
+                    0,0,0,0,248,127,0,0,0,0,0,0,248,127,1,5,
+                    0,0,0,4,0,0,0,1,2,0,0,0,2,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,240,63,0,0,0,0,0,0,240,63,
+                    1,2,0,0,0,0,0,0,0,1,2,0,0,0,2,0,
+                    0,0,0,0,0,0,0,0,0,64,0,0,0,0,0,0,
+                    0,64,0,0,0,0,0,0,8,64,0,0,0,0,0,0,
+                    8,64,1,2,0,0,0,0,0,0,0,1,5,0,0,0,
+                    0,0,0,0,1,6,0,0,0,4,0,0,0,1,3,0,
+                    0,0,1,0,0,0,5,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,240,63,0,0,0,0,0,0,
+                    240,63,0,0,0,0,0,0,240,63,0,0,0,0,0,0,
+                    240,63,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,1,3,0,0,0,0,
+                    0,0,0,1,3,0,0,0,1,0,0,0,5,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,64,
+                    0,0,0,0,0,0,0,64,0,0,0,0,0,0,0,64,
+                    0,0,0,0,0,0,0,64,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    1,3,0,0,0,0,0,0,0,1,6,0,0,0,0,0,
+                    0,0,1,7,0,0,0,1,0,0,0,1,1,0,0,0,
+                    0,0,0,0,0,0,20,64,0,0,0,0,0,0,24,64,
+                    1,7,0,0,0,0,0,0,0,
+                ])
+            ),
             _ => assert_eq!(value, ValueRef::Null),
         },
         "interval" => match idx {

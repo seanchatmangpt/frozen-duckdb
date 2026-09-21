@@ -131,9 +131,6 @@ pub mod vtab;
 #[cfg(feature = "vscalar")]
 pub mod vscalar;
 
-#[cfg(test)]
-mod test_all_types;
-
 // Number of cached prepared statements we'll hold on to.
 const STATEMENT_CACHE_DEFAULT_CAPACITY: usize = 16;
 
