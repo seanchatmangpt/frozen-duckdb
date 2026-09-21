@@ -216,7 +216,10 @@ impl LogicalTypeHandle {
     pub fn struct_type(fields: &[(&str, Self)]) -> Self {
         let keys: Vec<CString> = fields.iter().map(|f| CString::new(f.0).unwrap()).collect();
         let values: Vec<duckdb_logical_type> = fields.iter().map(|it| it.1.ptr).collect();
-        let name_ptrs = keys.iter().map(|it| it.as_ptr()).collect::<Vec<*const c_char>>();
+        let name_ptrs = keys
+            .iter()
+            .map(|it| it.as_ptr())
+            .collect::<Vec<*const c_char>>();
 
         unsafe {
             Self {
@@ -233,7 +236,10 @@ impl LogicalTypeHandle {
     pub fn union_type(fields: &[(&str, Self)]) -> Self {
         let keys: Vec<CString> = fields.iter().map(|f| CString::new(f.0).unwrap()).collect();
         let values: Vec<duckdb_logical_type> = fields.iter().map(|it| it.1.ptr).collect();
-        let name_ptrs = keys.iter().map(|it| it.as_ptr()).collect::<Vec<*const c_char>>();
+        let name_ptrs = keys
+            .iter()
+            .map(|it| it.as_ptr())
+            .collect::<Vec<*const c_char>>();
 
         unsafe {
             Self {
@@ -297,12 +303,18 @@ mod test {
 
     #[test]
     fn test_struct() {
-        let fields = &[("hello", LogicalTypeHandle::from(crate::duckdb::core::LogicalTypeId::Boolean))];
+        let fields = &[(
+            "hello",
+            LogicalTypeHandle::from(crate::duckdb::core::LogicalTypeId::Boolean),
+        )];
         let typ = LogicalTypeHandle::struct_type(fields);
 
         assert_eq!(typ.num_children(), 1);
         assert_eq!(typ.child_name(0), "hello");
-        assert_eq!(typ.child(0).id(), crate::duckdb::core::LogicalTypeId::Boolean);
+        assert_eq!(
+            typ.child(0).id(),
+            crate::duckdb::core::LogicalTypeId::Boolean
+        );
     }
 
     #[test]

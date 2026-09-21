@@ -22,11 +22,12 @@ fn is_compiler(compiler_name: &str) -> bool {
 
 fn main() {
     // Ensure the frozen DuckDB mega-library is available
-    let binary_path = frozen_duckdb_builder::ensure_binary()
-        .expect("Failed to get frozen DuckDB binary");
+    let binary_path =
+        frozen_duckdb_builder::ensure_binary().expect("Failed to get frozen DuckDB binary");
 
     // Get the directory containing the binary and headers
-    let lib_dir = binary_path.parent()
+    let lib_dir = binary_path
+        .parent()
         .expect("Binary path has no parent directory");
 
     // Tell rustc where to find the library
@@ -34,6 +35,12 @@ fn main() {
 
     // Link against the DuckDB library
     println!("cargo:rustc-link-lib=dylib=duckdb");
+
+    // Runtime resolution too: link-time -L does not survive to load time. The
+    // unscoped rustc-link-arg applies to this crate's own test harness as well
+    // (its lib unittest otherwise aborts in the loader with
+    // "Library not loaded: @rpath/libduckdb.dylib").
+    println!("cargo:rustc-link-arg=-Wl,-rpath,{}", lib_dir.display());
 
     // Set environment variables for dependent crates
     println!("cargo:DUCKDB_LIB_DIR={}", lib_dir.display());
@@ -53,10 +60,15 @@ fn main() {
     println!("cargo:rerun-if-env-changed=DUCKDB_LIB_DIR");
     println!("cargo:rerun-if-env-changed=DUCKDB_INCLUDE_DIR");
 
-    println!("cargo:warning=Using prebuilt DuckDB binary: {}", binary_path.display());
+    println!(
+        "cargo:warning=Using prebuilt DuckDB binary: {}",
+        binary_path.display()
+    );
 }
 
-#[cfg(not(feature = "bundled"))]
+// No bundled build path exists: this crate always links the frozen prebuilt
+// dylib. The legacy `bundled` feature (still declared in Cargo.toml) must stay
+// inert so `--all-features` remains a no-op — hence no `cfg(feature)` gate here.
 mod build_linked {
     use std::path::Path;
 

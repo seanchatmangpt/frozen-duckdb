@@ -118,14 +118,32 @@ impl Appender<'_> {
                 ffi::duckdb_append_varchar_length(ptr, s.as_ptr() as *const c_char, s.len() as u64)
             },
             ValueRef::Timestamp(u, i) => unsafe {
-                ffi::duckdb_append_timestamp(ptr, ffi::duckdb_timestamp { micros: u.to_micros(i) })
+                ffi::duckdb_append_timestamp(
+                    ptr,
+                    ffi::duckdb_timestamp {
+                        micros: u.to_micros(i),
+                    },
+                )
             },
-            ValueRef::Blob(b) => unsafe { ffi::duckdb_append_blob(ptr, b.as_ptr() as *const c_void, b.len() as u64) },
-            ValueRef::Date32(d) => unsafe { ffi::duckdb_append_date(ptr, ffi::duckdb_date { days: d }) },
+            ValueRef::Blob(b) => unsafe {
+                ffi::duckdb_append_blob(ptr, b.as_ptr() as *const c_void, b.len() as u64)
+            },
+            ValueRef::Date32(d) => unsafe {
+                ffi::duckdb_append_date(ptr, ffi::duckdb_date { days: d })
+            },
             ValueRef::Time64(u, v) => unsafe {
-                ffi::duckdb_append_time(ptr, ffi::duckdb_time { micros: u.to_micros(v) })
+                ffi::duckdb_append_time(
+                    ptr,
+                    ffi::duckdb_time {
+                        micros: u.to_micros(v),
+                    },
+                )
             },
-            ValueRef::Interval { months, days, nanos } => unsafe {
+            ValueRef::Interval {
+                months,
+                days,
+                nanos,
+            } => unsafe {
                 ffi::duckdb_append_interval(
                     ptr,
                     ffi::duckdb_interval {
@@ -203,7 +221,9 @@ mod test {
             app.append_rows([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])?;
         }
 
-        let val = db.query_row("SELECT sum(x), sum(y) FROM foo", [], |row| <(i32, i32)>::try_from(row))?;
+        let val = db.query_row("SELECT sum(x), sum(y) FROM foo", [], |row| {
+            <(i32, i32)>::try_from(row)
+        })?;
         assert_eq!(val, (25, 30));
         Ok(())
     }
@@ -254,7 +274,9 @@ mod test {
             app.append_row([d])?;
         }
 
-        let val = db.query_row("SELECT x FROM foo where x=?", [d], |row| <(i32,)>::try_from(row))?;
+        let val = db.query_row("SELECT x FROM foo where x=?", [d], |row| {
+            <(i32,)>::try_from(row)
+        })?;
         assert_eq!(val, (d.as_micros() as i32,));
         Ok(())
     }
@@ -295,7 +317,10 @@ mod test {
         let mut appender = conn.appender("foo")?;
         match appender.append_row(params!["foo"]) {
             Err(Error::DuckDBFailure(.., Some(msg))) => {
-                assert_eq!(msg, "Call to EndRow before all columns have been appended to!")
+                assert_eq!(
+                    msg,
+                    "Call to EndRow before all columns have been appended to!"
+                )
             }
             Err(err) => panic!("unexpected error: {err:?}"),
             Ok(_) => panic!("expected an error but got Ok"),

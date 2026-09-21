@@ -4,7 +4,7 @@
 //! for fast builds without compilation overhead.
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use tracing::info;
 
 fn main() -> Result<()> {

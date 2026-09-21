@@ -53,9 +53,21 @@
 //!     Ok(())
 //! }
 //! ```
+// Vendored from duckdb-rs (1.4.0-era port); do not churn. The upstream
+// feature gates in this module tree (vtab, vscalar, polars, r2d2,
+// extensions-full, ...) are inert by design: this crate intentionally declares
+// no features, so `--all-features` stays a no-op. Silence the check-cfg lint
+// rather than adding the features back.
+#![allow(unexpected_cfgs)]
 #![warn(missing_docs)]
 
 pub use frozen_duckdb_sys as ffi;
+
+// Vendored from duckdb-rs (1.4.0-era port); do not churn. `params!` is
+// `#[macro_export]`'d at the crate root, but vendored code (tests included)
+// spells it `crate::duckdb::params!` — re-export it into this module so that
+// path resolves.
+pub use crate::params;
 
 use std::{
     cell::RefCell,
@@ -66,7 +78,10 @@ use std::{
     result, str,
 };
 
-use crate::duckdb::{cache::StatementCache, inner_connection::InnerConnection, raw_statement::RawStatement, types::ValueRef};
+use crate::duckdb::{
+    cache::StatementCache, inner_connection::InnerConnection, raw_statement::RawStatement,
+    types::ValueRef,
+};
 
 #[cfg(feature = "r2d2")]
 pub use crate::duckdb::r2d2::DuckdbConnectionManager;
@@ -596,12 +611,19 @@ impl Connection {
 
 impl fmt::Debug for Connection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Connection").field("path", &self.path).finish()
+        f.debug_struct("Connection")
+            .field("path", &self.path)
+            .finish()
     }
 }
 
-#[cfg(doctest)]
-doc_comment::doctest!("../../../README.md");
+// Vendored from duckdb-rs, which ran README.md doctests through the
+// doc_comment crate (not a dependency here) — and this fork's README targets
+// the frozen-duckdb crate name anyway, so the upstream doctests do not apply.
+#[cfg(any())]
+mod readme_doctests {
+    doc_comment::doctest!("../../../README.md");
+}
 
 #[cfg(test)]
 mod test {
@@ -616,7 +638,11 @@ mod test {
     // this function is never called, but is still type checked; in
     // particular, calls with specific instantiations will require
     // that those types are `Send`.
-    #[allow(dead_code, unconditional_recursion, clippy::extra_unused_type_parameters)]
+    #[allow(
+        dead_code,
+        unconditional_recursion,
+        clippy::extra_unused_type_parameters
+    )]
     fn ensure_send<T: Send>() {
         ensure_send::<Connection>();
     }
@@ -634,7 +660,10 @@ mod test {
                    END;";
         db.execute_batch(sql)?;
 
-        let changed = db.execute("UPDATE foo SET qux = ? WHERE bar = ?", params![1i32, &"baz"])?;
+        let changed = db.execute(
+            "UPDATE foo SET qux = ? WHERE bar = ?",
+            params![1i32, &"baz"],
+        )?;
         assert_eq!(changed, 3);
         Ok(())
     }
@@ -653,10 +682,14 @@ mod test {
             END;",
         )?;
 
-        let mut db1 =
-            Connection::open_with_flags(&path, Config::default().access_mode(config::AccessMode::ReadWrite)?)?;
-        let mut db2 =
-            Connection::open_with_flags(&path, Config::default().access_mode(config::AccessMode::ReadWrite)?)?;
+        let mut db1 = Connection::open_with_flags(
+            &path,
+            Config::default().access_mode(config::AccessMode::ReadWrite)?,
+        )?;
+        let mut db2 = Connection::open_with_flags(
+            &path,
+            Config::default().access_mode(config::AccessMode::ReadWrite)?,
+        )?;
 
         {
             let tx1 = db1.transaction()?;
@@ -673,8 +706,12 @@ mod test {
             let _ = tx2.commit();
         }
 
-        let _ = db1.transaction().expect("commit should have closed transaction");
-        let _ = db2.transaction().expect("commit should have closed transaction");
+        let _ = db1
+            .transaction()
+            .expect("commit should have closed transaction");
+        let _ = db2
+            .transaction()
+            .expect("commit should have closed transaction");
         Ok(())
     }
 
@@ -700,6 +737,8 @@ mod test {
         Ok(())
     }
 
+    // Vendored from duckdb-rs; do not churn.
+    #[allow(clippy::unnecessary_unwrap)]
     #[test]
     fn test_open() {
         let con = Connection::open_in_memory();
@@ -726,8 +765,10 @@ mod test {
     #[test]
     fn test_open_failure() -> Result<()> {
         let filename = "no_such_file.db";
-        let result =
-            Connection::open_with_flags(filename, Config::default().access_mode(config::AccessMode::ReadOnly)?);
+        let result = Connection::open_with_flags(
+            filename,
+            Config::default().access_mode(config::AccessMode::ReadOnly)?,
+        );
         assert!(result.is_err());
         let err = result.err().unwrap();
         if let Error::DuckDBFailure(_e, Some(msg)) = err {
@@ -806,7 +847,10 @@ mod test {
 
         assert_eq!(
             3,
-            db.execute("INSERT INTO foo(x) VALUES (?), (?), (?)", [1i32, 2i32, 3i32])?
+            db.execute(
+                "INSERT INTO foo(x) VALUES (?), (?), (?)",
+                [1i32, 2i32, 3i32]
+            )?
         );
         assert_eq!(1, db.execute("INSERT INTO foo(x) VALUES (?)", [4i32])?);
 
@@ -976,7 +1020,10 @@ mod test {
     #[test]
     fn test_is_autocommit() {
         let db = checked_memory_handle();
-        assert!(db.is_autocommit(), "autocommit expected to be active by default");
+        assert!(
+            db.is_autocommit(),
+            "autocommit expected to be active by default"
+        );
     }
 
     #[test]
@@ -1088,7 +1135,8 @@ mod test {
             db.execute_batch(sql)?;
 
             let mut query = db.prepare("SELECT x, y FROM foo ORDER BY x DESC")?;
-            let results: Result<Vec<String>> = query.query_and_then([], |row| row.get(1))?.collect();
+            let results: Result<Vec<String>> =
+                query.query_and_then([], |row| row.get(1))?.collect();
 
             assert_eq!(results?.concat(), "hello, world!");
             Ok(())
@@ -1114,7 +1162,8 @@ mod test {
                 err => panic!("Unexpected error {err}"),
             }
 
-            let bad_idx: Result<Vec<String>> = query.query_and_then([], |row| row.get(3))?.collect();
+            let bad_idx: Result<Vec<String>> =
+                query.query_and_then([], |row| row.get(3))?.collect();
 
             match bad_idx.unwrap_err() {
                 Error::InvalidColumnIndex(_) => (),
@@ -1175,8 +1224,9 @@ mod test {
                 err => panic!("Unexpected error {err}"),
             }
 
-            let non_sqlite_err: CustomResult<Vec<String>> =
-                query.query_and_then([], |_| Err(CustomError::SomeError))?.collect();
+            let non_sqlite_err: CustomResult<Vec<String>> = query
+                .query_and_then([], |_| Err(CustomError::SomeError))?
+                .collect();
 
             match non_sqlite_err.unwrap_err() {
                 CustomError::SomeError => (),
@@ -1338,7 +1388,10 @@ mod test {
             db.execute_batch("INSERT INTO test VALUES (1); INSERT INTO test VALUES (2); INSERT INTO test VALUES (3); INSERT INTO test VALUES (4); INSERT INTO test VALUES (5);")?;
         }
         db.execute_batch("END TRANSACTION")?;
-        let rbs: Vec<RecordBatch> = db.prepare("select t from test order by t")?.query_arrow([])?.collect();
+        let rbs: Vec<RecordBatch> = db
+            .prepare("select t from test order by t")?
+            .query_arrow([])?
+            .collect();
         // batch size is not stable
         // assert_eq!(rbs.len(), 3);
         assert_eq!(rbs.iter().map(|rb| rb.num_rows()).sum::<usize>(), 3000);
@@ -1436,7 +1489,10 @@ mod test {
             let mut query = conn.prepare("SELECT 'test'::varchar AS str")?;
             let arrow = query.query_arrow([])?;
 
-            let batch = arrow.into_iter().next().expect("Expected at least one batch");
+            let batch = arrow
+                .into_iter()
+                .next()
+                .expect("Expected at least one batch");
             assert_eq!(batch.schema().field(0).data_type(), &DataType::Utf8);
         }
 
@@ -1449,7 +1505,10 @@ mod test {
             let mut query = conn.prepare("SELECT 'test'::varchar AS str")?;
             let arrow = query.query_arrow([])?;
 
-            let batch = arrow.into_iter().next().expect("Expected at least one batch");
+            let batch = arrow
+                .into_iter()
+                .next()
+                .expect("Expected at least one batch");
             assert_eq!(batch.schema().field(0).data_type(), &DataType::Utf8View);
         }
 
@@ -1461,8 +1520,9 @@ mod test {
         let db = checked_memory_handle();
 
         {
-            let mut stmt =
-                db.prepare("CREATE TABLE test(x INTEGER); INSERT INTO test VALUES (42); SELECT x FROM test;")?;
+            let mut stmt = db.prepare(
+                "CREATE TABLE test(x INTEGER); INSERT INTO test VALUES (42); SELECT x FROM test;",
+            )?;
             let result: i32 = stmt.query_row([], |row| row.get(0))?;
             assert_eq!(result, 42);
         }
