@@ -54,6 +54,33 @@ from the workspace root via `readme.workspace = true`). Vendored-headers gate:
 `vendored-headers/duckdb.h` + `duckdb.hpp` in the builder list. No strays —
 only `.rs/.h/.hpp/.md/.toml/.lock`, examples, and tests in the lists.
 
+### Provenance gate (C5) — receipt-backed, run before every cut and at close-out
+
+The pre-flight tables above are evidence, but the release path itself is now
+receipt-backed: every `ggen sync run` appends a BLAKE3-chained, signed receipt
+to `.ggen-v2/receipt-log.jsonl`, and the rendered receipt-contract census
+(`generated/receipt_contract_matrix.json`, contract `ggen_sync_receipt` — facts:
+pack `receipt-provenance-unification-pack` + `schema/domain.ttl`) types the
+verdict. One command re-proves the chain and the shapes:
+
+```
+python3 scripts/verify_publish_receipt.py   # from repo root; exit 0 = GREEN
+```
+
+Expected (exit 0): `ggen receipt verify` verdict with `"valid": true` and
+`"signature_valid": true` (chain + payload + graph hashes recomputed, Ed25519
+signature checked), `ggen receipt history` replaying the full log, and all 7
+`ggen_sync_receipt` fields conforming to the rendered census.
+
+- **RED (exit 1)** → the provenance chain is broken (hash mismatch, bad
+  signature, shape drift). Do not cut; treat like a red CI gate — fix forward
+  on the feature branch, never on the release path.
+- **Exit 2** → unusable, not broken: missing render (run `ggen sync run`) or
+  ggen missing from PATH. `ggen sync run` must exit 0 before the gate can judge.
+- Re-run at step 11 (close-out) so the post-publish History row carries the
+  final head `chain_hash` — wave History entries then cite a verifiable
+  receipt, not prose.
+
 ---
 
 ## The cut sequence
@@ -212,6 +239,7 @@ gh issue comment 1 --repo seanchatmangpt/frozen-duckdb --body-file /tmp/issue-1-
 - `curl -s https://crates.io/api/v1/crates/frozen-duckdb | python3 -c 'import json,sys; c=json.load(sys.stdin)["crate"]; print(c["max_version"])'` → `1.5.5`
 - Sparse index shows all three: `index.crates.io/fr/oz/{frozen-duckdb,frozen-duckdb-sys,frozen-duckdb-builder}` → 200 each
 - Clean-machine smoke (from PR_BODY.md checklist): `cargo new t && cargo add frozen-duckdb@1.5.5` + a `Connection::open` query, no `DYLD_LIBRARY_PATH`, `~/.frozen-duckdb/cache/v1.5.5-{arch}/` auto-populated, `ctypes` reports `v1.5.5`.
+- Provenance gate re-run (C5): `python3 scripts/verify_publish_receipt.py` → exit 0; record the final head `chain_hash` in the History row (verifiable provenance, not prose).
 - Update `docs/sjira/v26.9.21/MILESTONE.md` operator-cut checkboxes; append History rows.
 
 ## Abort doctrine
