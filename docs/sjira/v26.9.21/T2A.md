@@ -40,3 +40,14 @@ DoD: [ ] cargo test -p frozen-duckdb --lib → exit 0  [ ] cargo test -p frozen-
 | ts | standing | branch+SHA | gates+exits | remaining |
 |----|----------|------------|-------------|-----------|
 | 2026-09-21 | OPEN | feat/155-tests-core@c8e5788 | not started | all of DoD |
+| 2026-09-21 | BUILD_BROKEN | feat/155-tests-core@f048742 | `cargo test -p frozen-duckdb --lib --no-run` exit 101 — 13 errors: 12x `crate::duckdb::params!` unresolvable (macro is #[macro_export] at crate root) in types/to_sql.rs + appender/mod.rs; 1x `pretty_assertions` undeclared in any Cargo.toml (dispatch claimed declared — empirical ground truth: absent; Cargo.toml out of scope, import dropped) | repair, gates |
+| 2026-09-21 | PARTIAL_ALIVE | feat/155-tests-core@a072a73 | probes vs real 1.5.5 dylib: test_all_types() = 56 cols; NEW vs match: `time_ns` (TIME_NS), `geometry` (GEOMETRY); no `variant` column. uhugeint/bignum/time_tz now convert (were excluded) — un-excluded with fresh goldens. Falsifier run: corrupted golden → both tests FAIL with exact diff; restored → PASS (proves assertions bind to engine data, no vacuous pass via empty DESCRIBE list) | commit, gates |
+| 2026-09-21 | ALIVE | feat/155-tests-core@86804fd | `cargo test -p frozen-duckdb --lib` exit 0 (140 passed/0 failed); `cargo test -p frozen-duckdb --test frozen_duckdb_tests --test dropin_compatibility_tests --test core_functionality_tests` exit 0 (10+7+8 passed/0 failed); `--test test_all_types` exit 0 (2 passed/0 failed). DoD complete. Note: full `cargo test -p frozen-duckdb` sweep exit 101 — arrow_tests, parquet_tests, polars_tests, tpch_integration_test, flock_tests, vss_tests, examples still on `use duckdb::` paths (out of T2A scope; T2B/T3 own them). No push; coordinator merges | none of DoD |
+
+### UNSUPPORTED rows (帳)
+
+| generator/layer | element | missing capability | intended owner |
+|------------------|---------|--------------------|----------------|
+| frozen-duckdb row/ValueRef layer (1.5.5 dylib) | `dec38_10` (DECIMAL(38,10)) | rust_decimal 96-bit mantissa overflows on read (panic in rust_decimal-1.43.0 decimal.rs:481); column EXCLUDEd from test_all_types golden query | frozen-duckdb types/from_sql (Decimal widening) |
+| frozen-duckdb row/ValueRef layer (1.5.5 dylib) | `time_ns` (TIME_NS) | no Time64(Nanosecond) ValueRef conversion — `unreachable!` in src/duckdb/row.rs (upstream Time64-Nanosecond arm is commented out); column EXCLUDEd | frozen-duckdb row.rs arrow conversion |
+| T2A scope extension | `crates/frozen-duckdb/build.rs` (+1 line) | `rustc-link-arg-tests/-bins/-example` kinds never reach the lib unittest harness → `cargo test --lib` aborted at dyld (`@rpath/libduckdb.dylib` not found); unqualified `cargo:rustc-link-arg` added, commit 243bda0, flagged for coordinator adjudication at merge (gap diagnosed against base f048742) | frozen-duckdb build (owns rpath propagation, base ac9c5e3) |

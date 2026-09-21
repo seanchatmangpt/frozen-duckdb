@@ -8,6 +8,7 @@
 // file is compile-gated behind `feature = "polars"` and contributes no test
 // target under the default feature set. Do NOT add a polars dependency here.
 
+#![allow(unexpected_cfgs)] // gate references a feature the crate intentionally does not declare
 #![cfg(feature = "polars")]
 
 use anyhow::Result;
