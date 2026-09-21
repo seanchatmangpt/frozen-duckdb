@@ -21,22 +21,26 @@ cd "$PREBUILT_DIR"
 # libduckdb-osx-arm64.zip / libduckdb-osx-amd64.zip assets no longer exist.
 # duckdb_cli-osx-universal.zip still exists for the CLI. The zip extracts a
 # single universal libduckdb.dylib, which serves both arches.
+#
+# Asset law (TR7): within frozen-duckdb, library files are named
+# libduckdb_{arch}.dylib (macOS) / libduckdb_{arch}.so (Linux), arch names
+# x86_64 | arm64 (aarch64 normalized to arm64, matching the builder's
+# detect_architecture). Upstream zip assets keep their upstream names; the
+# extracted library below is additionally linked under the asset-law name.
+ARCH=$(uname -m)
+if [[ "$ARCH" == "aarch64" ]]; then
+    ARCH="arm64"
+fi
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    if [[ $(uname -m) == "arm64" ]]; then
-        PLATFORM="osx-universal"
-        LIB_EXT="dylib"
-    else
-        PLATFORM="osx-universal"
-        LIB_EXT="dylib"
-    fi
+    PLATFORM="osx-universal"
+    LIB_EXT="dylib"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    if [[ $(uname -m) == "aarch64" ]]; then
+    if [[ "$ARCH" == "arm64" ]]; then
         PLATFORM="linux-arm64"
-        LIB_EXT="so"
     else
         PLATFORM="linux-amd64"
-        LIB_EXT="so"
     fi
+    LIB_EXT="so"
 else
     echo "❌ Unsupported platform: $OSTYPE"
     exit 1
@@ -55,6 +59,28 @@ unzip -q "duckdb_cli-${PLATFORM}.zip"
 echo "📥 Downloading DuckDB Library..."
 curl -L "$DUCKDB_LIB_URL" -o "libduckdb-${PLATFORM}.zip"
 unzip -q "libduckdb-${PLATFORM}.zip"
+
+# Align with the frozen-duckdb asset law (TR7): expose the extracted library
+# under the asset-law name libduckdb_${ARCH}.{dylib,so} alongside the upstream
+# plain name. On macOS the upstream asset is universal, so the per-arch name
+# links to that single universal library (no per-arch assets exist upstream);
+# on Linux the extracted libduckdb.so is linked as libduckdb_${ARCH}.so so the
+# builder's cache/prebuilt naming and -lduckdb consumers agree. The -f guards
+# fail loudly instead of leaving a dangling symlink (set -e alone would not
+# catch the ln target error).
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ ! -f libduckdb.dylib ]]; then
+        echo "❌ Expected libduckdb.dylib inside libduckdb-${PLATFORM}.zip" >&2
+        exit 1
+    fi
+    ln -sf libduckdb.dylib "libduckdb_${ARCH}.dylib"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    if [[ ! -f libduckdb.so ]]; then
+        echo "❌ Expected libduckdb.so inside libduckdb-${PLATFORM}.zip" >&2
+        exit 1
+    fi
+    ln -sf libduckdb.so "libduckdb_${ARCH}.so"
+fi
 
 # Download headers
 echo "📥 Downloading DuckDB headers..."
