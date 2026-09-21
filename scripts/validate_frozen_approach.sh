@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# STATUS (TR6 2026-09-21): KEPT-UNCERTAIN. Release-time consumer-flow validation: `cargo add
+# frozen-duckdb` fetches the PUBLISHED crate from crates.io — pre-publish (pre-TR8) it validates
+# the previous release, not this tree. Interactive y/N prompt at the end; scratch project
+# frozen-test-project/ is gitignored. Not executed this session — re-verify at TR8 release.
 # Validate Frozen DuckDB Approach
 # Tests the new approach where each project gets its own ./prebuilt/ directory
 

@@ -22,6 +22,13 @@
 #! # Run in CI mode (no interactive output)
 #! CI=true ./scripts/run_ffi_validation.sh
 #! ```
+#
+# STATUS (TR6 2026-09-21): KEPT-UNCERTAIN. Documented FFI validation entry point
+# (docs/testing/go-ffi-smoketest.md); orchestrates build_go_smoketest.sh + cargo test runs.
+# BLOCKED as committed: assumes a repo-local prebuilt/ dylib, but the builder keeps binaries in
+# ~/.frozen-duckdb/cache/v{VER}-{arch}/ (same drift as scripts/test_ffi_simple.sh — see its
+# STATUS note; not run this session, would fail at the same library-resolution step). Repair is
+# the T6 (scripts-fix) lane; see docs/sjira/v26.9.21/TR6.md History.
 
 set -euo pipefail
 

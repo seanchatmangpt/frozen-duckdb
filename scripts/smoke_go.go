@@ -28,6 +28,11 @@
 //! - ✅ **Extensions**: Flock LLM functions and fusion operations
 //! - ✅ **Error Handling**: Invalid queries, missing models, edge cases
 //! - ✅ **Architecture**: Binary selection and compatibility validation
+//!
+//! STATUS (TR6 2026-09-21): KEPT-UNCERTAIN — frozen-duckdb-native FFI smoke test, but as
+//! committed it needs a repo-local prebuilt libduckdb dylib while the builder keeps binaries
+//! in ~/.frozen-duckdb/cache/v{VER}-{arch}/ (see scripts/test_ffi_simple.sh STATUS note).
+//! Library-resolution repair is the T6 (scripts-fix) lane. Not compiled/run this session.
 
 package main
 

@@ -10,6 +10,14 @@
 #! # Run simple FFI test
 #! ./scripts/test_ffi_simple.sh
 #! ```
+#
+# STATUS (TR6 2026-09-21): KEPT-UNCERTAIN. Frozen-duckdb-native smoke test; Tests 4-7 target real
+# workspace targets (examples/basic_usage.rs and examples/flock_ollama_integration.rs exist).
+# BLOCKED as committed: Tests 1-3 require a repo-local prebuilt/libduckdb*.dylib, but the builder
+# now keeps binaries in ~/.frozen-duckdb/cache/v{VER}-{arch}/ (no dylib is committed; observed
+# live: exit 1 "DuckDB library not found"), and prebuilt/setup_env.sh resolves DUCKDB_LIB_DIR
+# from $0, which breaks when sourced from scripts/ callers. Library-resolution repair is the
+# T6 (scripts-fix) lane; see docs/sjira/v26.9.21/TR6.md History.
 
 set -euo pipefail
 
