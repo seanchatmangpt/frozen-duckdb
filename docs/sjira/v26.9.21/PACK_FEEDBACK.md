@@ -1,8 +1,11 @@
-<<<<<<< HEAD
-# PACK_FEEDBACK.md — pack-relevant findings from the wave-5 gap/staleness crawl
 
-Findings from the G-ticket crawl fed back to pack authors. Append a section per
-ticket; do not edit other tickets' sections. This file is session history (票 law).
+=======
+# PACK_FEEDBACK.md — wave 5 pack-relevant findings
+
+Findings from the wave-5 crawl tickets that should become pack facts, pack
+gates, or pack-owned surfaces instead of staying as repo-side hand repairs.
+Append-only per ticket; the coordinator promotes into
+`~/ggen-marketplace/packs/*` via marketplace admission.
 
 ## G9 — pack feedback: author updates (frozen-duckdb-pack)
 
@@ -39,6 +42,8 @@ Branch `pack/frozen-duckdb-capabilities-g9` (marketplace worktree
 
 Pack bumped to 0.1.1. Commits: 056053cfc (laws+fixture), 7fa25d466 (gates),
 c47375c03 (README+version). Never pushed; coordinator merges.
+
+
 
 
 
@@ -105,16 +110,6 @@ below was falsified by execution or external probe before editing; diff is
 
 Commits: 008b1f9 (crate-root docs), 869a206 (CLI docs), 3f9d7c8 (builder docs).
 Never pushed; coordinator merges.
-=======
-# PACK_FEEDBACK — wave-5 crawl findings for pack admission (v26.9.21)
-
-Findings from the wave-5 gap/staleness crawl where falsification failed because
-the owning capability is missing from the marketplace, or a manifest/fact file
-drifted from its render source. Each row names the owning pack/family or ticket
-so the finding can become an admitted fact instead of a hand-edited consequence.
-Append-only per ticket; do not rewrite prior sections.
-
-
 
 ## G2 — root docs + changelog facts crawl (2026-09-21)
 
@@ -139,5 +134,17 @@ Append-only per ticket; do not rewrite prior sections.
   `ARCH` env touches only `prebuilt/setup_env.sh` + `architecture` module;
   Linux/Windows local-compile fallback (`lib.rs` asset law, `.so` assets
   correctly documented as not yet published).
->>>>>>> feat/155-g2
+
+## G3 — docs/ tree staleness crawl (docs/{architecture,guides,api,cli,contributing,testing})
+
+| # | finding | evidence | proposed pack home |
+|---|---------|----------|--------------------|
+| G3-1 | CLI argument-surface uniqueness is an enforceable law: duplicate clap shorts made `convert`/`summarize` panic at parse (exit 101) while every compile gate stayed green. G3 hand-repaired it + added `crates/frozen-duckdb/tests/cli_surface_tests.rs` (clap `debug_assert()` + help render for every subcommand) as a permanent tripwire; row in HANDWRITTEN.md. | `frozen-duckdb-cli convert --help` → exit 101 "Short option names must be unique ... '-i' in use by both 'input' and 'input_format'"; `summarize` same with '-m'; all 12 subcommands exit 0 after ac77ae3 | frozen-duckdb-cli pack — argument-surface + help-render gate family (unadmitted) |
+| G3-2 | Binary-name authority: the crate builds exactly one binary, `frozen-duckdb-cli` ([[bin]] in crates/frozen-duckdb/Cargo.toml), yet 222 doc invocations across docs/** named `frozen-duckdb <cmd>` and the *runtime error strings* still print `Run 'frozen-duckdb flock-setup' first` (src/main.rs). A pack fact "the [[bin]] name is the single CLI naming authority; docs and user-facing error strings derive from it" would have prevented the whole class. | grep counts per file in G3 receipt; src/main.rs:179 (and siblings) | frozen-duckdb-cli pack — naming-authority fact + string gate (unadmitted); the stale runtime strings in src/main.rs still need a code-lane fix |
+| G3-3 | CLI docs are a projection waiting to happen: every falsified claim in docs/api/cli.md + docs/cli/* was a divergence between the clap `Commands` enum and hand-written prose (option tables, defaults, strategies, exit codes, format matrices). Deriving the reference tables from the enum (or a SHACL/gate diffing `--help` output against the docs) collapses the drift permanently. | 12 corrected option tables in commits 9d3939b/108716b; exit codes 2/3 in docs never existed in src/main.rs; convert matrix claimed 10 pairs, implementation has 2 | frozen-duckdb-cli pack — docs-rendered-from-enum family; or ggen-verify-pack gate `diff <(frozen-duckdb-cli --help --verbose) docs` (unadmitted) |
+| G3-4 | Capability overclaims in dataset/convert surface (chinook `--format duckdb` no-ops with a warning and exit 0; convert implements only CSV↔Parquet; TPC-H fixed at SF 0.01) suggest a gate asserting documented capabilities ⊆ implemented capabilities per command. | crates/frozen-duckdb/src/cli/dataset_manager.rs (convert_dataset match arms; convert_chinook_to_format warn arm; dbgen(sf = 0.01)) | repo-hygiene pack — capability-census gate family (unadmitted) |
+| G3-5 | Docs-tree integrity is gateable and cheap: (a) every relative markdown link in docs/** resolves, (b) every repo path referenced from docs/** exists. G3 found 4 dead links + a stale `src/` top-level claim; post-fix sweep reports 0 dead links / 0 missing paths. Natural reusable gate. | G3 receipt: dead-link sweep (6 found pre-fix, 0 post-fix); path sweep | ggen-verify-pack / repo-hygiene pack — docs-integrity gate (unadmitted) |
+| G3-6 | OUT OF SLICE (for the owning ticket): docs/llm/ carries the same `frozen-duckdb <cmd>` drift (~20+ invocations in embeddings.md, semantic-search.md, ...). G3 did not touch it (slice boundary). | grep `frozen-duckdb (download\|embed\|search\|...)` over docs/llm/ | same as G3-2 |
+| G3-7 | Test-count claims rot fast: docs asserted "30 core tests, 7 Flock failing" / "36% pass" / "27% success" while the measured truth is 301/301 (17 suites, exit 0). A pack gate pinning doc-quoted test counts to a generated receipt (verify-evidence.ttl) would keep prose honest or forceUNKNOWN markers. | build-optimization.md, overview.md ADR 003, flock.md, architecture-decisions.md (all fixed); `cargo test --workspace` exit 0, 301 passed | evidence-standing-pack — doc-claim/receipt binding (unadmitted extension) |
+>>>>>>> feat/155-g3
 

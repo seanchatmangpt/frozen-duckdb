@@ -115,7 +115,9 @@ cd frozen-duckdb
 
 # Verify repository structure
 ls -la
-# Should show: Cargo.toml, src/, prebuilt/, scripts/, etc.
+# Should show: Cargo.toml, crates/ (frozen-duckdb, frozen-duckdb-sys,
+# frozen-duckdb-builder), prebuilt/, scripts/, gates/, schema/, templates/,
+# generated/, docs/ — the workspace has no top-level src/
 ```
 
 ### 2. Install Dependencies
@@ -132,18 +134,13 @@ cargo check
 cargo check --all-targets
 ```
 
-### 3. Set Up Environment
+### 3. Environment (nothing to do)
 
-```bash
-# Set up frozen DuckDB environment
-source prebuilt/setup_env.sh
-
-# Verify environment configuration
-echo $DUCKDB_LIB_DIR
-echo $DUCKDB_INCLUDE_DIR
-
-# Should show paths to prebuilt directory
-```
+No environment setup is needed: the first `cargo build` acquires the dylib
+via `frozen-duckdb-builder` into `~/.frozen-duckdb/cache/v1.5.5-{arch}/` and
+the emitted `-Wl,-rpath` loads it at run time. The legacy manual workflow
+(`source prebuilt/setup_env.sh`, setting `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR`)
+is optional and not consumed by the normal build path.
 
 ### 4. Run Tests
 
@@ -164,13 +161,9 @@ cargo test --all && cargo test --all && cargo test --all
 
 **VS Code Configuration:**
 ```json
-// .vscode/settings.json
+// .vscode/settings.json — no DUCKDB_* env needed: the builder handles
+// acquisition inside the normal cargo build rust-analyzer triggers
 {
-  "rust-analyzer.cargo.extraEnv": {
-    "DUCKDB_LIB_DIR": "${workspaceFolder}/prebuilt",
-    "DUCKDB_INCLUDE_DIR": "${workspaceFolder}/prebuilt"
-  },
-  "rust-analyzer.cargo.extraArgs": ["--all-features"],
   "rust-analyzer.check.extraArgs": ["--all-targets"],
   "rust-analyzer.cargo.buildScripts.enable": true,
   "rust-analyzer.procMacro.enable": true,
