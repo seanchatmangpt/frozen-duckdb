@@ -66,13 +66,15 @@
 //!
 //! ## Binary Validation
 //!
-//! The validation process checks for:
+//! The validation process checks for exactly two names in the configured
+//! directory (sizes measured on the v1.5.5 binaries):
 //!
-//! - **x86_64 binary**: `libduckdb_x86_64.dylib` (55MB)
-//! - **arm64 binary**: `libduckdb_arm64.dylib` (50MB)
-//! - **Generic fallback**: `libduckdb.dylib` (if architecture-specific not found)
+//! - **x86_64 binary**: `libduckdb_x86_64.dylib` (~112MB)
+//! - **arm64 binary**: `libduckdb_arm64.dylib` (~112MB)
 //!
-//! At least one binary must be present for validation to succeed.
+//! There is no generic fallback check: if neither architecture-specific
+//! dylib is present, validation fails. At least one of the two must exist
+//! for validation to succeed.
 
 use anyhow::Result;
 use std::env;
@@ -143,9 +145,10 @@ pub fn is_configured() -> bool {
 ///
 /// The library directory should contain:
 ///
-/// - `libduckdb_x86_64.dylib` (55MB) - Intel/AMD 64-bit binary
-/// - `libduckdb_arm64.dylib` (50MB) - Apple Silicon/ARM 64-bit binary
-/// - `libduckdb.dylib` - Generic fallback binary
+/// - `libduckdb_x86_64.dylib` (~112MB, measured) - Intel/AMD 64-bit binary
+/// - `libduckdb_arm64.dylib` (~112MB, measured) - Apple Silicon/ARM 64-bit binary
+/// - `libduckdb.dylib` - plain link name created by frozen-duckdb-builder so
+///   `-lduckdb` resolves (not consulted by `validate_binary`)
 ///
 /// # Error Handling
 ///
@@ -183,8 +186,8 @@ pub fn get_lib_dir() -> Option<String> {
 ///
 /// The include directory should contain:
 ///
-/// - `duckdb.h` (186KB) - C header file
-/// - `duckdb.hpp` (1.8MB) - C++ header file
+/// - `duckdb.h` (~240KB, measured) - C header file
+/// - `duckdb.hpp` (~2.0MB, measured) - C++ header file
 ///
 /// # Error Handling
 ///
@@ -217,24 +220,22 @@ pub fn get_include_dir() -> Option<String> {
 /// }
 /// ```
 ///
-/// # Binary Search Order
+/// # Binary Check
 ///
-/// The function checks for binaries in this order:
+/// The function checks for exactly two names and succeeds if either exists:
 ///
-/// 1. `libduckdb_x86_64.dylib` - Intel/AMD 64-bit optimized binary
-/// 2. `libduckdb_arm64.dylib` - Apple Silicon/ARM 64-bit optimized binary
-/// 3. `libduckdb.dylib` - Generic fallback binary
+/// 1. `libduckdb_x86_64.dylib` - Intel/AMD 64-bit binary
+/// 2. `libduckdb_arm64.dylib` - Apple Silicon/ARM 64-bit binary
 ///
-/// At least one binary must be present for validation to succeed.
+/// No generic `libduckdb.dylib` fallback is consulted; that link name exists
+/// in the cache for `-lduckdb` resolution, not for validation.
 ///
 /// # Error Conditions
 ///
 /// The function will return an error if:
 ///
 /// - `DUCKDB_LIB_DIR` environment variable is not set
-/// - The library directory does not exist
-/// - No DuckDB binaries are found in the directory
-/// - The directory exists but is not accessible
+/// - Neither architecture-specific dylib exists at the configured path
 ///
 /// # Performance
 ///

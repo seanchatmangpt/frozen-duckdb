@@ -34,14 +34,19 @@ use tracing::info;
 /// let manager = FlockManager::new()?;
 ///
 /// // Setup Ollama models
-/// manager.setup_ollama("http://localhost:11434", false)?;
+/// manager.setup_ollama("http://localhost:11434", "qwen3-coder:30b", "qwen3-embedding:8b", false)?;
 ///
 /// // Generate text completion
-/// let response = manager.complete_text("Explain recursion in programming", "coder")?;
+/// let response = manager.complete_text("Explain recursion in programming", "text_generator")?;
 /// println!("Response: {}", response);
 ///
-/// // Generate embeddings for semantic search
-/// let embeddings = manager.generate_embeddings(vec!["Python programming", "Machine learning"])?;
+/// // Generate embeddings for semantic search (currently returns a
+/// // "not fully implemented" error — see generate_embeddings)
+/// let embeddings = manager.generate_embeddings(
+///     vec!["Python programming".to_string(), "Machine learning".to_string()],
+///     "embedder",
+///     true,
+/// )?;
 /// ```
 pub struct FlockManager {
     /// DuckDB connection with Flock extension loaded
@@ -194,7 +199,7 @@ impl FlockManager {
     /// # Arguments
     ///
     /// * `prompt` - Text prompt for completion
-    /// * `model` - Model to use ("coder" for text generation)
+    /// * `model` - Model alias to use ("text_generator", created by `setup_ollama`)
     ///
     /// # Returns
     ///
@@ -206,8 +211,8 @@ impl FlockManager {
     /// use frozen_duckdb::cli::FlockManager;
     ///
     /// let manager = FlockManager::new()?;
-    /// manager.setup_ollama("http://localhost:11434", false)?;
-    /// let response = manager.complete_text("Explain recursion in programming", "coder")?;
+    /// manager.setup_ollama("http://localhost:11434", "qwen3-coder:30b", "qwen3-embedding:8b", false)?;
+    /// let response = manager.complete_text("Explain recursion in programming", "text_generator")?;
     /// println!("Response: {}", response);
     /// ```
     ///
@@ -252,20 +257,23 @@ impl FlockManager {
 
     /// Generate embeddings for text using LLM models.
     ///
-    /// This function generates vector embeddings for the provided text,
-    /// which can be used for semantic search, similarity comparison,
-    /// and other vector-based operations. Requires Ollama embedder model.
+    /// This function creates the embedding SQL against the Flock extension,
+    /// but extracting the resulting vector columns from DuckDB's array type
+    /// is unimplemented, so it currently ALWAYS returns
+    /// `Err("Embedding generation not fully implemented ...")` after the
+    /// tables are built and dropped. Requires Ollama for the `llm_embedding`
+    /// call to succeed up to that point.
     ///
     /// # Arguments
     ///
     /// * `texts` - Vector of text strings to generate embeddings for
-    /// * `model` - Model to use for embedding generation ("embedder")
+    /// * `model` - Model alias to use ("embedder", created by `setup_ollama`)
     /// * `normalize` - Whether to normalize embeddings to unit length
     ///
     /// # Returns
     ///
-    /// `Ok(Vec<Vec<f32>>)` containing embeddings for each input text,
-    /// `Err` if embedding generation fails or models unavailable.
+    /// Intended: `Ok(Vec<Vec<f32>>)` containing embeddings for each input
+    /// text. Current reality: always `Err` — vector extraction is a TODO.
     ///
     /// # Examples
     ///
@@ -273,9 +281,9 @@ impl FlockManager {
     /// use frozen_duckdb::cli::FlockManager;
     ///
     /// let manager = FlockManager::new()?;
-    /// manager.setup_ollama("http://localhost:11434", false)?;
+    /// manager.setup_ollama("http://localhost:11434", "qwen3-coder:30b", "qwen3-embedding:8b", false)?;
     /// let embeddings = manager.generate_embeddings(
-    ///     vec!["Python programming", "Machine learning"],
+    ///     vec!["Python programming".to_string(), "Machine learning".to_string()],
     ///     "embedder",
     ///     true
     /// )?;
@@ -366,10 +374,10 @@ impl FlockManager {
 
     /// Perform semantic search using embeddings.
     ///
-    /// This function performs semantic similarity search by comparing
-    /// query embeddings against a corpus of documents. Results are
-    /// ranked by semantic similarity rather than just keyword matching.
-    /// Requires pre-computed embeddings for the corpus.
+    /// NOT YET IMPLEMENTED: this function verifies the Flock extension and
+    /// then always returns `Err("Semantic search not implemented ...")`.
+    /// A real implementation would generate a query embedding, compare it
+    /// against corpus embeddings, and return the top-k most similar documents.
     ///
     /// # Arguments
     ///
@@ -380,8 +388,8 @@ impl FlockManager {
     ///
     /// # Returns
     ///
-    /// `Ok(Vec<(String, f32)>)` containing (document, similarity_score) pairs,
-    /// `Err` if search fails or embeddings not available.
+    /// Intended: `Ok(Vec<(String, f32)>)` containing (document, similarity_score)
+    /// pairs. Current reality: always `Err` — the comparison is unimplemented.
     ///
     /// # Examples
     ///
@@ -438,20 +446,23 @@ impl FlockManager {
     /// Filter data using LLM-based classification.
     ///
     /// This function uses LLM models to classify and filter data based
-    /// on natural language criteria. Useful for content moderation,
-    /// categorization, and intelligent data filtering.
+    /// on natural language criteria. The input file is read as plain text,
+    /// one item per line; each line is classified individually. A per-item
+    /// classification error counts as a non-match ("false") rather than
+    /// failing the whole run. Requires Ollama and the model alias created
+    /// by `setup_ollama`.
     ///
     /// # Arguments
     ///
     /// * `criteria` - Filtering criteria or prompt
-    /// * `input_file` - Input file containing data to filter
-    /// * `model` - Model to use for filtering
+    /// * `input_file` - Input file containing data to filter (one item per line)
+    /// * `model` - Model alias to use ("text_generator", created by `setup_ollama`)
     /// * `positive_only` - Return only positive matches
     ///
     /// # Returns
     ///
     /// `Ok<Vec<(String, bool)>>` containing (data, matches_criteria) pairs,
-    /// `Err` if filtering fails.
+    /// `Err` if filtering fails or models unavailable.
     ///
     /// # Examples
     ///
@@ -461,8 +472,8 @@ impl FlockManager {
     /// let manager = FlockManager::new()?;
     /// let results = manager.llm_filter(
     ///     "Is this valid Python code?",
-    ///     "code_samples.csv",
-    ///     "coder",
+    ///     "code_samples.txt",
+    ///     "text_generator",
     ///     true
     /// )?;
     /// for (code, is_valid) in results {
@@ -477,45 +488,12 @@ impl FlockManager {
     /// - **Filtering time**: <10s per 100 items (depends on model and criteria)
     /// - **Memory usage**: <100MB for typical datasets
     ///
-    /// Filter data using LLM-based classification.
-    ///
-    /// This function uses LLM models to classify and filter data based
-    /// on natural language criteria. Requires Ollama coder model for classification.
-    ///
-    /// # Arguments
-    ///
-    /// * `criteria` - Filtering criteria or prompt
-    /// * `input_file` - Input file containing data to filter
-    /// * `model` - Model to use for filtering ("coder")
-    /// * `positive_only` - Return only positive matches
-    ///
-    /// # Returns
-    ///
-    /// `Ok(Vec<(String, bool)>)` containing (data, matches_criteria) pairs,
-    /// `Err` if filtering fails or models unavailable.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use frozen_duckdb::cli::FlockManager;
-    ///
-    /// let manager = FlockManager::new()?;
-    /// manager.setup_ollama("http://localhost:11434", false)?;
-    /// let results = manager.llm_filter(
-    ///     "Is this valid Python code?",
-    ///     "code_samples.csv",
-    ///     "coder",
-    ///     true
-    /// )?;
-    /// ```
-    ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - Flock extension is not available
     /// - Ollama model is not configured
     /// - Input file cannot be read
-    /// - Classification fails
     pub fn llm_filter(
         &self,
         criteria: &str,
@@ -605,9 +583,12 @@ impl FlockManager {
     /// # Arguments
     ///
     /// * `texts` - Vector of text strings to summarize
-    /// * `strategy` - Summarization strategy ("reduce", "map", "extractive")
+    /// * `strategy` - Summarization strategy: "reduce" (LLM reduce over the
+    ///   text table) or "map" (per-text summaries joined). Any other value —
+    ///   including "extractive" — falls back to a single combined-summary
+    ///   call over all texts joined by spaces.
     /// * `max_length` - Maximum summary length in words
-    /// * `model` - Model to use for summarization ("coder")
+    /// * `model` - Model alias to use ("text_generator", created by `setup_ollama`)
     ///
     /// # Returns
     ///
@@ -620,7 +601,7 @@ impl FlockManager {
     /// use frozen_duckdb::cli::FlockManager;
     ///
     /// let manager = FlockManager::new()?;
-    /// manager.setup_ollama("http://localhost:11434", false)?;
+    /// manager.setup_ollama("http://localhost:11434", "qwen3-coder:30b", "qwen3-embedding:8b", false)?;
     /// let texts = vec![
     ///     "Python is a programming language.",
     ///     "Machine learning uses data to train models.",

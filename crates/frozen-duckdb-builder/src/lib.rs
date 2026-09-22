@@ -1,7 +1,8 @@
 //! # Frozen DuckDB Builder
 //!
 //! This crate handles downloading prebuilt mega-libraries from GitHub Releases
-//! or compiling them locally as a fallback. It manages caching in `~/.frozen-duckdb/`
+//! or compiling them locally as a fallback. It manages caching under
+//! `~/.frozen-duckdb/cache/` (one `v{version}-{arch}/` directory per build)
 //! to ensure fast subsequent builds.
 
 use anyhow::{Context, Result};
@@ -63,11 +64,13 @@ fn library_extension() -> &'static str {
 /// the cached copy with the same platform extension.
 ///
 /// NOTE: `.so` release assets do NOT exist in any published frozen-duckdb
-/// release yet — the v1.5.5 workflow ships macOS assets only, and the Linux
-/// asset set first lands with a tag AFTER v1.5.5 (TR2 coordinates the
-/// workflow side). Until that tag exists, a Linux download attempt returns
-/// HTTP 404 and `ensure_binary` falls back to `compile_duckdb_locally`,
-/// which is the supported Linux path today.
+/// release yet. As of 2026-09-21 no release (and no tag) has been published
+/// at all — probed via the GitHub API and an anonymous asset-URL request
+/// (HTTP 404) — so download attempts return HTTP 404 on EVERY platform and
+/// `ensure_binary` falls back to `compile_duckdb_locally`, which is the
+/// operative path today. The v1.5.5 workflow is planned to ship the macOS
+/// asset set first; the Linux asset set lands with a later tag (TR2
+/// coordinates the workflow side).
 fn release_asset_name_for(os: &str, arch: &str) -> String {
     format!("libduckdb_{}.{}", arch, library_extension_for(os))
 }
@@ -303,8 +306,8 @@ fn download_from_github_release(cache_dir: &Path, arch: &str) -> Result<PathBuf>
     // Asset law (TR7): the URL must request the platform-correct asset name —
     // libduckdb_{arch}.dylib on macOS, libduckdb_{arch}.so on Linux — matching
     // both the published release assets and get_binary_path's cache name. See
-    // release_asset_name_for: Linux .so assets only exist from the release
-    // AFTER v1.5.5; until then Linux downloads 404 and local compile runs.
+    // release_asset_name_for: no release has been published yet, so ALL
+    // downloads 404 today and the local-compile fallback runs.
     let url = format!(
         "https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v{}/{}",
         VERSION,

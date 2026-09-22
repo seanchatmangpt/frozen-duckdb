@@ -15,12 +15,12 @@ use clap::{Parser, Subcommand};
 ///
 /// ```bash
 /// # Basic usage with default verbosity
-/// frozen-duckdb info
+/// frozen-duckdb-cli info
 ///
 /// # Increased verbosity for debugging
-/// frozen-duckdb -v download --dataset chinook
-/// frozen-duckdb -vv convert --input data.csv --output data.parquet
-/// frozen-duckdb -vvv benchmark --operation query
+/// frozen-duckdb-cli -v download --dataset chinook
+/// frozen-duckdb-cli -vv convert --input data.csv --output data.parquet
+/// frozen-duckdb-cli -vvv benchmark --operation query
 /// ```
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -57,10 +57,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Download Chinook dataset in CSV format
-    /// frozen-duckdb download --dataset chinook --format csv
+    /// frozen-duckdb-cli download --dataset chinook --format csv
     ///
     /// # Generate TPC-H dataset in Parquet format
-    /// frozen-duckdb download --dataset tpch --format parquet --output-dir ./data
+    /// frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./data
     /// ```
     Download {
         /// Dataset name to download or generate
@@ -80,28 +80,30 @@ pub enum Commands {
 
         /// Output format for the dataset
         ///
-        /// Supported formats:
-        /// - `csv`: Comma-separated values (human-readable, larger files)
-        /// - `parquet`: Columnar format (compressed, faster queries)
-        /// - `duckdb`: Native DuckDB database format (fastest for DuckDB)
+        /// Supported formats depend on the dataset:
+        /// - `chinook`: `csv`, `parquet` (any other value — including
+        ///   `duckdb` and `arrow` — is rejected with a warning and only the
+        ///   base `chinook.csv` is written)
+        /// - `tpch`: `csv`, `parquet`, `duckdb` (unknown values fall back
+        ///   to `duckdb` with a warning)
         #[arg(short, long, default_value = "csv")]
         format: String,
     },
 
     /// Convert datasets between different file formats.
     ///
-    /// This command provides format conversion capabilities for data files,
-    /// allowing you to convert between CSV, Parquet, JSON, and other formats.
+    /// This command converts between CSV and Parquet only; every other
+    /// format pair is rejected with an "Unsupported conversion" error.
     /// Conversion is optimized for performance and maintains data integrity.
     ///
     /// # Examples
     ///
     /// ```bash
     /// # Convert CSV to Parquet
-    /// frozen-duckdb convert --input data.csv --output data.parquet
+    /// frozen-duckdb-cli convert --input data.csv --output data.parquet
     ///
     /// # Convert Parquet to CSV with explicit formats
-    /// frozen-duckdb convert --input data.parquet --output data.csv --input-format parquet --output-format csv
+    /// frozen-duckdb-cli convert --input data.parquet --output data.csv --input-format parquet --output-format csv
     /// ```
     Convert {
         /// Input file path to convert from
@@ -114,38 +116,43 @@ pub enum Commands {
 
         /// Input file format
         ///
-        /// Supported input formats: csv, parquet, json
+        /// Supported input formats: csv, parquet. Note: the declared `-i`
+        /// short flag collides with `--input`, which fails clap's debug
+        /// assertions (debug builds panic before parsing); use the long form.
         #[arg(short, long, default_value = "csv")]
         input_format: String,
 
         /// Output file format
         ///
-        /// Supported output formats: csv, parquet, json, arrow
+        /// Supported output formats: csv, parquet (only csv→parquet and
+        /// parquet→csv conversions are implemented)
         #[arg(short, long, default_value = "parquet")]
         output_format: String,
     },
 
     /// Display information about running tests.
     ///
-    /// This command provides guidance on running the comprehensive test suite.
-    /// It doesn't actually run tests (use `cargo test` for that) but shows
-    /// the available test commands and options.
+    /// This command logs guidance on running the comprehensive test suite.
+    /// It doesn't actually run tests (use `cargo test` for that). The
+    /// guidance is emitted through `tracing` at INFO level, so it is visible
+    /// only with `-v` or higher; at the default WARN verbosity this command
+    /// prints nothing.
     Test,
 
-    /// Benchmark operations to measure performance characteristics.
+    /// Placeholder for benchmark operations (not yet implemented).
     ///
-    /// This command runs performance benchmarks on various DuckDB operations
-    /// to help understand performance characteristics and validate that
-    /// performance targets are being met.
+    /// This command currently only logs that benchmarking is coming soon —
+    /// it runs no measurements. The log is emitted through `tracing` at INFO
+    /// level, so it is visible only with `-v` or higher.
     ///
     /// # Examples
     ///
     /// ```bash
     /// # Benchmark query operations
-    /// frozen-duckdb benchmark --operation query --iterations 1000
+    /// frozen-duckdb-cli benchmark --operation query --iterations 1000
     ///
     /// # Benchmark with different dataset sizes
-    /// frozen-duckdb benchmark --operation insert --size large --iterations 100
+    /// frozen-duckdb-cli benchmark --operation insert --size large --iterations 100
     /// ```
     Benchmark {
         /// Operation type to benchmark
@@ -179,15 +186,15 @@ pub enum Commands {
     /// This command displays system information, available extensions,
     /// architecture details, and configuration status. Useful for
     /// troubleshooting and verifying that the environment is properly set up.
+    /// Output is emitted through `tracing` at INFO level, so it is visible
+    /// only with `-v` or higher; at the default WARN verbosity this command
+    /// prints nothing.
     ///
     /// # Examples
     ///
     /// ```bash
-    /// # Show basic information
-    /// frozen-duckdb info
-    ///
-    /// # Show detailed information with verbose output
-    /// frozen-duckdb -v info
+    /// # Show information (requires -v to be visible)
+    /// frozen-duckdb-cli -v info
     /// ```
     Info,
 
@@ -202,10 +209,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Setup default Ollama models
-    /// frozen-duckdb flock-setup
+    /// frozen-duckdb-cli flock-setup
     ///
     /// # Setup with custom Ollama URL
-    /// frozen-duckdb flock-setup --ollama-url http://localhost:11434
+    /// frozen-duckdb-cli flock-setup --ollama-url http://localhost:11434
     /// ```
     FlockSetup {
         /// Ollama server URL
@@ -239,19 +246,17 @@ pub enum Commands {
     /// Generate text completions using LLM models via Flock.
     ///
     /// This command uses the configured LLM models to generate text completions
-    /// for the provided prompts. Supports both single prompts and batch processing.
+    /// for a single prompt (from `--prompt`, `--input`, or stdin). Requires
+    /// Ollama to be running and `flock-setup` to have been run.
     ///
     /// # Examples
     ///
     /// ```bash
     /// # Complete a single prompt
-    /// frozen-duckdb complete --prompt "Write a hello world function in Python"
+    /// frozen-duckdb-cli complete --prompt "Write a hello world function in Python"
     ///
-    /// # Complete with specific model
-    /// frozen-duckdb complete --prompt "Explain recursion" --model coder
-    ///
-    /// # Batch completion from file
-    /// frozen-duckdb complete --input prompts.txt --output responses.txt
+    /// # Complete with the configured text-generation alias
+    /// frozen-duckdb-cli complete --prompt "Explain recursion" --model text_generator
     /// ```
     Complete {
         /// Text prompt for completion
@@ -260,10 +265,10 @@ pub enum Commands {
         #[arg(short, long)]
         prompt: Option<String>,
 
-        /// Input file containing prompts (one per line)
+        /// Input file to complete as a single prompt
         ///
-        /// If provided, each line will be treated as a separate prompt.
-        /// Cannot be used with --prompt.
+        /// The whole file is read and completed as ONE prompt (it is not
+        /// split per line). Cannot be used with --prompt.
         #[arg(short, long, conflicts_with = "prompt")]
         input: Option<String>,
 
@@ -300,18 +305,16 @@ pub enum Commands {
 
     /// Generate embeddings for text using LLM models via Flock.
     ///
-    /// This command generates vector embeddings for the provided text,
-    /// which can be used for semantic search, similarity comparison,
-    /// and other vector-based operations.
+    /// NOT YET FUNCTIONAL: the embedding SQL runs against the Flock
+    /// extension, but extracting the resulting vector columns is
+    /// unimplemented, so this command always aborts with a "not implemented"
+    /// panic (exit code 101) once the Flock check passes.
     ///
     /// # Examples
     ///
     /// ```bash
     /// # Generate embedding for single text
-    /// frozen-duckdb embed --text "Python is a programming language"
-    ///
-    /// # Generate embeddings for multiple texts from file
-    /// frozen-duckdb embed --input texts.txt --output embeddings.json
+    /// frozen-duckdb-cli embed --text "Python is a programming language"
     /// ```
     Embed {
         /// Text to generate embeddings for
@@ -351,18 +354,15 @@ pub enum Commands {
 
     /// Perform semantic search using embeddings and Flock.
     ///
-    /// This command performs semantic similarity search by comparing
-    /// query embeddings against a corpus of documents. Results are
-    /// ranked by semantic similarity rather than just keyword matching.
+    /// NOT YET FUNCTIONAL: semantic search is unimplemented, so this command
+    /// always aborts with a "not implemented" panic (exit code 101) once the
+    /// Flock check passes. Arguments below document the intended interface.
     ///
     /// # Examples
     ///
     /// ```bash
     /// # Search in a document corpus
-    /// frozen-duckdb search --query "machine learning algorithms" --corpus documents.txt
-    ///
-    /// # Search with specific similarity threshold
-    /// frozen-duckdb search --query "data science" --corpus docs/ --threshold 0.8
+    /// frozen-duckdb-cli search --query "machine learning algorithms" --corpus documents.txt
     /// ```
     Search {
         /// Search query text
@@ -402,17 +402,17 @@ pub enum Commands {
     /// Filter data using LLM-based classification via Flock.
     ///
     /// This command uses LLM models to classify and filter data based
-    /// on natural language criteria. Useful for content moderation,
-    /// categorization, and intelligent data filtering.
+    /// on natural language criteria. Requires Ollama to be running and
+    /// `flock-setup` to have been run.
     ///
     /// # Examples
     ///
     /// ```bash
     /// # Filter code samples for validity
-    /// frozen-duckdb filter --criteria "Is this valid Python code?" --input code_samples.csv --output valid_code.csv
+    /// frozen-duckdb-cli filter --criteria "Is this valid Python code?" --input code_samples.csv --output valid_code.csv
     ///
     /// # Filter with custom prompt
-    /// frozen-duckdb filter --prompt "Does this text contain positive sentiment?" --input reviews.txt
+    /// frozen-duckdb-cli filter --prompt "Does this text contain positive sentiment?" --input reviews.txt
     /// ```
     Filter {
         /// Filtering criteria or prompt
@@ -424,14 +424,16 @@ pub enum Commands {
 
         /// Custom prompt for filtering
         ///
-        /// A custom prompt template for the LLM to use when classifying content.
-        /// Use {{text}} as placeholder for the content being filtered.
+        /// A custom prompt applied to each input line. There is no text
+        /// placeholder substitution: the prompt is used as the classification
+        /// instruction for every line verbatim.
         #[arg(short, long, conflicts_with = "criteria")]
         prompt: Option<String>,
 
         /// Input file containing data to filter
         ///
-        /// File containing the data to be filtered (CSV, JSON, or text format).
+        /// A plain text file processed one line per item (no CSV/JSON
+        /// structure is parsed).
         #[arg(short, long)]
         input: String,
 
@@ -459,17 +461,17 @@ pub enum Commands {
     /// Generate summaries using LLM aggregation via Flock.
     ///
     /// This command uses LLM models to generate summaries and insights
-    /// from collections of text data. Supports various aggregation
-    /// strategies for different types of content analysis.
+    /// from collections of text data. Requires Ollama to be running and
+    /// `flock-setup` to have been run.
     ///
     /// # Examples
     ///
     /// ```bash
     /// # Summarize multiple text files
-    /// frozen-duckdb summarize --input documents/ --output summary.txt
+    /// frozen-duckdb-cli summarize --input documents/ --output summary.txt
     ///
-    /// # Summarize with custom aggregation strategy
-    /// frozen-duckdb summarize --input articles.txt --strategy reduce --max-length 200
+    /// # Summarize with an aggregation strategy
+    /// frozen-duckdb-cli summarize --input articles.txt --strategy map --max-length 200
     /// ```
     Summarize {
         /// Input file or directory containing text to summarize
@@ -489,13 +491,17 @@ pub enum Commands {
         /// Available strategies:
         /// - `reduce`: Use LLM reduce function for hierarchical summarization
         /// - `map`: Generate individual summaries then combine
-        /// - `extractive`: Extract key sentences without generation
+        ///
+        /// Any other value (including `extractive`) falls back to a single
+        /// combined-summary call over all texts.
         #[arg(short, long, default_value = "reduce")]
         strategy: String,
 
         /// Maximum summary length in words
         ///
-        /// Controls the length of the generated summary.
+        /// Controls the length of the generated summary. Note: the declared
+        /// `-m` short flag collides with `--model`, which fails clap's debug
+        /// assertions (debug builds panic before parsing); use the long form.
         #[arg(short, long, default_value = "150")]
         max_length: usize,
 
@@ -517,17 +523,13 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Run all FFI validation tests
-    /// frozen-duckdb validate-ffi
-    ///
-    /// # Run with specific architecture
-    /// ARCH=x86_64 frozen-duckdb validate-ffi
-    /// ARCH=arm64 frozen-duckdb validate-ffi
+    /// frozen-duckdb-cli validate-ffi
     ///
     /// # Skip LLM validation (faster, no Ollama required)
-    /// frozen-duckdb validate-ffi --skip-llm
+    /// frozen-duckdb-cli validate-ffi --skip-llm
     ///
     /// # Output results in JSON format
-    /// frozen-duckdb validate-ffi --format json
+    /// frozen-duckdb-cli validate-ffi --format json
     /// ```
     ///
     /// # Validation Layers
