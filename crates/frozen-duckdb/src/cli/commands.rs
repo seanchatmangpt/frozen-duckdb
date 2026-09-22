@@ -115,13 +115,18 @@ pub enum Commands {
         /// Input file format
         ///
         /// Supported input formats: csv, parquet, json
-        #[arg(short, long, default_value = "csv")]
+        // Long-only (G3 2026-09-21): `-i` collided with `input`, which made
+        // clap's debug asserts panic at parse time (exit 101) — `convert`
+        // could not run at all. Guard: tests/cli_surface_tests.rs.
+        #[arg(long, default_value = "csv")]
         input_format: String,
 
         /// Output file format
         ///
         /// Supported output formats: csv, parquet, json, arrow
-        #[arg(short, long, default_value = "parquet")]
+        // Long-only (G3 2026-09-21): `-o` collided with `output` (same panic
+        // class as --input-format).
+        #[arg(long, default_value = "parquet")]
         output_format: String,
     },
 
@@ -496,7 +501,10 @@ pub enum Commands {
         /// Maximum summary length in words
         ///
         /// Controls the length of the generated summary.
-        #[arg(short, long, default_value = "150")]
+        // Long-only (G3 2026-09-21): `-m` collided with `model`, making
+        // clap's debug asserts panic at parse time (exit 101) — `summarize`
+        // could not run at all. Guard: tests/cli_surface_tests.rs.
+        #[arg(long, default_value = "150")]
         max_length: usize,
 
         /// Model to use for summarization
