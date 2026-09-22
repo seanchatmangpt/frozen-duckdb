@@ -31,7 +31,13 @@ Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement
 
 ## Examples
 
-- [Playground](../playground/) -- runnable scratch environment, edit and re-run live.
+- Runnable crate examples live in `crates/frozen-duckdb/examples/` (`dropin_replacement`, `basic_usage`, `flock_ollama_integration`, `performance_comparison`); e.g. `cargo run --example dropin_replacement` from the repository root.
+
+## Project docs
+
+- [Quickstart](../QUICKSTART.md)
+- [Troubleshooting](../TROUBLESHOOTING.md)
+- [Migration guide](../MIGRATION_GUIDE.md)
 
 ## Meta
 
