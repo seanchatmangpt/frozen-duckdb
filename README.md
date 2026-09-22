@@ -138,7 +138,8 @@ The Builder Sub-Crate Pattern solves the fundamental tension between feature ric
 │  │  • Downloads from GitHub Releases                   │   │
 │  │  • Local compilation fallback                       │   │
 │  │  • Global caching in ~/.frozen-duckdb/              │   │
-│  │  • All features: DuckDB + Arrow + Polars + ICU      │   │
+│  │  • Extensions: JSON, Parquet, ICU, HTTPFS, TPC-H/DS, │   │
+│  •   FTS, INET, SQLSmith, Jemalloc, Autoload        │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -206,8 +207,9 @@ cargo test --workspace  # Run again
 
 # Test with different configurations
 cargo test --workspace --release
-ARCH=x86_64 cargo test --workspace
-ARCH=arm64 cargo test --workspace
+# Note: ARCH only affects prebuilt/setup_env.sh and the architecture helper
+# module — it does not change which binary the builder downloads or tests
+# against (see Troubleshooting below).
 
 # Test examples
 cargo run --example dropin_replacement
@@ -228,27 +230,34 @@ ls -lh ~/.frozen-duckdb/cache/*/
 ## 🚀 Features Included
 
 ### DuckDB Extensions
+
+Built statically into the bundled binary
+(`-DBUILD_EXTENSIONS=parquet;json;icu;httpfs;tpch;tpcds;fts;inet;sqlsmith`,
+plus `-DBUILD_JEMALLOC=ON` and `-DBUILD_AUTOLOAD=ON` —
+see `crates/frozen-duckdb-builder/src/lib.rs`):
 - **JSON Extension**: Full JSON support
 - **Parquet Extension**: Columnar data format
-- **Arrow Extension**: Apache Arrow integration
 - **ICU Extension**: Internationalization
 - **HTTPFS Extension**: HTTP file system
-- **Visualizer Extension**: Query visualization
 - **TPC-H/TPC-DS Extensions**: Benchmark data
 - **FTS Extension**: Full-text search
 - **INET Extension**: Network address types
-- **Excel Extension**: Excel file support
 - **SQLSmith Extension**: Query fuzzing
-- **TPC-E Extension**: TPC-E benchmark
-- **Jemalloc Extension**: Memory allocator
-- **Autoload Extension**: Automatic extension loading
+- **Jemalloc**: Memory allocator
+- **Autoload**: Automatic extension loading
+
+Not built in this release: Visualizer and TPC-E are out-of-tree in DuckDB
+1.5.x; Excel requires minizip-ng on the build host; VSS is not part of the
+static extension set (`crates/frozen-duckdb/tests/vss_tests.rs` detects and
+skips gracefully when it's absent).
 
 ### Integration Features
-- **Arrow Integration**: Seamless Apache Arrow support
-- **Polars Integration**: DataFrame operations
-- **R2D2 Integration**: Connection pooling
-- **Serde Integration**: Serialization support
-- **Chrono Integration**: Date/time handling
+- **Arrow Integration**: Apache Arrow support via the `arrow` dependency (`crates/frozen-duckdb/Cargo.toml`)
+- **Serde Integration**: Serialization support (`serde_json` dependency)
+- **Chrono Integration**: Date/time handling (`chrono` dependency)
+
+Not integrated in this release: Polars and r2d2 are not dependencies or
+features of `frozen-duckdb` today.
 
 ## 🛠️ Troubleshooting
 
