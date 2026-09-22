@@ -21,7 +21,7 @@ use tracing::{info, warn};
 /// # Features
 ///
 /// - **Dataset Generation**: Create sample datasets (Chinook, TPC-H)
-/// - **Format Conversion**: Convert between CSV, Parquet, Arrow formats
+/// - **Format Conversion**: Convert between CSV and Parquet formats
 /// - **Extension Management**: Automatically installs required DuckDB extensions
 /// - **Error Handling**: Comprehensive error reporting with context
 ///
@@ -110,7 +110,9 @@ impl DatasetManager {
     /// # Arguments
     ///
     /// * `output_dir` - Directory where the dataset files will be saved
-    /// * `format` - Output format ("csv", "parquet", "arrow")
+    /// * `format` - Output format ("csv" or "parquet"; anything else —
+    ///   including "arrow" and "duckdb" — is rejected with a warning and
+    ///   only the base `chinook.csv` is produced)
     ///
     /// # Returns
     ///
@@ -186,12 +188,12 @@ impl DatasetManager {
     ///
     /// # Dataset Contents
     ///
-    /// The TPC-H dataset includes 8 tables:
+    /// The TPC-H dataset includes 8 tables (row counts measured at sf=0.01):
     ///
     /// - **customer**: Customer information (~1,500 rows)
-    /// - **lineitem**: Order line items (~6,000 rows)
+    /// - **lineitem**: Order line items (~60,000 rows)
     /// - **nation**: Country information (~25 rows)
-    /// - **orders**: Customer orders (~1,500 rows)
+    /// - **orders**: Customer orders (~15,000 rows)
     /// - **part**: Parts catalog (~2,000 rows)
     /// - **partsupp**: Part-supplier relationships (~8,000 rows)
     /// - **region**: Geographic regions (~5 rows)
@@ -200,7 +202,7 @@ impl DatasetManager {
     /// # Scale Factor
     ///
     /// Uses scale factor 0.01 (tiny dataset) for fast generation:
-    /// - **Total rows**: ~19,000 across all tables
+    /// - **Total rows**: ~87,000 across all tables (86,805 measured)
     /// - **Generation time**: <10s
     /// - **File sizes**: 1-5MB per table depending on format
     ///
@@ -220,7 +222,8 @@ impl DatasetManager {
         fs::create_dir_all(output_dir)?;
 
         // Generate TPC-H data with scale factor 0.01 (tiny dataset for fast generation)
-        // This creates ~1,500 rows across 8 tables - perfect for testing and development
+        // This creates ~87,000 rows across 8 tables (86,805 measured) - sized for
+        // fast testing and development
         info!("🔄 Generating TPC-H data with scale factor 0.01...");
         self.conn.execute("CALL dbgen(sf = 0.01)", [])?;
 
@@ -352,9 +355,9 @@ TrackId,Name,AlbumId,Composer,Milliseconds,Bytes,UnitPrice
 
     /// Convert datasets between different file formats.
     ///
-    /// This function provides format conversion capabilities for data files,
-    /// allowing you to convert between CSV, Parquet, JSON, and other formats.
-    /// Conversion is optimized for performance and maintains data integrity.
+    /// This function converts between CSV and Parquet only; every other
+    /// format pair returns an "Unsupported conversion" error. Conversion
+    /// runs as a single DuckDB COPY query and maintains data integrity.
     ///
     /// # Arguments
     ///
@@ -457,6 +460,9 @@ TrackId,Name,AlbumId,Composer,Milliseconds,Bytes,UnitPrice
     ///
     /// - **Query time**: <50ms
     /// - **Memory usage**: <10MB
+    ///
+    /// Note: output is emitted through `tracing` at INFO level, so in the
+    /// CLI it is visible only with `-v` or higher (default verbosity is WARN).
     pub fn show_info(&self) -> Result<()> {
         info!("🦆 Frozen DuckDB Information");
         info!("  Version: {}", env!("CARGO_PKG_VERSION"));

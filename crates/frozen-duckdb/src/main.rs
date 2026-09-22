@@ -17,31 +17,31 @@
 //!
 //! ```bash
 //! # Show help
-//! frozen-duckdb --help
+//! frozen-duckdb-cli --help
 //!
 //! # Download Chinook dataset in CSV format
-//! frozen-duckdb download --dataset chinook --format csv
+//! frozen-duckdb-cli download --dataset chinook --format csv
 //!
 //! # Generate TPC-H dataset in Parquet format
-//! frozen-duckdb download --dataset tpch --format parquet
+//! frozen-duckdb-cli download --dataset tpch --format parquet
 //!
 //! # Convert CSV to Parquet
-//! frozen-duckdb convert --input data.csv --output data.parquet --input-format csv --output-format parquet
+//! frozen-duckdb-cli convert --input data.csv --output data.parquet --input-format csv --output-format parquet
 //!
 //! # Show system information
-//! frozen-duckdb info
+//! frozen-duckdb-cli info
 //!
 //! # Setup Ollama for LLM operations
-//! frozen-duckdb flock-setup
+//! frozen-duckdb-cli flock-setup
 //!
 //! # Generate text completion
-//! frozen-duckdb complete --prompt "Explain recursion in programming"
+//! frozen-duckdb-cli complete --prompt "Explain recursion in programming"
 //!
 //! # Generate embeddings for semantic search
-//! frozen-duckdb embed --text "Python programming language"
+//! frozen-duckdb-cli embed --text "Python programming language"
 //!
 //! # Perform semantic search
-//! frozen-duckdb search --query "machine learning" --corpus documents.txt
+//! frozen-duckdb-cli search --query "machine learning" --corpus documents.txt
 //! ```
 //!
 //! ## Environment Setup
@@ -71,10 +71,15 @@
 //! The CLI provides clear error messages and exit codes:
 //!
 //! - **Exit code 0**: Success
-//! - **Exit code 1**: General error (invalid arguments, file not found)
-//! - **Exit code 2**: Environment not configured
-//! - **Exit code 3**: Binary validation failed
+//! - **Exit code 1**: General error (invalid arguments, file not found, LLM failure)
 //! - **Exit code 4**: Flock extension not available
+//! - **Exit code 101**: Unimplemented feature abort — `embed` and `search`
+//!   currently panic with a "not implemented" message after the Flock check.
+//!
+//! No code path emits exit codes 2 or 3. Note that most progress output is
+//! emitted through `tracing` at INFO level, so it is visible only with `-v`
+//! or higher; at the default WARN verbosity, `info`, `test` and `benchmark`
+//! print nothing.
 
 use anyhow::{Context, Result};
 use clap::Parser;
