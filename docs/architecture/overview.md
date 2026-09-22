@@ -55,6 +55,8 @@ pub mod env_setup;       // Environment validation and configuration
 ```rust
 Commands::Download {     // Dataset management (Chinook, TPC-H)
 Commands::Convert {      // Format conversion (CSV ↔ Parquet)
+Commands::Test {         // Testing guidance (points at cargo test)
+Commands::Benchmark {    // Performance benchmarking
 Commands::Info {         // System information display
 Commands::FlockSetup {   // Ollama configuration for LLM
 Commands::Complete {     // Text completion via LLM
@@ -62,7 +64,11 @@ Commands::Embed {        // Embedding generation
 Commands::Search {       // Semantic search
 Commands::Filter {       // LLM-based filtering
 Commands::Summarize {    // Text summarization
+Commands::ValidateFfi {  // FFI validation (binary, core, Flock, TPC-H)
 ```
+
+The binary is `frozen-duckdb-cli` (`[[bin]]` in `crates/frozen-duckdb/Cargo.toml`); run
+`frozen-duckdb-cli --help` for the live surface.
 
 ### Build Integration (`frozen-duckdb-sys/build.rs`)
 
@@ -156,9 +162,13 @@ source prebuilt/setup_env.sh   # sets DUCKDB_LIB_DIR / DUCKDB_INCLUDE_DIR, ARCH-
 ### Exit Codes
 - **0**: Success
 - **1**: General error (invalid arguments, file not found)
-- **2**: Environment not configured
-- **3**: Binary validation failed
+- **2**: CLI usage error (clap argument parsing)
 - **4**: Flock extension not available
+
+(Codes 2 and 4 are the only nonzero exits emitted by `src/main.rs` besides 1;
+there is no dedicated "environment not configured" or "binary validation"
+exit code — the builder acquires the binary inside `cargo build`, not in the
+CLI process.)
 
 ### Error Types
 - **Environment errors**: Missing variables, invalid paths
@@ -219,8 +229,12 @@ source prebuilt/setup_env.sh   # sets DUCKDB_LIB_DIR / DUCKDB_INCLUDE_DIR, ARCH-
 
 **Trade-offs**:
 - Dependency on external extension
-- Current implementation limitations (27% test success)
+- LLM operations require a running Ollama server with models pulled
 - Additional setup complexity for users
+
+(Measured 2026-09-21, G3 falsification pass: `cargo test --workspace` is
+301/301 green including `flock_tests` 11/11 — the earlier "27% test success"
+figure predated the wave-3..5 test repairs and is obsolete.)
 
 ## Summary
 

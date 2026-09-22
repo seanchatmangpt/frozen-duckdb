@@ -61,11 +61,17 @@ curl -s http://localhost:11434/api/tags | grep -E "(qwen3-coder|qwen3-embedding)
 
 ## Frozen DuckDB Setup
 
-### 1. Configure Environment
+### 1. Configure Environment (optional — legacy workflow only)
+
+No environment setup is required: `cargo build` acquires the dylib via
+`frozen-duckdb-builder` and the emitted `@rpath` loads it at runtime. The
+manual step below is only for the legacy prebuilt workflow
+(`prebuilt/setup_env.sh` sets `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR`, which the
+normal build path does not consume):
 
 ```bash
-# Set up frozen DuckDB (if not already done)
-source ../frozen-duckdb/prebuilt/setup_env.sh
+# OPTIONAL — legacy manual-prebuilt workflow only
+source prebuilt/setup_env.sh
 ```
 
 ### 2. Install Flock Extension
@@ -127,26 +133,26 @@ GET PROMPTS;
 
 ```bash
 # Use the CLI for automated setup
-frozen-duckdb flock-setup
+frozen-duckdb-cli flock-setup
 
 # Setup with custom Ollama URL
-frozen-duckdb flock-setup --ollama-url http://192.168.1.100:11434
+frozen-duckdb-cli flock-setup --ollama-url http://192.168.1.100:11434
 
 # Setup without verification (faster)
-frozen-duckdb flock-setup --skip-verification
+frozen-duckdb-cli flock-setup --skip-verification
 ```
 
 ### Manual Verification
 
 ```bash
 # Test basic LLM functionality
-frozen-duckdb complete --prompt "Hello, how are you?"
+frozen-duckdb-cli complete --prompt "Hello, how are you?"
 
 # Generate embeddings
-frozen-duckdb embed --text "machine learning"
+frozen-duckdb-cli embed --text "machine learning"
 
 # Verify system info includes Flock
-frozen-duckdb info
+frozen-duckdb-cli info
 ```
 
 ## Testing the Setup
@@ -315,7 +321,7 @@ SELECT * FROM pragma_memory_usage();
 **Remote Setup (Advanced):**
 ```bash
 # Configure for remote Ollama server
-frozen-duckdb flock-setup --ollama-url http://your-server:11434
+frozen-duckdb-cli flock-setup --ollama-url http://your-server:11434
 
 # Or in SQL
 CREATE SECRET ollama_secret (TYPE OLLAMA, API_URL 'http://your-server:11434');
@@ -411,8 +417,10 @@ else
     RECOMMENDED_MODEL="qwen3-coder:30b"
 fi
 
-# Setup with recommended model
-CREATE MODEL('coder', '$RECOMMENDED_MODEL', 'ollama');
+# Setup with recommended model — NOTE: this final statement is SQL to run
+# in a DuckDB session (substituting $RECOMMENDED_MODEL yourself); it is not
+# executable bash.
+# CREATE MODEL('coder', 'qwen3-coder:30b', 'ollama');
 ```
 
 ## Production Deployment
@@ -430,15 +438,13 @@ RUN curl -fsSL https://ollama.ai/install.sh | sh
 RUN ollama pull qwen3-coder:30b
 RUN ollama pull qwen3-embedding:8b
 
-# Setup frozen DuckDB
-COPY frozen-duckdb /frozen-duckdb
-RUN cd /frozen-duckdb && source prebuilt/setup_env.sh
-
-# Build application
+# Build application — no environment setup: the builder acquires the dylib
+# during cargo build (inside a Linux container there are no prebuilt macOS
+# assets, so the builder falls back to a local DuckDB compile pinned at
+# upstream tag v1.5.5). DUCKDB_LIB_DIR/DUCKDB_INCLUDE_DIR are only consumed
+# by the legacy manual-prebuilt workflow and are not needed here.
 WORKDIR /app
 COPY . .
-ENV DUCKDB_LIB_DIR="/frozen-duckdb/prebuilt"
-ENV DUCKDB_INCLUDE_DIR="/frozen-duckdb/prebuilt"
 RUN cargo build --release
 
 # Runtime image
@@ -539,7 +545,7 @@ else
 fi
 
 # Test LLM functionality
-if frozen-duckdb complete --prompt "test" > /dev/null 2>&1; then
+if frozen-duckdb-cli complete --prompt "test" > /dev/null 2>&1; then
     echo "✅ LLM functionality working"
 else
     echo "❌ LLM functionality failed"
@@ -590,8 +596,9 @@ top -p $(pgrep -f ollama) -p $(pgrep -f your-app)
 # Check model status
 ollama list
 
-# Restart Ollama server
-ollama stop
+# Restart Ollama server (ollama stop takes a MODEL name; it does not
+# stop the server — kill the server process instead)
+pkill -f "ollama serve"
 ollama serve
 
 # Clear model cache if corrupted
@@ -696,6 +703,5 @@ Setting up LLM capabilities with Frozen DuckDB and Ollama provides **powerful AI
 
 **Next Steps:**
 1. Complete the [Integration Guide](./integration.md) for project setup
-2. Explore the [LLM Operations Guide](./llm-operations.md) for usage examples
+2. Explore the [LLM Operations Guide](../cli/llm-operations.md) for usage examples
 3. Set up [Performance Monitoring](./performance-tuning.md) for optimization
-4. Consider [RAG Pipelines](./rag-pipelines.md) for advanced use cases

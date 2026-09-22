@@ -8,22 +8,20 @@ This guide provides **comprehensive performance tuning** strategies for Frozen D
 
 ### 1. Environment Setup Optimization
 
-**Fastest Setup:**
+**Fastest Setup: none.** `cargo build` is the whole setup — the builder
+(`frozen-duckdb-builder::ensure_binary()`) acquires the dylib into
+`~/.frozen-duckdb/cache/v1.5.5-{arch}/` on first build and every later build
+reuses it. The emitted `-Wl,-rpath` loads the dylib at runtime, so there is
+nothing to export:
+
 ```bash
-# One-time setup for persistent environment
-echo 'export DUCKDB_LIB_DIR="$(pwd)/prebuilt"' >> ~/.bashrc
-echo 'export DUCKDB_INCLUDE_DIR="$(pwd)/prebuilt"' >> ~/.bashrc
-source ~/.bashrc
+# The entire "environment setup"
+cargo build
 ```
 
-**Verification:**
-```bash
-# Verify environment is configured
-echo $DUCKDB_LIB_DIR
-echo $DUCKDB_INCLUDE_DIR
-
-# Should show: /path/to/frozen-duckdb/prebuilt
-```
+`DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR` are consumed only by the legacy manual
+prebuilt workflow (`prebuilt/setup_env.sh`); the normal build path ignores
+them — exporting them to `~/.bashrc` has no effect.
 
 ### 2. Build Configuration
 
@@ -40,22 +38,11 @@ codegen-units = 1
 panic = "abort"
 ```
 
-**Build Script Optimization:**
-```rust
-// build.rs - optimized for performance
-fn main() {
-    // Only configure if environment is set
-    if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-        println!("cargo:rustc-link-search=native={}", lib_dir);
-        println!("cargo:rustc-link-lib=dylib=duckdb");
-        println!("cargo:include={}", lib_dir);
-
-        // Minimize rerun triggers
-        println!("cargo:rerun-if-env-changed=DUCKDB_LIB_DIR");
-        println!("cargo:rerun-if-env-changed=DUCKDB_INCLUDE_DIR");
-    }
-}
-```
+**No custom build script.** Linking and runtime rpath live in the shipped
+crates (`frozen-duckdb-sys/build.rs` links and exports `DEP_DUCKDB_*`;
+`frozen-duckdb`'s build script emits `-Wl,-rpath`). A consumer `build.rs`
+reading `DUCKDB_LIB_DIR` (an older pattern this doc once showed) is not
+needed and will not run in a library dependency.
 
 ### 3. Incremental Build Optimization
 
@@ -170,7 +157,7 @@ WHERE o.total > 100;
 **Format Conversion for Performance:**
 ```bash
 # Convert to Parquet for analytical workloads
-frozen-duckdb convert --input large_dataset.csv --output large_dataset.parquet
+frozen-duckdb-cli convert --input large_dataset.csv --output large_dataset.parquet
 
 # Verify performance improvement
 time duckdb -c "SELECT COUNT(*) FROM 'large_dataset.csv'" 2>&1 | grep real
@@ -387,13 +374,14 @@ WHERE hash(content) NOT IN (SELECT content_hash FROM embedding_cache);
 **Optimal Format Selection:**
 ```bash
 # For analytical workloads
-frozen-duckdb download --dataset tpch --format parquet
+frozen-duckdb-cli download --dataset tpch --format parquet
 
-# For maximum query performance
-frozen-duckdb download --dataset chinook --format duckdb
+# For maximum query performance (native DuckDB output is TPC-H only;
+# Chinook supports csv/parquet)
+frozen-duckdb-cli download --dataset tpch --format duckdb
 
 # For data exchange
-frozen-duckdb convert --input data.parquet --output data.csv
+frozen-duckdb-cli convert --input data.parquet --output data.csv
 ```
 
 ### 2. Partitioning Strategy
@@ -481,8 +469,7 @@ fn create_optimized_client() -> Client {
 echo "Build started at $(date)"
 start_time=$(date +%s)
 
-# Build with frozen DuckDB
-source ../frozen-duckdb/prebuilt/setup_env.sh
+# Build with frozen DuckDB — no environment sourcing needed
 cargo build --release
 
 end_time=$(date +%s)
@@ -584,27 +571,18 @@ fn run_performance_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
 
 **Diagnosis:**
 ```bash
-# Check if using frozen DuckDB
-echo $DUCKDB_LIB_DIR
+# Check the builder-managed cache (the build log names it on first use)
+ls -lah ~/.frozen-duckdb/cache/
 
-# Should show: /path/to/frozen-duckdb/prebuilt
-
-# Check binary size and modification time
-ls -lah prebuilt/libduckdb*
-
-# Check if fallback to bundled compilation
+# Confirm the build linked the cached prebuilt binary
 RUST_LOG=debug cargo build 2>&1 | grep -i duckdb
+# A local DuckDB compile (pinned at upstream tag v1.5.5) only happens when
+# no release asset is reachable — on macOS that means a network problem
 ```
 
 **Solutions:**
 ```bash
-# Re-source environment
-source ../frozen-duckdb/prebuilt/setup_env.sh
-
-# Verify binary selection
-echo "Selected binary: $(ls -la $DUCKDB_LIB_DIR/libduckdb* | head -1)"
-
-# Clean and rebuild
+# Clean and rebuild (re-uses the warm cache)
 cargo clean
 cargo build
 ```
@@ -676,7 +654,7 @@ curl -s http://localhost:11434/api/version
 ollama list
 
 # Test basic connectivity
-frozen-duckdb complete --prompt "test"
+frozen-duckdb-cli complete --prompt "test"
 ```
 
 **Solutions:**
