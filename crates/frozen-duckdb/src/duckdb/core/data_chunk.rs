@@ -2,9 +2,10 @@ use super::{
     logical_type::LogicalTypeHandle,
     vector::{ArrayVector, FlatVector, ListVector, StructVector},
 };
-use crate::ffi::{
-    duckdb_create_data_chunk, duckdb_data_chunk, duckdb_data_chunk_get_column_count, duckdb_data_chunk_get_size,
-    duckdb_data_chunk_get_vector, duckdb_data_chunk_set_size, duckdb_destroy_data_chunk,
+use crate::duckdb::ffi::{
+    duckdb_create_data_chunk, duckdb_data_chunk, duckdb_data_chunk_get_column_count,
+    duckdb_data_chunk_get_size, duckdb_data_chunk_get_vector, duckdb_data_chunk_set_size,
+    duckdb_destroy_data_chunk,
 };
 
 /// Handle to the DataChunk in DuckDB.

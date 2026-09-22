@@ -14,7 +14,7 @@
 //! duckdb = "1.4.0"
 //!
 //! # After (99% faster builds)
-//! frozen-duckdb = "1.4.0"
+//! frozen-duckdb = "1.5.5"
 //! ```
 //!
 //! **No code changes needed** - same API, same functionality, 99% faster builds!
@@ -153,23 +153,30 @@ pub mod duckdb;
 // Re-export duckdb-rs API for drop-in replacement compatibility
 // This enables frozen-duckdb to be a true drop-in replacement
 pub use duckdb::{
-    Connection, Config, Statement, Row, Rows, Result as DuckDBResult,
-    params, params_from_iter, 
-    // Common types
-    ToSql,
-    // Error types
-    Error as DuckDBError,
-    // Transaction support
-    Transaction,
+    // params! is exported at the crate root via #[macro_export] in the
+    // vendored module; params_from_iter comes through the duckdb module
+    params_from_iter,
     // Appender for bulk inserts
     Appender,
-    // Arrow integration
-    arrow::array::Array,
-    arrow::record_batch::RecordBatch,
+    Config,
+    Connection,
+    // Error types
+    Error as DuckDBError,
+    Result as DuckDBResult,
+    Row,
+    Rows,
+    Statement,
+    // Common types
+    ToSql,
+    // Transaction support
+    Transaction,
 };
 
 // Re-export types from duckdb::types for convenience
-pub use duckdb::types::{FromSql, Value, Type};
+pub use duckdb::types::{FromSql, Type, Value};
+
+// duckdb-rs also exposes the arrow crate at its root; keep the same surface
+pub use duckdb::arrow;
 
 // Re-export Result type for convenience (DuckDB's Result, not anyhow)
 pub type Result<T> = DuckDBResult<T>;

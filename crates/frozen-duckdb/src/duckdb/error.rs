@@ -1,7 +1,7 @@
 use arrow::datatypes::DataType;
 
 use super::Result;
-use crate::{
+use crate::duckdb::{
     ffi,
     types::{FromSqlError, Type},
 };
@@ -39,16 +39,16 @@ pub enum Error {
     /// Error converting a file path to a string.
     InvalidPath(PathBuf),
 
-    /// Error returned when an [`execute`](crate::Connection::execute) call
+    /// Error returned when an [`execute`](crate::duckdb::Connection::execute) call
     /// returns rows.
     ExecuteReturnedResults,
 
     /// Error when a query that was expected to return at least one row (e.g.,
-    /// for [`query_row`](crate::Connection::query_row)) did not return any.
+    /// for [`query_row`](crate::duckdb::Connection::query_row)) did not return any.
     QueryReturnedNoRows,
 
     /// Error when a query that was expected to return only one row (e.g.,
-    /// for [`query_one`](crate::Connection::query_one)) did return more than one.
+    /// for [`query_one`](crate::duckdb::Connection::query_one)) did return more than one.
     QueryReturnedMoreThanOneRow,
 
     /// Error when the value of a particular column is requested, but the index
@@ -72,7 +72,7 @@ pub enum Error {
     StatementChangedRows(usize),
 
     /// Error available for the implementors of the
-    /// [`ToSql`](crate::types::ToSql) trait.
+    /// [`ToSql`](crate::duckdb::types::ToSql) trait.
     ToSqlConversionFailure(Box<dyn error::Error + Send + Sync + 'static>),
 
     /// Error when the SQL is not a `SELECT`, is not read-only.
@@ -87,13 +87,20 @@ pub enum Error {
 
     /// Append Error
     AppendError,
+
+    /// Error when result schema information is requested from a statement
+    /// that has not been executed yet (e.g.,
+    /// [`column_names`](crate::duckdb::Statement::column_names)).
+    StatementNotExecuted,
 }
 
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::DuckDBFailure(e1, s1), Self::DuckDBFailure(e2, s2)) => e1 == e2 && s1 == s2,
-            (Self::IntegralValueOutOfRange(i1, n1), Self::IntegralValueOutOfRange(i2, n2)) => i1 == i2 && n1 == n2,
+            (Self::IntegralValueOutOfRange(i1, n1), Self::IntegralValueOutOfRange(i2, n2)) => {
+                i1 == i2 && n1 == n2
+            }
             (Self::Utf8Error(e1), Self::Utf8Error(e2)) => e1 == e2,
             (Self::NulError(e1), Self::NulError(e2)) => e1 == e2,
             (Self::InvalidParameterName(n1), Self::InvalidParameterName(n2)) => n1 == n2,
@@ -107,7 +114,9 @@ impl PartialEq for Error {
                 i1 == i2 && t1 == t2 && n1 == n2
             }
             (Self::StatementChangedRows(n1), Self::StatementChangedRows(n2)) => n1 == n2,
-            (Self::InvalidParameterCount(i1, n1), Self::InvalidParameterCount(i2, n2)) => i1 == i2 && n1 == n2,
+            (Self::InvalidParameterCount(i1, n1), Self::InvalidParameterCount(i2, n2)) => {
+                i1 == i2 && n1 == n2
+            }
             (..) => false,
         }
     }
@@ -142,7 +151,9 @@ impl From<FromSqlError> for Error {
             FromSqlError::InvalidUuidSize(_) => {
                 Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Blob, Box::new(err))
             }
-            FromSqlError::Other(source) => Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Null, source),
+            FromSqlError::Other(source) => {
+                Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Null, source)
+            }
             _ => Self::FromSqlConversionFailure(UNKNOWN_COLUMN, Type::Null, Box::new(err)),
         }
     }
@@ -185,13 +196,19 @@ impl fmt::Display for Error {
                 write!(f, "Invalid column type {t} , name: {name}")
             }
             Self::InvalidParameterCount(i1, n1) => {
-                write!(f, "Wrong number of parameters passed to query. Got {i1}, needed {n1}")
+                write!(
+                    f,
+                    "Wrong number of parameters passed to query. Got {i1}, needed {n1}"
+                )
             }
             Self::StatementChangedRows(i) => write!(f, "Query changed {i} rows"),
             Self::ToSqlConversionFailure(ref err) => err.fmt(f),
             Self::InvalidQuery => write!(f, "Query is not read-only"),
             Self::MultipleStatement => write!(f, "Multiple statements provided"),
             Self::AppendError => write!(f, "Append error"),
+            Self::StatementNotExecuted => {
+                write!(f, "The statement was not executed yet")
+            }
         }
     }
 }
@@ -217,8 +234,10 @@ impl error::Error for Error {
             | Self::InvalidQuery
             | Self::AppendError
             | Self::ArrowTypeToDuckdbType(..)
-            | Self::MultipleStatement => None,
-            Self::FromSqlConversionFailure(_, _, ref err) | Self::ToSqlConversionFailure(ref err) => Some(&**err),
+            | Self::MultipleStatement
+            | Self::StatementNotExecuted => None,
+            Self::FromSqlConversionFailure(_, _, ref err)
+            | Self::ToSqlConversionFailure(ref err) => Some(&**err),
         }
     }
 }
@@ -232,7 +251,10 @@ fn error_from_duckdb_code(code: ffi::duckdb_state, message: Option<String>) -> R
 
 #[cold]
 #[inline]
-pub fn result_from_duckdb_appender(code: ffi::duckdb_state, appender: *mut ffi::duckdb_appender) -> Result<()> {
+pub fn result_from_duckdb_appender(
+    code: ffi::duckdb_state,
+    appender: *mut ffi::duckdb_appender,
+) -> Result<()> {
     if code == ffi::DuckDBSuccess {
         return Ok(());
     }
@@ -251,7 +273,10 @@ pub fn result_from_duckdb_appender(code: ffi::duckdb_state, appender: *mut ffi::
 
 #[cold]
 #[inline]
-pub fn result_from_duckdb_prepare(code: ffi::duckdb_state, mut prepare: ffi::duckdb_prepared_statement) -> Result<()> {
+pub fn result_from_duckdb_prepare(
+    code: ffi::duckdb_state,
+    mut prepare: ffi::duckdb_prepared_statement,
+) -> Result<()> {
     if code == ffi::DuckDBSuccess {
         return Ok(());
     }

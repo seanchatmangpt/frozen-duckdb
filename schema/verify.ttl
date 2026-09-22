@@ -1,0 +1,53 @@
+# C8 verify-gate chain — consumer-authored verification policy (ticket
+# docs/sjira/v26.9.21/C8.md).
+#
+# Vocabulary provenance (源):
+#   ver: = packs/ggen-verify-pack ontology.ttl — that pack ships ZERO
+#     ver:RequiredCheck individuals by design (v26.7.20): consumers author
+#     their own required-check policy (any name, any command, own namespace)
+#     against its vocabulary. These fdv: individuals are exactly that.
+#   es: = packs/evidence-standing-pack ontology.ttl — the standing
+#     vocabulary (ALIVE/BLOCKED/BUILD_BROKEN/…); fdv:redStanding points at
+#     its individuals and gate-runner verdicts read es:standingName strings
+#     from the pack facts, never ad-hoc literals.
+#
+# Both pack ontologies are bound as governing inputs via [ontology].imports
+# in ggen.toml (closure-hashed into every sync receipt). The gate battery's
+# sync/receipt-verify steps are deliberately NOT RequiredCheck facts: a
+# check whose command runs `ggen sync run` inside the very files sync
+# renders is self-referential (the deadlock class ggen-verify-pack's own
+# byte-identity known-divergence documents). They live one level up, in the
+# rendered Makefile `verify` target.
+
+@prefix ver:  <http://seanchatmangpt.github.io/packs/ggen-verify#> .
+@prefix es:   <https://ggen.dev/ontology/evidence-standing#> .
+@prefix fdv:  <https://frozen-duckdb.dev/ontology/verify#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+fdv:req-fmt a ver:RequiredCheck ;
+    ver:name "fmt-check" ;
+    ver:checkCommand "cargo fmt --all -- --check" ;
+    fdv:redStanding es:BLOCKED ;
+    rdfs:comment "Formatting red is a gate refusal (style gate), not a broken build." .
+
+fdv:req-clippy a ver:RequiredCheck ;
+    ver:name "clippy-deny-warnings" ;
+    ver:checkCommand "cargo clippy --workspace --all-targets --all-features -- -D warnings" ;
+    fdv:redStanding es:BLOCKED ;
+    rdfs:comment "Lint under -D warnings: any warning refuses the battery." .
+
+fdv:req-build a ver:RequiredCheck ;
+    ver:name "build-workspace" ;
+    ver:checkCommand "cargo build --workspace" ;
+    fdv:redStanding es:BUILD_BROKEN .
+
+fdv:req-test a ver:RequiredCheck ;
+    ver:name "test-workspace" ;
+    ver:checkCommand "cargo test --workspace" ;
+    fdv:redStanding es:BUILD_BROKEN .
+
+fdv:req-test-validation a ver:RequiredCheck ;
+    ver:name "test-validation" ;
+    ver:checkCommand "cargo run -p test-validation" ;
+    fdv:redStanding es:BUILD_BROKEN ;
+    rdfs:comment "The repo's own test-validation harness crate, run as a gate." .

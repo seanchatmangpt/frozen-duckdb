@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to build (e.g., v1.4.0)"
+        description: "Version to build (e.g., v1.5.5)"
         required: true
-        default: "v1.4.0"
+        default: "v1.5.5"
 
 jobs:
   build-binaries:
@@ -34,11 +34,23 @@ jobs:
 
       - name: Set architecture
         run: |
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            echo "ARCH=arm64" >> $GITHUB_ENV
-          else
-            echo "ARCH=x86_64" >> $GITHUB_ENV
-          fi
+          case "${{ matrix.arch }}" in
+            x86_64|arm64) ;;
+            *)
+              echo "Unsupported matrix arch: ${{ matrix.arch }}"
+              exit 1
+              ;;
+          esac
+          echo "ARCH=${{ matrix.arch }}" >> "$GITHUB_ENV"
+          # macos-latest is an arm64 runner: uname -m reports arm64 even on the
+          # x86_64 matrix leg, so the local-compile fallback must be told the
+          # target slice explicitly. CMAKE_OSX_ARCHITECTURES labels the slice
+          # clang emits. The builder (crates/frozen-duckdb-builder) is being
+          # taught to honor this env for arch detection in coordinated change
+          # TR7 (docs/sjira/v26.9.21/TR7.md); until that lands, the x86_64 leg
+          # fails closed at "Find built binary" rather than shipping a
+          # mislabeled arm64 slice.
+          echo "CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}" >> "$GITHUB_ENV"
 
       - name: Build mega-library
         run: |
@@ -47,6 +59,7 @@ jobs:
           cd /tmp/frozen-build
 
           # Create a minimal Cargo.toml that depends on frozen-duckdb-builder
+          mkdir -p src
           cat > Cargo.toml << 'EOF'
           [package]
           name = "frozen-build"
@@ -77,20 +90,25 @@ jobs:
 
       - name: Find built binary
         run: |
-          # Find the built binary in the cache
-          BINARY_PATH=$(find ~/.frozen-duckdb/cache -name "libfrozen_mega_${{ matrix.arch }}.dylib" | head -1)
+          # frozen-duckdb-builder::ensure_binary() downloads
+          # releases/download/v{VERSION}/libduckdb_{arch}.dylib, so the released
+          # asset must carry exactly that name. The versioned cache also stores
+          # it under that name (the legacy libfrozen_mega_* name is no longer
+          # produced by the builder).
+          BINARY_PATH=$(find "$HOME/.frozen-duckdb/cache" -path "*/v*/libduckdb_${{ matrix.arch }}.dylib" | head -1)
           if [ -z "$BINARY_PATH" ]; then
             echo "Could not find built binary"
             exit 1
           fi
-          echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_ENV
-          echo "Found binary: $BINARY_PATH"
+          mkdir -p stage
+          cp "$BINARY_PATH" "stage/libduckdb_${{ matrix.arch }}.dylib"
+          echo "Staged asset: stage/libduckdb_${{ matrix.arch }}.dylib (from $BINARY_PATH)"
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: libfrozen_mega_${{ matrix.arch }}
-          path: ${{ env.BINARY_PATH }}
+          name: libduckdb_${{ matrix.arch }}
+          path: stage/libduckdb_${{ matrix.arch }}.dylib
 
   release:
     needs: build-binaries
@@ -102,7 +120,7 @@ jobs:
         uses: actions/download-artifact@v4
 
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Frozen DuckDB ${{ github.ref_name }}
@@ -124,7 +142,7 @@ jobs:
             - ICU internationalization
             - All modern DuckDB features
           files: |
-            libfrozen_mega_x86_64/libfrozen_mega_x86_64.dylib
-            libfrozen_mega_arm64/libfrozen_mega_arm64.dylib
+            libduckdb_x86_64/libduckdb_x86_64.dylib
+            libduckdb_arm64/libduckdb_arm64.dylib
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

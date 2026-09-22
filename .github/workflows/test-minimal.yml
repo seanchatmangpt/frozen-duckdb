@@ -10,6 +10,7 @@ jobs:
   test:
     name: Basic Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +48,36 @@ jobs:
             echo "❌ setup_env.sh not found"
             exit 1
           fi
+
+      # frozen_duckdb_builder::ensure_binary() looks FIRST in
+      # ~/.frozen-duckdb/cache/v<version>-<arch>/libduckdb_<arch>.so. Its own
+      # fallbacks are unusable on CI (no vendored binary, 404 release
+      # download, source-compile fallback with ignored exit codes). Keep
+      # DUCKDB_VERSION in sync with crates/frozen-duckdb-builder/src/lib.rs.
+      - name: Provision DuckDB library (pre-seed builder cache)
+        run: |
+          set -euo pipefail
+          DUCKDB_VERSION="1.5.5"
+          ARCH="$(uname -m)"
+          case "$ARCH" in
+            x86_64)  ASSET="libduckdb-linux-amd64.zip"; ARCH_TAG="x86_64" ;;
+            aarch64) ASSET="libduckdb-linux-arm64.zip"; ARCH_TAG="arm64"  ;;
+            *) echo "Unsupported linux arch: $ARCH"; exit 1 ;;
+          esac
+          CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
+          mkdir -p "$CACHE_DIR"
+          TMP="$(mktemp -d)"
+          curl -fL --retry 5 --silent --show-error \
+            "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \
+            -o "$TMP/libduckdb.zip"
+          unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
+          cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          # -lduckdb resolves the plain name; the builder only symlinks
+          # libduckdb.dylib, which the linux linker never searches for.
+          ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
+          test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          rm -rf "$TMP"
 
       - name: Build project
         run: cargo build --verbose

@@ -3,7 +3,7 @@
 use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use num_integer::Integer;
 
-use crate::{
+use crate::duckdb::{
     types::{FromSql, FromSqlError, FromSqlResult, TimeUnit, ToSql, ToSqlOutput, ValueRef},
     Result,
 };
@@ -66,9 +66,13 @@ impl FromSql for NaiveDateTime {
                     TimeUnit::Microsecond => (t / 1_000_000, (t % 1_000_000) * 1000),
                     TimeUnit::Nanosecond => (t / 1_000_000_000, t % 1_000_000_000),
                 };
-                Ok(DateTime::from_timestamp(secs, nsecs as u32).unwrap().naive_utc())
+                Ok(DateTime::from_timestamp(secs, nsecs as u32)
+                    .unwrap()
+                    .naive_utc())
             }
-            ValueRef::Date32(d) => Ok(DateTime::from_timestamp(24 * 3600 * (d as i64), 0).unwrap().naive_utc()),
+            ValueRef::Date32(d) => Ok(DateTime::from_timestamp(24 * 3600 * (d as i64), 0)
+                .unwrap()
+                .naive_utc()),
             ValueRef::Time64(TimeUnit::Microsecond, d) => Ok(DateTime::from_timestamp(
                 d / 1_000_000,
                 ((d % 1_000_000) * 1_000) as u32,
@@ -132,7 +136,11 @@ impl FromSql for DateTime<Local> {
 impl FromSql for Duration {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         match value {
-            ValueRef::Interval { months, days, nanos } => {
+            ValueRef::Interval {
+                months,
+                days,
+                nanos,
+            } => {
                 let days = days + (months * 30);
                 let (additional_seconds, nanos) = nanos.div_mod_floor(&NANOS_PER_SECOND);
                 let seconds = additional_seconds + (i64::from(days) * 24 * 3600);
@@ -145,7 +153,9 @@ impl FromSql for Duration {
                             Err(FromSqlError::Other("Invalid duration".into()))
                         }
                     }
-                    Err(err) => Err(FromSqlError::Other(format!("Invalid duration: {err}").into())),
+                    Err(err) => Err(FromSqlError::Other(
+                        format!("Invalid duration: {err}").into(),
+                    )),
                 }
             }
             _ => Err(FromSqlError::InvalidType),
@@ -173,15 +183,19 @@ impl ToSql for Duration {
 
 #[cfg(test)]
 mod test {
-    use crate::{
+    use crate::duckdb::{
         types::{FromSql, FromSqlError, ToSql, ToSqlOutput, ValueRef},
         Connection, Result,
     };
-    use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, TimeZone, Utc};
+    use chrono::{
+        DateTime, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, TimeZone, Utc,
+    };
 
     fn checked_memory_handle() -> Result<Connection> {
         let db = Connection::open_in_memory()?;
-        db.execute_batch("CREATE TABLE foo (d DATE, t Text, i INTEGER, f FLOAT, b TIMESTAMP, tt time)")?;
+        db.execute_batch(
+            "CREATE TABLE foo (d DATE, t Text, i INTEGER, f FLOAT, b TIMESTAMP, tt time)",
+        )?;
         Ok(db)
     }
 
@@ -250,13 +264,15 @@ mod test {
         let v1: DateTime<Utc> = db.query_row("SELECT b FROM foo", [], |r| r.get(0))?;
         assert_eq!(utc, v1);
 
-        let v2: DateTime<Utc> = db.query_row("SELECT '2016-02-23 23:56:04.789'", [], |r| r.get(0))?;
+        let v2: DateTime<Utc> =
+            db.query_row("SELECT '2016-02-23 23:56:04.789'", [], |r| r.get(0))?;
         assert_eq!(utc, v2);
 
         let v3: DateTime<Utc> = db.query_row("SELECT '2016-02-23 23:56:04'", [], |r| r.get(0))?;
         assert_eq!(utc - Duration::try_milliseconds(789).unwrap(), v3);
 
-        let v4: DateTime<Utc> = db.query_row("SELECT '2016-02-23 23:56:04.789+00:00'", [], |r| r.get(0))?;
+        let v4: DateTime<Utc> =
+            db.query_row("SELECT '2016-02-23 23:56:04.789+00:00'", [], |r| r.get(0))?;
         assert_eq!(utc, v4);
         Ok(())
     }
@@ -301,7 +317,10 @@ mod test {
         db.execute("INSERT INTO foo (b) VALUES (?)", [local])?;
 
         let s: String = db.query_row("SELECT b FROM foo", [], |r| r.get(0))?;
-        assert_eq!(DateTime::<Utc>::from(local).format("%F %T%.f").to_string(), s);
+        assert_eq!(
+            DateTime::<Utc>::from(local).format("%F %T%.f").to_string(),
+            s
+        );
 
         let v: DateTime<Local> = db.query_row("SELECT b FROM foo", [], |r| r.get(0))?;
         assert_eq!(local, v);
@@ -313,9 +332,11 @@ mod test {
         let db = checked_memory_handle()?;
         let result: Result<NaiveDate> = db.query_row("SELECT CURRENT_DATE", [], |r| r.get(0));
         assert!(result.is_ok());
-        let result: Result<NaiveDateTime> = db.query_row("SELECT CURRENT_TIMESTAMP", [], |r| r.get(0));
+        let result: Result<NaiveDateTime> =
+            db.query_row("SELECT CURRENT_TIMESTAMP", [], |r| r.get(0));
         assert!(result.is_ok());
-        let result: Result<DateTime<Utc>> = db.query_row("SELECT CURRENT_TIMESTAMP", [], |r| r.get(0));
+        let result: Result<DateTime<Utc>> =
+            db.query_row("SELECT CURRENT_TIMESTAMP", [], |r| r.get(0));
         assert!(result.is_ok());
         let result: Result<NaiveTime> = db.query_row("SELECT CURRENT_TIME", [], |r| r.get(0));
         assert!(result.is_ok());
@@ -325,7 +346,8 @@ mod test {
     #[test]
     fn test_naive_date_time_param() -> Result<()> {
         let db = checked_memory_handle()?;
-        let fixed_time = NaiveDateTime::parse_from_str("2023-01-01 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let fixed_time =
+            NaiveDateTime::parse_from_str("2023-01-01 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
         let result: Result<bool> = db.query_row(
             "SELECT 1 WHERE ?::TIMESTAMP BETWEEN (TIMESTAMP '2023-01-01 11:59:00') AND (TIMESTAMP '2023-01-01 12:01:00')",
             [fixed_time],

@@ -2,7 +2,7 @@
 
 use std::ops::Deref;
 
-use crate::{
+use crate::duckdb::{
     error::Error,
     ffi,
     types::{ToSql, ToSqlOutput, ValueRef},
@@ -18,7 +18,11 @@ impl Sql {
         Self { buf: String::new() }
     }
 
-    pub fn push_pragma(&mut self, schema_name: Option<DatabaseName<'_>>, pragma_name: &str) -> Result<()> {
+    pub fn push_pragma(
+        &mut self,
+        schema_name: Option<DatabaseName<'_>>,
+        pragma_name: &str,
+    ) -> Result<()> {
         self.push_keyword("PRAGMA")?;
         self.push_space();
         if let Some(schema_name) = schema_name {
@@ -146,7 +150,12 @@ impl Connection {
     ///
     /// Some pragmas will return multiple rows/values which cannot be retrieved
     /// with this method.
-    pub fn pragma_query_value<T, F>(&self, schema_name: Option<DatabaseName<'_>>, pragma_name: &str, f: F) -> Result<T>
+    pub fn pragma_query_value<T, F>(
+        &self,
+        schema_name: Option<DatabaseName<'_>>,
+        pragma_name: &str,
+        f: F,
+    ) -> Result<T>
     where
         F: FnOnce(&Row<'_>) -> Result<T>,
     {
@@ -156,7 +165,12 @@ impl Connection {
     }
 
     /// Query the current rows/values of `pragma_name`.
-    pub fn pragma_query<F>(&self, schema_name: Option<DatabaseName<'_>>, pragma_name: &str, mut f: F) -> Result<()>
+    pub fn pragma_query<F>(
+        &self,
+        schema_name: Option<DatabaseName<'_>>,
+        pragma_name: &str,
+        mut f: F,
+    ) -> Result<()>
     where
         F: FnMut(&Row<'_>) -> Result<()>,
     {
@@ -271,7 +285,7 @@ fn is_identifier_continue(c: char) -> bool {
 #[cfg(test)]
 mod test {
     use super::Sql;
-    use crate::{pragma, Connection, DatabaseName, Result};
+    use crate::duckdb::{pragma, Connection, DatabaseName, Result};
 
     #[test]
     fn pragma_query_value() -> Result<()> {
@@ -315,7 +329,7 @@ mod test {
     fn test_pragma_update_and_check() -> Result<()> {
         let db = Connection::open_in_memory()?;
         let res = db.pragma_update_and_check(None, "explain_output", &"OPTIMIZED_ONLY", |_| Ok(()));
-        assert_eq!(res.unwrap_err(), crate::Error::QueryReturnedNoRows);
+        assert_eq!(res.unwrap_err(), crate::duckdb::Error::QueryReturnedNoRows);
         Ok(())
     }
 

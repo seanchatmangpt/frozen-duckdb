@@ -1,5 +1,5 @@
 use super::{Null, TimeUnit, Value, ValueRef};
-use crate::Result;
+use crate::duckdb::Result;
 use std::borrow::Cow;
 
 /// `ToSqlOutput` represents the possible output types for implementers of the
@@ -203,7 +203,7 @@ impl<T: ToSql> ToSql for Option<T> {
 }
 
 impl ToSql for std::time::Duration {
-    fn to_sql(&self) -> crate::Result<ToSqlOutput<'_>> {
+    fn to_sql(&self) -> crate::duckdb::Result<ToSqlOutput<'_>> {
         Ok(ToSqlOutput::Owned(Value::Timestamp(
             TimeUnit::Microsecond,
             self.as_micros() as i64,
@@ -308,23 +308,25 @@ mod test {
 
     // Use gen_random_uuid() to generate uuid
     #[test]
-    fn test_uuid_gen() -> crate::Result<()> {
-        use crate::Connection;
+    fn test_uuid_gen() -> crate::duckdb::Result<()> {
+        use crate::duckdb::Connection;
 
         let db = Connection::open_in_memory()?;
         db.execute_batch("CREATE TABLE foo (id uuid NOT NULL);")?;
 
         db.execute("INSERT INTO foo (id) VALUES (gen_random_uuid())", [])?;
 
-        let found_id: String = db.prepare("SELECT id FROM foo")?.query_one([], |r| r.get(0))?;
+        let found_id: String = db
+            .prepare("SELECT id FROM foo")?
+            .query_one([], |r| r.get(0))?;
         assert_eq!(found_id.len(), 36);
         Ok(())
     }
 
     #[cfg(feature = "uuid")]
     #[test]
-    fn test_uuid_blob_type() -> crate::Result<()> {
-        use crate::{params, Connection};
+    fn test_uuid_blob_type() -> crate::duckdb::Result<()> {
+        use crate::duckdb::{params, Connection};
         use uuid::Uuid;
 
         let db = Connection::open_in_memory()?;
@@ -332,7 +334,10 @@ mod test {
 
         let id = Uuid::new_v4();
         let id_vec = id.as_bytes().to_vec();
-        db.execute("INSERT INTO foo (id, label) VALUES (?, ?)", params![id_vec, "target"])?;
+        db.execute(
+            "INSERT INTO foo (id, label) VALUES (?, ?)",
+            params![id_vec, "target"],
+        )?;
 
         let (found_id, found_label): (Uuid, String) = db
             .prepare("SELECT id, label FROM foo WHERE id = ?")?
@@ -344,15 +349,18 @@ mod test {
 
     #[cfg(feature = "uuid")]
     #[test]
-    fn test_uuid_type() -> crate::Result<()> {
-        use crate::{params, Connection};
+    fn test_uuid_type() -> crate::duckdb::Result<()> {
+        use crate::duckdb::{params, Connection};
         use uuid::Uuid;
 
         let db = Connection::open_in_memory()?;
         db.execute_batch("CREATE TABLE foo (id uuid, label TEXT);")?;
 
         let id = Uuid::new_v4();
-        db.execute("INSERT INTO foo (id, label) VALUES (?, ?)", params![id, "target"])?;
+        db.execute(
+            "INSERT INTO foo (id, label) VALUES (?, ?)",
+            params![id, "target"],
+        )?;
 
         let (found_id, found_label): (Uuid, String) = db
             .prepare("SELECT id, label FROM foo WHERE id = ?")?

@@ -2,9 +2,17 @@
 //!
 //! These tests validate analytical capabilities using DuckDB's SQL engine
 //! for Polars-like dataframe operations on Chinook-like datasets.
+//!
+// UNSUPPORTED(polars dev-dep not carried; see ticket History): the ported
+// frozen-duckdb crate carries no `polars` feature or dependency, so this whole
+// file is compile-gated behind `feature = "polars"` and contributes no test
+// target under the default feature set. Do NOT add a polars dependency here.
+
+#![allow(unexpected_cfgs)] // gate references a feature the crate intentionally does not declare
+#![cfg(feature = "polars")]
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use std::time::Instant;
 use tracing::info;
 

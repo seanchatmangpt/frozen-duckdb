@@ -5,8 +5,8 @@
 //! It maintains an in-memory DuckDB connection for efficient data
 //! processing operations.
 
+use crate::duckdb::Connection;
 use anyhow::{Context, Result};
-use duckdb::Connection;
 use std::fs;
 use std::path::Path;
 use tracing::{info, warn};

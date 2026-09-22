@@ -10,7 +10,13 @@ readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
-description = "Pre-compiled DuckDB binary for fast Rust builds - Drop-in replacement for duckdb-rs"
+description = "Drop-in replacement for the duckdb (duckdb-rs) crate: same API, backed by pre-compiled DuckDB binaries for fast Rust builds"
+
+[lib]
+# Vendored duckdb-rs doc examples are illustrative pseudo-code written for the
+# upstream `duckdb` crate name (and `?` without a Result main); they are not
+# runnable doctests in this fork. Unit/integration tests remain the gate.
+doctest = false
 
 [[bin]]
 name = "frozen-duckdb-cli"
@@ -26,8 +32,21 @@ tracing-subscriber.workspace = true
 tempfile.workspace = true
 reqwest.workspace = true
 
+# Dependencies carried over from the vendored duckdb-rs API layer
+arrow = { version = "56", default-features = false, features = ["ffi", "prettyprint"] }
+cast = "0.3"
+fallible-iterator = "0.3"
+fallible-streaming-iterator = "0.1"
+hashlink = "0.10"
+rust_decimal = "1.14"
+strum = { version = "0.27", features = ["derive"] }
+
 # Use our FFI crate instead of duckdb-rs
-frozen-duckdb-sys = { path = "../frozen-duckdb-sys" }
+frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "1.5.5" }
+
+[dev-dependencies]
+# Used by vendored cfg(test) modules ported from duckdb-rs (do not churn)
+pretty_assertions = "1"
 
 [[example]]
 name = "dropin_replacement"

@@ -9,7 +9,7 @@
 //! Based on: https://duckdb.org/docs/stable/core_extensions/vss.html
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use std::time::Instant;
 use tracing::{info, warn};
 
@@ -139,7 +139,7 @@ fn test_vector_data_preparation() -> Result<()> {
         );
         conn.execute(
             "INSERT INTO embeddings VALUES (?, ?, ?)",
-            duckdb::params![i, vector_str, format!("label_{}", i)],
+            frozen_duckdb::params![i, vector_str, format!("label_{}", i)],
         )?;
     }
 
@@ -304,7 +304,7 @@ fn test_vector_operations_variations() -> Result<()> {
         );
         conn.execute(
             "INSERT INTO documents VALUES (?, ?, ?, ?)",
-            duckdb::params![id, title, embedding_str, doc_type],
+            frozen_duckdb::params![id, title, embedding_str, doc_type],
         )?;
     }
 
@@ -376,7 +376,7 @@ fn test_vector_performance() -> Result<()> {
 
         conn.execute(
             "INSERT INTO large_vectors VALUES (?, ?, ?)",
-            duckdb::params![i, vector_str, category],
+            frozen_duckdb::params![i, vector_str, category],
         )?;
     }
     let insert_time = start.elapsed();

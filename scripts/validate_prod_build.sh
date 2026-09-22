@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# STATUS (TR6 2026-09-21): KEPT-UNCERTAIN. Release-time consumer-flow validation: builds a
+# scratch project against the crates.io-PUBLISHED frozen-duckdb, not this tree; `cargo add` is
+# unpinned but CRATE_VERSION="0.1.0" below is stale (real line is 1.x) -> the version check
+# prints a mismatch warning. Interactive cleanup prompt at the end; creates
+# ../frozen-duckdb-validation OUTSIDE the repo. Not executed this session (inspection is not
+# execution) — re-verify at TR8 release.
 # Validate Production Build Script
 # Creates a new Rust project and validates frozen-duckdb from crates.io
 

@@ -2,7 +2,7 @@ use std::str;
 
 use arrow::datatypes::DataType;
 
-use crate::{Error, Result, Statement};
+use crate::duckdb::{Error, Result, Statement};
 
 /// Information about a column of a DuckDB query.
 #[derive(Debug)]
@@ -32,15 +32,17 @@ impl Statement<'_> {
     /// sure that current statement has already been stepped once before
     /// calling this method.
     ///
-    /// # Caveats
-    /// Panics if the query has not been [`execute`](Statement::execute)d yet.
-    pub fn column_names(&self) -> Vec<String> {
-        self.stmt
-            .schema()
+    /// # Failure
+    ///
+    /// Returns an `Error::StatementNotExecuted` if the query has not been
+    /// [`execute`](Statement::execute)d yet.
+    pub fn column_names(&self) -> Result<Vec<String>> {
+        let schema = self.stmt.try_schema().ok_or(Error::StatementNotExecuted)?;
+        Ok(schema
             .fields()
             .iter()
             .map(|f| f.name().to_owned())
-            .collect()
+            .collect())
     }
 
     /// Return the number of columns in the result set returned by the prepared
@@ -120,7 +122,9 @@ impl Statement<'_> {
     /// or when column name is not valid UTF-8.
     #[inline]
     pub fn column_name(&self, col: usize) -> Result<&String> {
-        self.stmt.column_name(col).ok_or(Error::InvalidColumnIndex(col))
+        self.stmt
+            .column_name(col)
+            .ok_or(Error::InvalidColumnIndex(col))
     }
 
     /// Returns the column index in the result set for a given column name.
@@ -164,11 +168,11 @@ impl Statement<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
 
     #[test]
     fn test_column_name_in_error() -> Result<()> {
-        use crate::{types::Type, Error};
+        use crate::duckdb::{types::Type, Error};
         let db = Connection::open_in_memory()?;
         db.execute_batch(
             "BEGIN;

@@ -69,7 +69,7 @@ fastrand = "2"
 
 # Use prebuilt DuckDB - no compilation needed!
 # This uses the frozen binary created by build_frozen_duckdb.sh
-duckdb = { version = "1.4.0", default-features = false, features = [
+duckdb = { version = "1.10505.0", default-features = false, features = [
     "json",
     "parquet",
     "appender-arrow",

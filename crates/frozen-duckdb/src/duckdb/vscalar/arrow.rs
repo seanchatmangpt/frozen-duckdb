@@ -5,9 +5,11 @@ use arrow::{
     datatypes::DataType,
 };
 
-use crate::{
+use crate::duckdb::{
     core::DataChunkHandle,
-    vtab::arrow::{data_chunk_to_arrow, to_duckdb_logical_type, write_arrow_array_to_vector, WritableVector},
+    vtab::arrow::{
+        data_chunk_to_arrow, to_duckdb_logical_type, write_arrow_array_to_vector, WritableVector,
+    },
 };
 
 use super::{ScalarFunctionSignature, ScalarParams, VScalar};
@@ -78,7 +80,10 @@ pub trait VArrowScalar: Sized {
     type State: Default + Sized + Send + Sync;
 
     /// The actual function that is called by DuckDB
-    fn invoke(info: &Self::State, input: RecordBatch) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>>;
+    fn invoke(
+        info: &Self::State,
+        input: RecordBatch,
+    ) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>>;
 
     /// The possible signatures of the scalar function. These will result in DuckDB scalar function overloads.
     /// The invoke method should be able to handle all of these signatures.
@@ -105,7 +110,8 @@ where
             .into_iter()
             .map(|sig| ScalarFunctionSignature {
                 parameters: sig.parameters.map(Into::into),
-                return_type: to_duckdb_logical_type(&sig.return_type).expect("type should be converted"),
+                return_type: to_duckdb_logical_type(&sig.return_type)
+                    .expect("type should be converted"),
             })
             .collect()
     }
@@ -121,7 +127,7 @@ mod test {
         datatypes::DataType,
     };
 
-    use crate::{vscalar::arrow::ArrowFunctionSignature, Connection};
+    use crate::duckdb::{vscalar::arrow::ArrowFunctionSignature, Connection};
 
     use super::VArrowScalar;
 
@@ -130,14 +136,27 @@ mod test {
     impl VArrowScalar for HelloScalarArrow {
         type State = ();
 
-        fn invoke(_: &Self::State, input: RecordBatch) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
-            let name = input.column(0).as_any().downcast_ref::<StringArray>().unwrap();
-            let result = name.iter().map(|v| format!("Hello {}", v.unwrap())).collect::<Vec<_>>();
+        fn invoke(
+            _: &Self::State,
+            input: RecordBatch,
+        ) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
+            let name = input
+                .column(0)
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
+            let result = name
+                .iter()
+                .map(|v| format!("Hello {}", v.unwrap()))
+                .collect::<Vec<_>>();
             Ok(Arc::new(StringArray::from(result)))
         }
 
         fn signatures() -> Vec<ArrowFunctionSignature> {
-            vec![ArrowFunctionSignature::exact(vec![DataType::Utf8], DataType::Utf8)]
+            vec![ArrowFunctionSignature::exact(
+                vec![DataType::Utf8],
+                DataType::Utf8,
+            )]
         }
     }
 
@@ -165,7 +184,10 @@ mod test {
     impl VArrowScalar for ArrowMultiplyScalar {
         type State = MockState;
 
-        fn invoke(_: &Self::State, input: RecordBatch) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
+        fn invoke(
+            _: &Self::State,
+            input: RecordBatch,
+        ) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
             let a = input
                 .column(0)
                 .as_any()
@@ -200,7 +222,10 @@ mod test {
     impl VArrowScalar for ArrowOverloaded {
         type State = MockState;
 
-        fn invoke(s: &Self::State, input: RecordBatch) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
+        fn invoke(
+            s: &Self::State,
+            input: RecordBatch,
+        ) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
             assert_eq!("some meta", s.info);
 
             let a = input.column(0);
@@ -222,7 +247,10 @@ mod test {
                         .iter()
                         .map(|v| v.unwrap())
                         .collect::<Vec<_>>();
-                    a.iter().zip(b.iter()).map(|(a, b)| a * b).collect::<Vec<_>>()
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(a, b)| a * b)
+                        .collect::<Vec<_>>()
                 }
                 DataType::Float32 => {
                     let a = a
@@ -239,7 +267,10 @@ mod test {
                         .iter()
                         .map(|v| v.unwrap())
                         .collect::<Vec<_>>();
-                    a.iter().zip(b.iter()).map(|(a, b)| a * b).collect::<Vec<_>>()
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(a, b)| a * b)
+                        .collect::<Vec<_>>()
                 }
                 _ => panic!("unsupported type"),
             };
@@ -249,8 +280,14 @@ mod test {
 
         fn signatures() -> Vec<ArrowFunctionSignature> {
             vec![
-                ArrowFunctionSignature::exact(vec![DataType::Utf8, DataType::Float32], DataType::Float32),
-                ArrowFunctionSignature::exact(vec![DataType::Float32, DataType::Float32], DataType::Float32),
+                ArrowFunctionSignature::exact(
+                    vec![DataType::Utf8, DataType::Float32],
+                    DataType::Float32,
+                ),
+                ArrowFunctionSignature::exact(
+                    vec![DataType::Float32, DataType::Float32],
+                    DataType::Float32,
+                ),
             ]
         }
     }
@@ -267,7 +304,10 @@ mod test {
 
         for batch in batches.iter() {
             let array = batch.column(0);
-            let array = array.as_any().downcast_ref::<::arrow::array::StringArray>().unwrap();
+            let array = array
+                .as_any()
+                .downcast_ref::<::arrow::array::StringArray>()
+                .unwrap();
             for i in 0..array.len() {
                 assert_eq!(array.value(i), format!("Hello foo"));
             }
@@ -288,7 +328,10 @@ mod test {
 
         for batch in batches.iter() {
             let array = batch.column(0);
-            let array = array.as_any().downcast_ref::<::arrow::array::Float32Array>().unwrap();
+            let array = array
+                .as_any()
+                .downcast_ref::<::arrow::array::Float32Array>()
+                .unwrap();
             for i in 0..array.len() {
                 assert_eq!(array.value(i), 6.0);
             }
@@ -308,7 +351,10 @@ mod test {
 
         for batch in batches.iter() {
             let array = batch.column(0);
-            let array = array.as_any().downcast_ref::<::arrow::array::Float32Array>().unwrap();
+            let array = array
+                .as_any()
+                .downcast_ref::<::arrow::array::Float32Array>()
+                .unwrap();
             for i in 0..array.len() {
                 assert_eq!(array.value(i), 15.0);
             }
@@ -321,7 +367,10 @@ mod test {
 
         for batch in batches.iter() {
             let array = batch.column(0);
-            let array = array.as_any().downcast_ref::<::arrow::array::Float32Array>().unwrap();
+            let array = array
+                .as_any()
+                .downcast_ref::<::arrow::array::Float32Array>()
+                .unwrap();
             for i in 0..array.len() {
                 assert_eq!(array.value(i), 120.0);
             }
@@ -337,13 +386,19 @@ mod test {
         impl VArrowScalar for SplitFunction {
             type State = ();
 
-            fn invoke(_: &Self::State, input: RecordBatch) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
-                let strings = input.column(0).as_any().downcast_ref::<StringArray>().unwrap();
+            fn invoke(
+                _: &Self::State,
+                input: RecordBatch,
+            ) -> Result<Arc<dyn Array>, Box<dyn std::error::Error>> {
+                let strings = input
+                    .column(0)
+                    .as_any()
+                    .downcast_ref::<StringArray>()
+                    .unwrap();
 
-                let mut builder = arrow::array::ListBuilder::new(arrow::array::StringBuilder::with_capacity(
-                    strings.len(),
-                    strings.len() * 10,
-                ));
+                let mut builder = arrow::array::ListBuilder::new(
+                    arrow::array::StringBuilder::with_capacity(strings.len(), strings.len() * 10),
+                );
 
                 for s in strings.iter() {
                     let s = s.unwrap();
@@ -359,7 +414,11 @@ mod test {
             fn signatures() -> Vec<ArrowFunctionSignature> {
                 vec![ArrowFunctionSignature::exact(
                     vec![DataType::Utf8],
-                    DataType::List(Arc::new(arrow::datatypes::Field::new("item", DataType::Utf8, true))),
+                    DataType::List(Arc::new(arrow::datatypes::Field::new(
+                        "item",
+                        DataType::Utf8,
+                        true,
+                    ))),
                 )]
             }
         }
@@ -374,7 +433,10 @@ mod test {
             .collect::<Vec<_>>();
 
         let array = batches[0].column(0);
-        let list_array = array.as_any().downcast_ref::<arrow::array::ListArray>().unwrap();
+        let list_array = array
+            .as_any()
+            .downcast_ref::<arrow::array::ListArray>()
+            .unwrap();
         let values = list_array.value(0);
         let string_values = values.as_any().downcast_ref::<StringArray>().unwrap();
 

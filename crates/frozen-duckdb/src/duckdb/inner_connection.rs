@@ -7,10 +7,10 @@ use std::{
 };
 
 use super::{ffi, Appender, Config, Connection, Result};
-use crate::{
+use crate::duckdb::{
     error::{
-        result_from_duckdb_appender, result_from_duckdb_arrow, result_from_duckdb_extract, result_from_duckdb_prepare,
-        Error,
+        result_from_duckdb_appender, result_from_duckdb_arrow, result_from_duckdb_extract,
+        result_from_duckdb_prepare, Error,
     },
     raw_statement::RawStatement,
     statement::Statement,
@@ -49,7 +49,8 @@ impl InnerConnection {
         unsafe {
             let mut db: ffi::duckdb_database = ptr::null_mut();
             let mut c_err = std::ptr::null_mut();
-            let r = ffi::duckdb_open_ext(c_path.as_ptr(), &mut db, config.duckdb_config(), &mut c_err);
+            let r =
+                ffi::duckdb_open_ext(c_path.as_ptr(), &mut db, config.duckdb_config(), &mut c_err);
             if r != ffi::DuckDBSuccess {
                 let msg = Some(CStr::from_ptr(c_err).to_string_lossy().to_string());
                 ffi::duckdb_free(c_err as *mut c_void);
@@ -100,8 +101,13 @@ impl InnerConnection {
 
         // Extract statements (handles both single and multi-statement queries)
         let mut extracted = ptr::null_mut();
-        let num_stmts =
-            unsafe { ffi::duckdb_extract_statements(self.con, c_str.as_ptr() as *const c_char, &mut extracted) };
+        let num_stmts = unsafe {
+            ffi::duckdb_extract_statements(
+                self.con,
+                c_str.as_ptr() as *const c_char,
+                &mut extracted,
+            )
+        };
         result_from_duckdb_extract(num_stmts, extracted)?;
 
         // Auto-cleanup on drop
@@ -114,7 +120,9 @@ impl InnerConnection {
 
         // Prepare and return final statement
         let final_stmt = self.prepare_extracted_statement(extracted, num_stmts - 1)?;
-        Ok(Statement::new(conn, unsafe { RawStatement::new(final_stmt) }))
+        Ok(Statement::new(conn, unsafe {
+            RawStatement::new(final_stmt)
+        }))
     }
 
     fn prepare_extracted_statement(
@@ -123,7 +131,9 @@ impl InnerConnection {
         index: ffi::idx_t,
     ) -> Result<ffi::duckdb_prepared_statement> {
         let mut stmt = ptr::null_mut();
-        let res = unsafe { ffi::duckdb_prepare_extracted_statement(self.con, extracted, index, &mut stmt) };
+        let res = unsafe {
+            ffi::duckdb_prepare_extracted_statement(self.con, extracted, index, &mut stmt)
+        };
         result_from_duckdb_prepare(res, stmt)?;
         Ok(stmt)
     }
@@ -160,7 +170,12 @@ impl InnerConnection {
         error.map_or(Ok(()), Err)
     }
 
-    pub fn appender<'a>(&mut self, conn: &'a Connection, table: &str, schema: &str) -> Result<Appender<'a>> {
+    pub fn appender<'a>(
+        &mut self,
+        conn: &'a Connection,
+        table: &str,
+        schema: &str,
+    ) -> Result<Appender<'a>> {
         let mut c_app: ffi::duckdb_appender = ptr::null_mut();
         let c_table = CString::new(table).unwrap();
         let c_schema = CString::new(schema).unwrap();
@@ -219,7 +234,9 @@ unsafe impl Sync for InterruptHandle {}
 
 impl InterruptHandle {
     fn new(conn: ffi::duckdb_connection) -> Self {
-        Self { conn: Mutex::new(conn) }
+        Self {
+            conn: Mutex::new(conn),
+        }
     }
 
     fn clear(&self) {
@@ -231,7 +248,7 @@ impl InterruptHandle {
     /// `Error::DuckDBFailure`. If the connection was dropped after obtaining
     /// this interrupt handle, calling this method results in a noop.
     ///
-    /// See [`crate::Connection::interrupt_handle`] for an example.
+    /// See [`crate::duckdb::Connection::interrupt_handle`] for an example.
     pub fn interrupt(&self) {
         let db_handle = self.conn.lock().unwrap();
 

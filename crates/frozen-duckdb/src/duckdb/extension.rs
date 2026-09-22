@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
 
     // https://duckdb.org/docs/extensions/json
     #[test]

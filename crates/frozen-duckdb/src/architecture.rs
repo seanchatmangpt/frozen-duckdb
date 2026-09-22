@@ -174,6 +174,15 @@ pub fn get_binary_name() -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Mutex, MutexGuard};
+
+    // env::set_var/remove_var mutate process-global state; parallel test
+    // threads race on it otherwise (observed flaky ARCH override failures)
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn lock_env() -> MutexGuard<'static, ()> {
+        ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+    }
     use super::*;
 
     #[test]
@@ -193,6 +202,7 @@ mod tests {
 
     #[test]
     fn test_get_binary_name() {
+        let _env = lock_env();
         let binary_name = get_binary_name();
         assert!(binary_name.starts_with("libduckdb"));
         assert!(binary_name.ends_with(".dylib"));
@@ -200,6 +210,7 @@ mod tests {
 
     #[test]
     fn test_get_binary_name_with_arch_override() {
+        let _env = lock_env();
         // Ensure clean state by removing any existing ARCH variable
         env::remove_var("ARCH");
         env::set_var("ARCH", "x86_64");
@@ -209,6 +220,7 @@ mod tests {
 
     #[test]
     fn test_get_binary_name_with_arm64_override() {
+        let _env = lock_env();
         // Ensure clean state by removing any existing ARCH variable
         env::remove_var("ARCH");
         env::set_var("ARCH", "arm64");

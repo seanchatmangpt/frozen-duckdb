@@ -1,27 +1,28 @@
 # Test Dependency Crate
 
-This crate demonstrates the issue where DuckDB gets compiled every time when using `frozen-duckdb` as a dependency.
+This crate exercises `frozen-duckdb` as a path dependency alongside the upstream
+`duckdb = "1.5"` crate, and demonstrates the difference in setup requirements.
 
 ## Purpose
 
-This test crate simulates the real-world scenario where:
-1. A project depends on `frozen-duckdb`
-2. The dependent crate uses DuckDB functionality
-3. Without proper environment setup, DuckDB compilation occurs in dependent crates
+This test crate simulates two real-world scenarios:
+1. A project depends on `frozen-duckdb` — the bundled builder acquires the prebuilt
+   dylib automatically (no environment needed)
+2. The same project also pulls the upstream `duckdb` crate, which compiles bundled
+   DuckDB from source
+
+Note: since frozen-duckdb 1.5.5, `frozen-duckdb` itself requires **no environment
+setup** — `frozen-duckdb-sys`'s build script runs `ensure_binary()` (GitHub Release
+download, vendored 1.5.5 headers, emitted runtime `@rpath`). The `DUCKDB_LIB_DIR` /
+`DUCKDB_INCLUDE_DIR` checks in the sample program are informational diagnostics for
+the legacy manual-prebuilt workflow, not a build requirement.
 
 ## Usage
 
-### Build without frozen-duckdb environment
+### Build (upstream duckdb compiles from source; frozen-duckdb does not)
 ```bash
 cd ../
-cargo build  # This should trigger DuckDB compilation
-```
-
-### Build with frozen-duckdb environment
-```bash
-cd ../
-source prebuilt/setup_env.sh
-cargo build  # This should use pre-compiled binaries
+cargo build
 ```
 
 ### Run the test application
@@ -31,8 +32,8 @@ cargo run
 
 ## Expected Behavior
 
-- **Without setup**: DuckDB compilation occurs (slow)
-- **With setup**: Uses pre-compiled binaries (fast)
+- **frozen-duckdb dependency**: uses the prebuilt binary (fast, no env vars)
+- **upstream `duckdb` dependency**: compiles bundled DuckDB from source (slow)
 
 ## Testing
 
@@ -40,4 +41,4 @@ cargo run
 cargo test
 ```
 
-This will show whether the environment variables are properly propagated to dependent crates.
+This exercises the frozen-duckdb path-dependency build end to end (binary acquisition, linking, and runtime loading via the emitted `@rpath`).

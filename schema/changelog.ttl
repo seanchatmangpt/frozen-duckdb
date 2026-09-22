@@ -1,0 +1,138 @@
+# frozen-duckdb changelog instance data (consumer-authored per-release facts).
+#
+# Pack contract (packs/castle-changelog-release-pack): this pack ships ZERO
+# rel:Release / rel:ChangeEntry individuals; the consumer authors its own
+# per-release facts in its own repo's instance-data .ttl, wired through its
+# own ggen.toml ([ontology] imports), and unions them against the pack
+# ontology. CHANGELOG.md is rendered from THESE facts by ggen sync — never
+# hand-edit the rendered file; add facts here and re-sync.
+#
+# Source of the v1.5.5 facts: the hand-written CHANGELOG.md entry
+# (帳 debt, paid down 2026-09-21 by this projection). Reconciliations, all
+# fact-preserving:
+#   - "Fixes and hardening (wave 3)" was a consumer-minted seventh category;
+#     the pack's category scheme is CLOSED (six Keep-a-Changelog concepts),
+#     so those six bullets are re-categorized rel:catFixed (they are all
+#     hardening fixes). failed(edge) recorded in docs/sjira/v26.9.21/C7.md.
+#   - The release preamble facts fold into changelog-c1 (the pin-bump entry).
+#   - The "Known limitations" facts fold into changelog-f6 (the Linux /
+#     multi-arch entry), which already carried the planned-.so fact.
+#   - The header convention sentence ("crate version mirrors the bundled
+#     upstream DuckDB version") lives at its lawful home: schema/domain.ttl
+#     fd:duckdbVersionLaw.
+
+@prefix rel:     <http://seanchatmangpt.github.io/packs/changelog-release#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix fd:      <https://seanchatmangpt.github.io/frozen-duckdb/ns#> .
+
+#################################################################
+# Release 1.5.5
+#################################################################
+
+fd:release-v1.5.5 a rel:Release ;
+    rel:version "1.5.5" ;
+    rel:date "2026-09-21"^^xsd:date .
+
+#################################################################
+# Added
+#################################################################
+
+fd:changelog-a1 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 1 ;
+    rel:description "Automatic download of prebuilt DuckDB libraries from GitHub Releases on first build (macOS: `libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`), cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`." .
+
+fd:changelog-a2 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 2 ;
+    rel:description "Local source-compile fallback, cloning upstream DuckDB at the pinned `v1.5.5` tag, when no release asset is available." .
+
+fd:changelog-a3 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 3 ;
+    rel:description "Vendored DuckDB 1.5.5 headers in `frozen-duckdb-builder`, so builds work offline regardless of how the binary was obtained." .
+
+fd:changelog-a4 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 4 ;
+    rel:description "Runtime `@rpath` entry emitted by the `frozen-duckdb` build script (consuming `DEP_DUCKDB_DUCKDB_LIB_DIR` metadata exposed by `frozen-duckdb-sys`), so executables and tests link and run without `DYLD_LIBRARY_PATH` setup." .
+
+#################################################################
+# Changed
+#################################################################
+
+# Folds the hand-written release preamble facts (upstream v1.5.5 released
+# 2026-07-22; crate version tracks the bundled DuckDB release) into the
+# pin-bump entry.
+fd:changelog-c1 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 1 ;
+    rel:description """Bundled DuckDB upgraded from 1.4.0 to upstream v1.5.5 (released 2026-07-22); DuckDB pin bumped across the builder, test harnesses, and CI defaults; workspace version bumped to 1.5.5 for all three crates (`frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`); the crate version now tracks the DuckDB release it bundles.""" .
+
+fd:changelog-c2 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 2 ;
+    rel:description """`test-dependency` now exercises the upstream `duckdb = "1.5"` line alongside the frozen binary.""" .
+
+#################################################################
+# Fixed (includes the six former "Fixes and hardening (wave 3)"
+# bullets, re-categorized into the closed Fixed category)
+#################################################################
+
+fd:changelog-f1 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 1 ;
+    rel:description "CI release assets are now published under the exact names `frozen-duckdb-builder::ensure_binary()` downloads (`libduckdb_{arch}.dylib`), replacing the mismatched legacy `libfrozen_mega_{arch}.dylib` names that forced every user onto the local-compile fallback." .
+
+fd:changelog-f2 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 2 ;
+    rel:description "Bindgen no longer double-includes `duckdb.h` (redefinition errors), and the builder normalizes the cache layout (`duckdb/` headers, plain `libduckdb.dylib` link name) on every binary-acquisition path." .
+
+fd:changelog-f3 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 3 ;
+    rel:description """**CI release-asset rehearsal hardening**: the `v1.5.5` release workflow is rehearsed before the operator cuts the tag — matrix builds set `CMAKE_OSX_ARCHITECTURES` per architecture (honored by the builder's local-compile fallback), and the `ensure_binary()` cache-miss path (release-download miss → pinned local compile) was exercised against the exact asset names and paths the workflow publishes.""" .
+
+fd:changelog-f4 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 4 ;
+    rel:description """**`column_names()` panic fix**: calling `column_names()` before statement execution no longer panics on a schema unwrap — it returns a proper error. Regression tests cover pre-execution, post-execution, and empty-result calls.""" .
+
+fd:changelog-f5 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 5 ;
+    rel:description """**docs.rs build pattern**: `frozen-duckdb-sys` detects the `DOCS_RS` environment variable and generates bindings from the vendored headers while skipping library linking, so documentation builds on docs.rs (Linux, no prebuilt `.so`) succeed without a 30+ minute compile.""" .
+
+# Folds the hand-written "Known limitations" facts (macOS-only universal
+# binaries; Linux/Windows on the local-compile fallback; prebuilt .so
+# planned) into this entry, which already carried the planned-.so fact.
+fd:changelog-f6 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 6 ;
+    rel:description """**Linux / multi-arch builder support**: platform-aware release-asset naming (`.dylib` on macOS, `.so` on Linux), `CMAKE_OSX_ARCHITECTURES` override honored in the local-compile fallback, and a real Linux branch in `setup_env.sh`. Prebuilt `.so` assets are planned for a later tag; the `v1.5.5` tag ships macOS-only universal binaries (arm64 + x86_64 slices); Linux and Windows builds use the pinned local-compile fallback.""" .
+
+fd:changelog-f7 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 7 ;
+    rel:description """**test-validation is a real gate**: the `test-validation` harness now asserts — binary present at the builder's expected path, `duckdb_library_version()` matching the pinned version via FFI, vendored header layout intact — and exits nonzero on any failure, instead of printing decorative checkmarks.""" .
+
+fd:changelog-f8 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 8 ;
+    rel:description """**Repo hygiene**: kcura-era debris removed (dead smoke/CI-gate scripts, stray root test files, empty dataset directories); `HANDWRITTEN.md` ledger seeded.""" .

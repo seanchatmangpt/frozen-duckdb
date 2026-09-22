@@ -27,18 +27,18 @@ The Frozen DuckDB project is designed as a **drop-in replacement** for bundled D
 
 #### 1. Fast Builds Only
 - **Pre-compiled binaries**: No DuckDB compilation during builds
-- **Architecture-specific optimization**: x86_64 (55MB) and arm64 (50MB) binaries
+- **Universal dylibs**: each v1.5.5 release asset contains arm64 + x86_64 slices
 - **Minimal dependencies**: Reduce build complexity and download size
 
 #### 2. Drop-in Compatibility
 - **Zero breaking changes**: Seamless integration with existing projects
-- **Environment-based activation**: Uses `DUCKDB_LIB_DIR` and `DUCKDB_INCLUDE_DIR`
-- **Fallback handling**: Graceful degradation if prebuilt binaries unavailable
+- **Zero configuration**: the builder acquires the binary automatically; `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR` are only used by the legacy prebuilt workflow
+- **Fallback handling**: local compile pinned at upstream tag `v1.5.5` if no release asset is reachable
 
 #### 3. Smart Architecture Detection
-- **Automatic detection**: `uname -m` with manual override via `ARCH` variable
-- **Binary selection**: Appropriate library for current architecture
-- **Compatibility symlinks**: Maintains existing build script compatibility
+- **Automatic detection**: `uname -m` in the builder (`x86_64`, or `arm64`/`aarch64` → `arm64`); the `ARCH` override applies only to `prebuilt/setup_env.sh` and the `architecture` helper module
+- **Binary selection**: appropriate versioned cache path per architecture
+- **Runtime rpath**: the emitted `-Wl,-rpath` entry makes binaries and tests run without `DYLD_*` variables
 
 ## Module Architecture
 
@@ -64,28 +64,29 @@ Commands::Filter {       // LLM-based filtering
 Commands::Summarize {    // Text summarization
 ```
 
-### Build Integration (`build.rs`)
+### Build Integration (`frozen-duckdb-sys/build.rs`)
 
-- **Environment variable detection**: Checks for `DUCKDB_LIB_DIR`
-- **Library linking**: `cargo:rustc-link-lib=dylib=duckdb`
-- **Header inclusion**: `cargo:include=`
-- **Fallback behavior**: Uses bundled compilation if prebuilt unavailable
+- **Binary acquisition**: calls `frozen-duckdb-builder::ensure_binary()` (cache → local prebuilt dir → GitHub Release download → local compile pinned at upstream tag `v1.5.5`)
+- **Library linking**: `cargo:rustc-link-lib=dylib=duckdb` against the cached `libduckdb.dylib` link name
+- **Header inclusion**: bindgen against the builder's headers (vendored 1.5.5 headers copied into the cache `duckdb/` subdir)
+- **Runtime rpath**: `frozen-duckdb`'s build script consumes `DEP_DUCKDB_DUCKDB_LIB_DIR` and emits `-Wl,-rpath,{lib_dir}` for bins/tests/examples
 
 ## Data Flow Architecture
 
 ### Build Time
 ```
-1. Environment Setup
-   ├── Check DUCKDB_LIB_DIR/DUCKDB_INCLUDE_DIR
-   ├── Detect architecture (uname -m or ARCH override)
-   ├── Select appropriate binary (x86_64/arm64)
-   └── Create compatibility symlinks
+1. Binary Acquisition (ensure_binary)
+   ├── Check cache: ~/.frozen-duckdb/cache/v1.5.5-{arch}/libduckdb_{arch}.dylib
+   ├── Else copy local prebuilt/libduckdb_{arch}.dylib if present
+   ├── Else download from GitHub Releases (libduckdb_{arch}.dylib)
+   ├── Else clone upstream DuckDB at tag v1.5.5 and compile
+   └── Normalize cache: duckdb/ headers + plain libduckdb.dylib link name
 
 2. Build Integration
    ├── Set library search paths
-   ├── Link DuckDB library
-   ├── Include headers
-   └── Set rerun triggers
+   ├── Link DuckDB library (dylib)
+   ├── Generate bindings from vendored/cached headers
+   └── Emit runtime @rpath for bins/tests/examples
 ```
 
 ### Runtime
@@ -113,42 +114,34 @@ Commands::Summarize {    // Text summarization
 | **Incremental** | 30 seconds | 0.11 seconds | **99% faster** |
 | **Release** | 1-2 minutes | 0.11 seconds | **99% faster** |
 
-### Architecture-Specific Optimization
+### Universal Binary Distribution
 
-- **x86_64 binary** (55MB): Optimized for Intel/AMD processors
-- **arm64 binary** (50MB): Optimized for Apple Silicon/ARM processors
-- **Universal fallback** (105MB): Generic binary for unsupported architectures
+- **`libduckdb_arm64.dylib`** (~117MB): universal asset (arm64 + x86_64 slices)
+- **`libduckdb_x86_64.dylib`** (~117MB): universal asset (arm64 + x86_64 slices)
+- Either asset runs on Apple Silicon or Intel Macs
 
 ### Memory Usage
-- **Binary size**: 50-55MB per architecture (vs 105MB universal)
+- **Binary size**: ~117MB per cached asset (universal)
 - **Runtime memory**: ~50MB for typical operations
 - **Build memory**: Minimal additional overhead
 
 ## Integration Architecture
 
-### Environment Variables
-```bash
-export DUCKDB_LIB_DIR="/path/to/prebuilt"
-export DUCKDB_INCLUDE_DIR="/path/to/prebuilt"
-export ARCH="x86_64"  # Optional override
-```
+### Zero-Configuration Path (primary)
 
-### Build Script Integration
-```rust
-// build.rs
-if let Ok(lib_dir) = env::var("DUCKDB_LIB_DIR") {
-    println!("cargo:rustc-link-search=native={}", lib_dir);
-    println!("cargo:rustc-link-lib=dylib=duckdb");
-    println!("cargo:include={}", lib_dir);
-}
+No environment variables needed — `cargo build` triggers `frozen-duckdb-builder::ensure_binary()`, the cache is normalized (headers under `duckdb/`, plain `libduckdb.dylib` link name), and the emitted runtime `@rpath` loads the dylib at run time.
+
+### Legacy Environment Variables (manual prebuilt workflow)
+
+```bash
+source prebuilt/setup_env.sh   # sets DUCKDB_LIB_DIR / DUCKDB_INCLUDE_DIR, ARCH-overridable
 ```
 
 ### CI/CD Integration
 ```yaml
-- name: Setup frozen DuckDB
-  run: |
-    source frozen-duckdb/prebuilt/setup_env.sh
-    echo "DUCKDB_LIB_DIR=$DUCKDB_LIB_DIR" >> $GITHUB_ENV
+# Zero setup: the builder downloads and caches the dylib on first build
+- name: Build
+  run: cargo build --release
 ```
 
 ## Security Architecture

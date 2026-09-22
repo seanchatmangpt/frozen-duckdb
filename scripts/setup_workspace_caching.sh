@@ -44,7 +44,7 @@ tempfile = "3"
 reqwest = { version = "0.11", features = ["blocking"] }
 
 # Heavy dependencies - these will be pre-built and cached
-duckdb = { version = "1.4.0", features = ["json", "parquet", "appender-arrow", "extensions-full", "modern-full"] }
+duckdb = { version = "1.10505.0", features = ["json", "parquet", "appender-arrow", "extensions-full", "modern-full"] }
 arrow = "56"
 polars = "0.49"
 icu = "2.0"

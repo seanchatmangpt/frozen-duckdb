@@ -1,13 +1,15 @@
 use super::{
     ffi::{
         duckdb_bind_add_result_column, duckdb_bind_get_extra_info, duckdb_bind_get_named_parameter,
-        duckdb_bind_get_parameter, duckdb_bind_get_parameter_count, duckdb_bind_info, duckdb_bind_set_bind_data,
-        duckdb_bind_set_cardinality, duckdb_bind_set_error, duckdb_create_table_function, duckdb_data_chunk,
-        duckdb_delete_callback_t, duckdb_destroy_table_function, duckdb_table_function,
-        duckdb_table_function_add_named_parameter, duckdb_table_function_add_parameter, duckdb_table_function_init_t,
-        duckdb_table_function_set_bind, duckdb_table_function_set_extra_info, duckdb_table_function_set_function,
-        duckdb_table_function_set_init, duckdb_table_function_set_local_init, duckdb_table_function_set_name,
-        duckdb_table_function_supports_projection_pushdown, idx_t,
+        duckdb_bind_get_parameter, duckdb_bind_get_parameter_count, duckdb_bind_info,
+        duckdb_bind_set_bind_data, duckdb_bind_set_cardinality, duckdb_bind_set_error,
+        duckdb_create_table_function, duckdb_data_chunk, duckdb_delete_callback_t,
+        duckdb_destroy_table_function, duckdb_table_function,
+        duckdb_table_function_add_named_parameter, duckdb_table_function_add_parameter,
+        duckdb_table_function_init_t, duckdb_table_function_set_bind,
+        duckdb_table_function_set_extra_info, duckdb_table_function_set_function,
+        duckdb_table_function_set_init, duckdb_table_function_set_local_init,
+        duckdb_table_function_set_name, duckdb_table_function_supports_projection_pushdown, idx_t,
     },
     LogicalTypeHandle, VTab, Value,
 };
@@ -33,7 +35,11 @@ impl BindInfo {
     pub fn add_result_column(&self, column_name: &str, column_type: LogicalTypeHandle) {
         let c_str = CString::new(column_name).unwrap();
         unsafe {
-            duckdb_bind_add_result_column(self.ptr, c_str.as_ptr() as *const c_char, column_type.ptr);
+            duckdb_bind_add_result_column(
+                self.ptr,
+                c_str.as_ptr() as *const c_char,
+                column_type.ptr,
+            );
         }
     }
     /// Report that an error has occurred while calling bind.
@@ -54,7 +60,11 @@ impl BindInfo {
     ///
     /// # Safety
     ///
-    pub unsafe fn set_bind_data(&self, data: *mut c_void, free_function: Option<unsafe extern "C" fn(*mut c_void)>) {
+    pub unsafe fn set_bind_data(
+        &self,
+        data: *mut c_void,
+        free_function: Option<unsafe extern "C" fn(*mut c_void)>,
+    ) {
         duckdb_bind_set_bind_data(self.ptr, data, free_function);
     }
     /// Retrieves the number of regular (non-named) parameters to the function.
@@ -123,8 +133,9 @@ impl From<duckdb_bind_info> for BindInfo {
 }
 
 use super::ffi::{
-    duckdb_init_get_bind_data, duckdb_init_get_column_count, duckdb_init_get_column_index, duckdb_init_get_extra_info,
-    duckdb_init_info, duckdb_init_set_error, duckdb_init_set_init_data, duckdb_init_set_max_threads,
+    duckdb_init_get_bind_data, duckdb_init_get_column_count, duckdb_init_get_column_index,
+    duckdb_init_get_extra_info, duckdb_init_info, duckdb_init_set_error, duckdb_init_set_init_data,
+    duckdb_init_set_max_threads,
 };
 
 /// An interface to store and retrieve data during the function init stage
@@ -139,7 +150,11 @@ impl From<duckdb_init_info> for InitInfo {
 
 impl InitInfo {
     /// # Safety
-    pub unsafe fn set_init_data(&self, data: *mut c_void, freeer: Option<unsafe extern "C" fn(*mut c_void)>) {
+    pub unsafe fn set_init_data(
+        &self,
+        data: *mut c_void,
+        freeer: Option<unsafe extern "C" fn(*mut c_void)>,
+    ) {
         unsafe {
             duckdb_init_set_init_data(self.0, data, freeer);
         }
@@ -312,7 +327,11 @@ impl TableFunction {
     /// * `destroy`: The callback that will be called to destroy the bind data (if any)
     ///
     /// # Safety
-    pub unsafe fn set_extra_info(&self, extra_info: *mut c_void, destroy: duckdb_delete_callback_t) {
+    pub unsafe fn set_extra_info(
+        &self,
+        extra_info: *mut c_void,
+        destroy: duckdb_delete_callback_t,
+    ) {
         unsafe {
             duckdb_table_function_set_extra_info(self.ptr, extra_info, destroy);
         }

@@ -8,8 +8,8 @@ use arrow::{
 
 use super::{ffi, Result};
 #[cfg(feature = "polars")]
-use crate::arrow2;
-use crate::{error::result_from_duckdb_arrow, Error};
+use crate::duckdb::arrow2;
+use crate::duckdb::{error::result_from_duckdb_arrow, Error};
 
 // Private newtype for raw sqlite3_stmts that finalize themselves when dropped.
 // TODO: destroy statement and result
@@ -155,7 +155,8 @@ impl RawStatement {
 
             if ffi::duckdb_query_arrow_array(
                 self.result_unwrap(),
-                &mut std::ptr::addr_of_mut!(ffi_arrow2_array) as *mut _ as *mut ffi::duckdb_arrow_array,
+                &mut std::ptr::addr_of_mut!(ffi_arrow2_array) as *mut _
+                    as *mut ffi::duckdb_arrow_array,
             )
             .ne(&ffi::DuckDBSuccess)
             {
@@ -166,16 +167,18 @@ impl RawStatement {
 
             if ffi::duckdb_query_arrow_schema(
                 self.result_unwrap(),
-                &mut std::ptr::addr_of_mut!(ffi_arrow2_schema) as *mut _ as *mut ffi::duckdb_arrow_schema,
+                &mut std::ptr::addr_of_mut!(ffi_arrow2_schema) as *mut _
+                    as *mut ffi::duckdb_arrow_schema,
             )
             .ne(&ffi::DuckDBSuccess)
             {
                 return None;
             }
 
-            let arrow2_field =
-                arrow2::ffi::import_field_from_c(&ffi_arrow2_schema).expect("Failed to import arrow2 Field from C");
-            let import_arrow2_array = arrow2::ffi::import_array_from_c(ffi_arrow2_array, arrow2_field.dtype);
+            let arrow2_field = arrow2::ffi::import_field_from_c(&ffi_arrow2_schema)
+                .expect("Failed to import arrow2 Field from C");
+            let import_arrow2_array =
+                arrow2::ffi::import_array_from_c(ffi_arrow2_array, arrow2_field.dtype);
 
             if let Err(err) = import_arrow2_array {
                 // When array is empty, import_array_from_c returns error with message
@@ -208,6 +211,13 @@ impl RawStatement {
     #[inline]
     pub fn column_type(&self, idx: usize) -> DataType {
         self.schema().field(idx).data_type().to_owned()
+    }
+
+    /// Returns the result schema if the statement has been executed, `None`
+    /// otherwise. Unlike [`schema`](Self::schema), this never panics.
+    #[inline]
+    pub(crate) fn try_schema(&self) -> Option<SchemaRef> {
+        self.schema.clone()
     }
 
     #[inline]
@@ -260,7 +270,10 @@ impl RawStatement {
 
             let rows_changed = ffi::duckdb_arrow_rows_changed(out);
             let mut c_schema = Rc::into_raw(Rc::new(FFI_ArrowSchema::empty()));
-            let rc = ffi::duckdb_query_arrow_schema(out, &mut c_schema as *mut _ as *mut ffi::duckdb_arrow_schema);
+            let rc = ffi::duckdb_query_arrow_schema(
+                out,
+                &mut c_schema as *mut _ as *mut ffi::duckdb_arrow_schema,
+            );
             if rc != ffi::DuckDBSuccess {
                 Rc::from_raw(c_schema);
                 result_from_duckdb_arrow(rc, out)?;

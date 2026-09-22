@@ -62,6 +62,8 @@ impl<'stmt> Iterator for ArrowStream<'stmt> {
     type Item = RecordBatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(RecordBatch::from(&self.stmt?.stream_step(self.get_schema())?))
+        Some(RecordBatch::from(
+            &self.stmt?.stream_step(self.get_schema())?,
+        ))
     }
 }

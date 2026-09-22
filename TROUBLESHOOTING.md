@@ -212,8 +212,8 @@ SELECT llm_complete({'model_name': 'test_coder'}, {'prompt_name': 'hello'});
 ## 📞 Support Information
 
 **Project:** frozen-duckdb
-**Version:** 0.1.0
-**DuckDB Version:** Current installation
+**Version:** 1.5.5
+**DuckDB Version:** 1.5.5 (bundled)
 **Ollama Version:** 0.12.3
 **Models:** qwen3-coder:30b, qwen3-embedding:8b
 

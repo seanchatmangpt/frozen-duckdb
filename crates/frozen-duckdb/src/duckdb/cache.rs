@@ -1,6 +1,6 @@
 //! Prepared statements cache for faster execution.
 
-use crate::{raw_statement::RawStatement, Connection, Result, Statement};
+use crate::duckdb::{raw_statement::RawStatement, Connection, Result, Statement};
 use hashlink::LruCache;
 use std::{
     cell::RefCell,
@@ -136,7 +136,11 @@ impl StatementCache {
     //
     // Will return `Err` if no cached statement can be found and the underlying
     // DuckDB prepare call fails.
-    fn get<'conn>(&'conn self, conn: &'conn Connection, sql: &str) -> Result<CachedStatement<'conn>> {
+    fn get<'conn>(
+        &'conn self,
+        conn: &'conn Connection,
+        sql: &str,
+    ) -> Result<CachedStatement<'conn>> {
         let trimmed = sql.trim();
         let mut cache = self.0.borrow_mut();
         let stmt = match cache.remove(trimmed) {
@@ -176,7 +180,7 @@ impl StatementCache {
 #[cfg(test)]
 mod test {
     use super::StatementCache;
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
     use fallible_iterator::FallibleIterator;
 
     impl StatementCache {

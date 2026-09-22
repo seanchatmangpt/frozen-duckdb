@@ -1,4 +1,4 @@
-use crate::{Appender, Result, ToSql};
+use crate::duckdb::{Appender, Result, ToSql};
 
 mod sealed {
     /// This trait exists just to ensure that the only impls of `trait Params`
@@ -31,7 +31,7 @@ use sealed::Sealed;
 /// parameters is known at compile time, this can be done in one of the
 /// following ways:
 ///
-/// - Using the [`duckdb::params!`](crate::params!) macro, e.g.
+/// - Using the [`duckdb::params!`](crate::duckdb::params!) macro, e.g.
 ///   `thing.query(duckdb::params![1, "foo", bar])`. This is mostly useful for
 ///   heterogeneous lists of parameters, or lists where the number of parameters
 ///   exceeds 32.
@@ -266,7 +266,7 @@ impl_for_array_ref!(
 ///
 /// - Etc...
 ///
-/// [limits]: crate::Connection::limit
+/// [limits]: crate::duckdb::Connection::limit
 ///
 /// This complexity reflects the fact that `ParamsFromIter` is mainly intended
 /// for advanced use cases — most of the time you should know how many

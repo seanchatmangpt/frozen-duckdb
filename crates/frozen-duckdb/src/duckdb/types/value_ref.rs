@@ -1,13 +1,13 @@
 use super::{Type, Value};
-use crate::types::{FromSqlError, FromSqlResult, OrderedMap};
+use crate::duckdb::types::{FromSqlError, FromSqlResult, OrderedMap};
 
-use crate::Row;
+use crate::duckdb::Row;
 use rust_decimal::prelude::*;
 
 use arrow::{
     array::{
-        Array, ArrayRef, DictionaryArray, FixedSizeListArray, LargeListArray, ListArray, MapArray, StringArray,
-        StructArray, UnionArray,
+        Array, ArrayRef, DictionaryArray, FixedSizeListArray, LargeListArray, ListArray, MapArray,
+        StringArray, StructArray, UnionArray,
     },
     datatypes::{UInt16Type, UInt32Type, UInt8Type},
 };
@@ -170,17 +170,19 @@ impl ValueRef<'_> {
 
 impl<'a> ValueRef<'a> {
     /// If `self` is case `Text`, returns the string value. Otherwise, returns
-    /// [`Err(Error::InvalidColumnType)`](crate::Error::InvalidColumnType).
+    /// [`Err(Error::InvalidColumnType)`](crate::duckdb::Error::InvalidColumnType).
     #[inline]
     pub fn as_str(&self) -> FromSqlResult<&'a str> {
         match *self {
-            ValueRef::Text(t) => std::str::from_utf8(t).map_err(|e| FromSqlError::Other(Box::new(e))),
+            ValueRef::Text(t) => {
+                std::str::from_utf8(t).map_err(|e| FromSqlError::Other(Box::new(e)))
+            }
             _ => Err(FromSqlError::InvalidType),
         }
     }
 
     /// If `self` is case `Blob`, returns the byte slice. Otherwise, returns
-    /// [`Err(Error::InvalidColumnType)`](crate::Error::InvalidColumnType).
+    /// [`Err(Error::InvalidColumnType)`](crate::duckdb::Error::InvalidColumnType).
     #[inline]
     pub fn as_blob(&self) -> FromSqlResult<&'a [u8]> {
         match *self {
@@ -217,7 +219,15 @@ impl From<ValueRef<'_>> for Value {
             ValueRef::Blob(b) => Self::Blob(b.to_vec()),
             ValueRef::Date32(d) => Self::Date32(d),
             ValueRef::Time64(t, d) => Self::Time64(t, d),
-            ValueRef::Interval { months, days, nanos } => Self::Interval { months, days, nanos },
+            ValueRef::Interval {
+                months,
+                days,
+                nanos,
+            } => Self::Interval {
+                months,
+                days,
+                nanos,
+            },
             ValueRef::List(items, idx) => match items {
                 ListType::Regular(items) => {
                     let offsets = items.offsets();
@@ -348,9 +358,21 @@ impl<'a> From<&'a Value> for ValueRef<'a> {
             Value::Blob(ref b) => ValueRef::Blob(b),
             Value::Date32(d) => ValueRef::Date32(d),
             Value::Time64(t, d) => ValueRef::Time64(t, d),
-            Value::Interval { months, days, nanos } => ValueRef::Interval { months, days, nanos },
+            Value::Interval {
+                months,
+                days,
+                nanos,
+            } => ValueRef::Interval {
+                months,
+                days,
+                nanos,
+            },
             Value::Enum(..) => todo!(),
-            Value::List(..) | Value::Struct(..) | Value::Map(..) | Value::Array(..) | Value::Union(..) => {
+            Value::List(..)
+            | Value::Struct(..)
+            | Value::Map(..)
+            | Value::Array(..)
+            | Value::Union(..) => {
                 unimplemented!()
             }
         }
@@ -372,8 +394,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::types::Type;
-    use crate::{Connection, Result};
+    use crate::duckdb::types::Type;
+    use crate::duckdb::{Connection, Result};
 
     #[test]
     fn test_list_types() -> Result<()> {
@@ -382,7 +404,10 @@ mod tests {
             "CREATE TABLE test_table (float_list FLOAT[], double_list DOUBLE[], int_list INT[])",
             [],
         )?;
-        conn.execute("INSERT INTO test_table VALUES ([1.5, 2.5], [3.5, 4.5], [1, 2])", [])?;
+        conn.execute(
+            "INSERT INTO test_table VALUES ([1.5, 2.5], [3.5, 4.5], [1, 2])",
+            [],
+        )?;
 
         let mut stmt = conn.prepare("SELECT float_list, double_list, int_list FROM test_table")?;
         let mut rows = stmt.query([])?;

@@ -1,19 +1,20 @@
 use super::{BindInfo, DataChunkHandle, InitInfo, LogicalTypeHandle, TableFunctionInfo, VTab};
 use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
-use crate::{
+use crate::duckdb::{
     core::{ArrayVector, FlatVector, Inserter, ListVector, LogicalTypeId, StructVector, Vector},
     types::DuckString,
 };
 
 use arrow::{
     array::{
-        as_boolean_array, as_generic_binary_array, as_large_list_array, as_list_array, as_map_array,
-        as_primitive_array, as_string_array, as_struct_array, Array, ArrayData, AsArray, BinaryArray, BinaryViewArray,
-        BooleanArray, Date32Array, Decimal128Array, FixedSizeBinaryArray, FixedSizeListArray, GenericBinaryBuilder,
-        GenericListArray, GenericStringArray, IntervalMonthDayNanoArray, LargeBinaryArray, LargeStringArray,
-        OffsetSizeTrait, PrimitiveArray, StringArray, StringViewArray, StructArray, TimestampMicrosecondArray,
-        TimestampNanosecondArray,
+        as_boolean_array, as_generic_binary_array, as_large_list_array, as_list_array,
+        as_map_array, as_primitive_array, as_string_array, as_struct_array, Array, ArrayData,
+        AsArray, BinaryArray, BinaryViewArray, BooleanArray, Date32Array, Decimal128Array,
+        FixedSizeBinaryArray, FixedSizeListArray, GenericBinaryBuilder, GenericListArray,
+        GenericStringArray, IntervalMonthDayNanoArray, LargeBinaryArray, LargeStringArray,
+        OffsetSizeTrait, PrimitiveArray, StringArray, StringViewArray, StructArray,
+        TimestampMicrosecondArray, TimestampNanosecondArray,
     },
     buffer::{BooleanBuffer, NullBuffer},
     compute::cast,
@@ -26,7 +27,8 @@ use arrow::{
 };
 
 use frozen_duckdb_sys::{
-    duckdb_date, duckdb_hugeint, duckdb_interval, duckdb_string_t, duckdb_time, duckdb_timestamp, duckdb_vector,
+    duckdb_date, duckdb_hugeint, duckdb_interval, duckdb_string_t, duckdb_time, duckdb_timestamp,
+    duckdb_vector,
 };
 use num::{cast::AsPrimitive, ToPrimitive};
 
@@ -99,7 +101,10 @@ impl VTab for ArrowVTab {
         })
     }
 
-    fn func(func: &TableFunctionInfo<Self>, output: &mut DataChunkHandle) -> Result<(), Box<dyn std::error::Error>> {
+    fn func(
+        func: &TableFunctionInfo<Self>,
+        output: &mut DataChunkHandle,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let init_info = func.get_init_data();
         let bind_info = func.get_bind_data();
 
@@ -108,7 +113,9 @@ impl VTab for ArrowVTab {
         } else {
             let rb = bind_info.rb.lock().unwrap();
             record_batch_to_duckdb_data_chunk(&rb, output)?;
-            init_info.done.store(true, std::sync::atomic::Ordering::Relaxed);
+            init_info
+                .done
+                .store(true, std::sync::atomic::Ordering::Relaxed);
         }
 
         Ok(())
@@ -123,7 +130,9 @@ impl VTab for ArrowVTab {
 }
 
 /// Convert arrow DataType to duckdb type id
-pub fn to_duckdb_type_id(data_type: &DataType) -> Result<LogicalTypeId, Box<dyn std::error::Error>> {
+pub fn to_duckdb_type_id(
+    data_type: &DataType,
+) -> Result<LogicalTypeId, Box<dyn std::error::Error>> {
     use LogicalTypeId::*;
 
     let type_id = match data_type {
@@ -151,7 +160,10 @@ pub fn to_duckdb_type_id(data_type: &DataType) -> Result<LogicalTypeId, Box<dyn 
         DataType::Time64(_) => Time,
         DataType::Duration(_) => Interval,
         DataType::Interval(_) => Interval,
-        DataType::Binary | DataType::LargeBinary | DataType::FixedSizeBinary(_) | DataType::BinaryView => Blob,
+        DataType::Binary
+        | DataType::LargeBinary
+        | DataType::FixedSizeBinary(_)
+        | DataType::BinaryView => Blob,
         DataType::Utf8 | DataType::LargeUtf8 | DataType::Utf8View => Varchar,
         DataType::List(_) | DataType::LargeList(_) | DataType::FixedSizeList(_, _) => List,
         DataType::Struct(_) => Struct,
@@ -184,7 +196,9 @@ impl TryFrom<DataType> for LogicalTypeId {
 }
 
 /// Convert arrow DataType to duckdb logical type
-pub fn to_duckdb_logical_type(data_type: &DataType) -> Result<LogicalTypeHandle, Box<dyn std::error::Error>> {
+pub fn to_duckdb_logical_type(
+    data_type: &DataType,
+) -> Result<LogicalTypeHandle, Box<dyn std::error::Error>> {
     match data_type {
         DataType::Dictionary(_, value_type) => to_duckdb_logical_type(value_type),
         DataType::Struct(fields) => {
@@ -226,7 +240,9 @@ pub fn to_duckdb_logical_type(data_type: &DataType) -> Result<LogicalTypeHandle,
     }
 }
 
-fn arrow_map_to_duckdb_logical_type(field: &FieldRef) -> Result<LogicalTypeHandle, Box<dyn std::error::Error>> {
+fn arrow_map_to_duckdb_logical_type(
+    field: &FieldRef,
+) -> Result<LogicalTypeHandle, Box<dyn std::error::Error>> {
     // Map is a logical nested type that is represented as `List<entries: Struct<key: K, value: V>>`
     let DataType::Struct(ref fields) = field.data_type() else {
         return Err(format!(
@@ -266,12 +282,15 @@ pub fn flat_vector_to_arrow_array(
         LogicalTypeId::Integer => {
             let data = vector.as_slice_with_len::<i32>(len);
 
-            Ok(Arc::new(PrimitiveArray::<Int32Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<Int32Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::Timestamp
         | LogicalTypeId::TimestampMs
@@ -281,9 +300,10 @@ pub fn flat_vector_to_arrow_array(
             let micros = data.iter().map(|duckdb_timestamp { micros }| *micros);
             let structs = TimestampMicrosecondArray::from_iter_values_with_nulls(
                 micros,
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
+                Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                    data.len(),
+                    |row| !vector.row_is_null(row as u64),
+                ))),
             );
 
             Ok(Arc::new(structs))
@@ -309,39 +329,47 @@ pub fn flat_vector_to_arrow_array(
 
             Ok(Arc::new(BooleanArray::new(
                 BooleanBuffer::from_iter(data.iter().copied()),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
+                Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                    data.len(),
+                    |row| !vector.row_is_null(row as u64),
+                ))),
             )))
         }
         LogicalTypeId::Float => {
             let data = vector.as_slice_with_len::<f32>(len);
 
-            Ok(Arc::new(PrimitiveArray::<Float32Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<Float32Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::Double => {
             let data = vector.as_slice_with_len::<f64>(len);
 
-            Ok(Arc::new(PrimitiveArray::<Float64Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<Float64Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::Date => {
             let data = vector.as_slice_with_len::<duckdb_date>(len);
 
             Ok(Arc::new(Date32Array::from_iter_values_with_nulls(
                 data.iter().map(|duckdb_date { days }| *days),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
+                Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                    data.len(),
+                    |row| !vector.row_is_null(row as u64),
+                ))),
             )))
         }
         LogicalTypeId::Time => {
@@ -350,31 +378,38 @@ pub fn flat_vector_to_arrow_array(
             Ok(Arc::new(
                 PrimitiveArray::<Time64MicrosecondType>::from_iter_values_with_nulls(
                     data.iter().map(|duckdb_time { micros }| *micros),
-                    Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                        !vector.row_is_null(row as u64)
-                    }))),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
                 ),
             ))
         }
         LogicalTypeId::Smallint => {
             let data = vector.as_slice_with_len::<i16>(len);
 
-            Ok(Arc::new(PrimitiveArray::<Int16Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<Int16Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::USmallint => {
             let data = vector.as_slice_with_len::<u16>(len);
 
-            Ok(Arc::new(PrimitiveArray::<UInt16Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<UInt16Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::Blob => {
             let mut data = vector.as_slice_with_len::<duckdb_string_t>(len).to_vec();
@@ -401,62 +436,80 @@ pub fn flat_vector_to_arrow_array(
         LogicalTypeId::Tinyint => {
             let data = vector.as_slice_with_len::<i8>(len);
 
-            Ok(Arc::new(PrimitiveArray::<Int8Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<Int8Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::Bigint => {
             let data = vector.as_slice_with_len::<i64>(len);
 
-            Ok(Arc::new(PrimitiveArray::<Int64Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<Int64Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::UBigint => {
             let data = vector.as_slice_with_len::<u64>(len);
 
-            Ok(Arc::new(PrimitiveArray::<UInt64Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<UInt64Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::UTinyint => {
             let data = vector.as_slice_with_len::<u8>(len);
 
-            Ok(Arc::new(PrimitiveArray::<UInt8Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<UInt8Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::UInteger => {
             let data = vector.as_slice_with_len::<u32>(len);
 
-            Ok(Arc::new(PrimitiveArray::<UInt32Type>::from_iter_values_with_nulls(
-                data.iter().copied(),
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
-            )))
+            Ok(Arc::new(
+                PrimitiveArray::<UInt32Type>::from_iter_values_with_nulls(
+                    data.iter().copied(),
+                    Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                        data.len(),
+                        |row| !vector.row_is_null(row as u64),
+                    ))),
+                ),
+            ))
         }
         LogicalTypeId::TimestampNs => {
             // even nano second precision is stored in micros when using the c api
             let data = vector.as_slice_with_len::<duckdb_timestamp>(len);
-            let nanos = data.iter().map(|duckdb_timestamp { micros }| *micros * 1000);
+            let nanos = data
+                .iter()
+                .map(|duckdb_timestamp { micros }| *micros * 1000);
             let structs = TimestampNanosecondArray::from_iter_values_with_nulls(
                 nanos,
-                Some(NullBuffer::new(BooleanBuffer::collect_bool(data.len(), |row| {
-                    !vector.row_is_null(row as u64)
-                }))),
+                Some(NullBuffer::new(BooleanBuffer::collect_bool(
+                    data.len(),
+                    |row| !vector.row_is_null(row as u64),
+                ))),
             );
 
             Ok(Arc::new(structs))
@@ -494,7 +547,9 @@ pub fn flat_vector_to_arrow_array(
 }
 
 /// converts a `DataChunk` to arrow `RecordBatch`
-pub fn data_chunk_to_arrow(chunk: &DataChunkHandle) -> Result<RecordBatch, Box<dyn std::error::Error>> {
+pub fn data_chunk_to_arrow(
+    chunk: &DataChunkHandle,
+) -> Result<RecordBatch, Box<dyn std::error::Error>> {
     let len = chunk.len();
 
     let columns = (0..chunk.num_columns())
@@ -518,7 +573,10 @@ struct DataChunkHandleSlice<'a> {
 
 impl<'a> DataChunkHandleSlice<'a> {
     fn new(chunk: &'a mut DataChunkHandle, column_index: usize) -> Self {
-        Self { chunk, column_index }
+        Self {
+            chunk,
+            column_index,
+        }
     }
 }
 
@@ -570,7 +628,9 @@ pub fn write_arrow_array_to_vector(
                 col.as_ref()
                     .as_any()
                     .downcast_ref::<LargeStringArray>()
-                    .ok_or_else(|| Box::<dyn std::error::Error>::from("Unable to downcast to LargeStringArray"))?,
+                    .ok_or_else(|| {
+                        Box::<dyn std::error::Error>::from("Unable to downcast to LargeStringArray")
+                    })?,
                 &mut chunk.flat_vector(),
             );
         }
@@ -579,22 +639,32 @@ pub fn write_arrow_array_to_vector(
                 col.as_ref()
                     .as_any()
                     .downcast_ref::<StringViewArray>()
-                    .ok_or_else(|| Box::<dyn std::error::Error>::from("Unable to downcast to StringViewArray"))?,
+                    .ok_or_else(|| {
+                        Box::<dyn std::error::Error>::from("Unable to downcast to StringViewArray")
+                    })?,
                 &mut chunk.flat_vector(),
             );
         }
         DataType::Binary => {
-            binary_array_to_vector(as_generic_binary_array(col.as_ref()), &mut chunk.flat_vector());
+            binary_array_to_vector(
+                as_generic_binary_array(col.as_ref()),
+                &mut chunk.flat_vector(),
+            );
         }
         DataType::FixedSizeBinary(_) => {
-            fixed_size_binary_array_to_vector(col.as_ref().as_fixed_size_binary(), &mut chunk.flat_vector());
+            fixed_size_binary_array_to_vector(
+                col.as_ref().as_fixed_size_binary(),
+                &mut chunk.flat_vector(),
+            );
         }
         DataType::LargeBinary => {
             large_binary_array_to_vector(
                 col.as_ref()
                     .as_any()
                     .downcast_ref::<LargeBinaryArray>()
-                    .ok_or_else(|| Box::<dyn std::error::Error>::from("Unable to downcast to LargeBinaryArray"))?,
+                    .ok_or_else(|| {
+                        Box::<dyn std::error::Error>::from("Unable to downcast to LargeBinaryArray")
+                    })?,
                 &mut chunk.flat_vector(),
             );
         }
@@ -603,7 +673,9 @@ pub fn write_arrow_array_to_vector(
                 col.as_ref()
                     .as_any()
                     .downcast_ref::<BinaryViewArray>()
-                    .ok_or_else(|| Box::<dyn std::error::Error>::from("Unable to downcast to BinaryViewArray"))?,
+                    .ok_or_else(|| {
+                        Box::<dyn std::error::Error>::from("Unable to downcast to BinaryViewArray")
+                    })?,
                 &mut chunk.flat_vector(),
             );
         }
@@ -614,7 +686,10 @@ pub fn write_arrow_array_to_vector(
             list_array_to_vector(as_large_list_array(col.as_ref()), &mut chunk.list_vector())?;
         }
         DataType::FixedSizeList(_, _) => {
-            fixed_size_list_array_to_vector(as_fixed_size_list_array(col.as_ref()), &mut chunk.array_vector())?;
+            fixed_size_list_array_to_vector(
+                as_fixed_size_list_array(col.as_ref()),
+                &mut chunk.array_vector(),
+            )?;
         }
         DataType::Struct(_) => {
             let struct_array = as_struct_array(col.as_ref());
@@ -625,7 +700,10 @@ pub fn write_arrow_array_to_vector(
             // [`MapArray`] is physically a [`ListArray`] of key values pairs stored as an `entries` [`StructArray`] with 2 child fields.
             let map_array = as_map_array(col.as_ref());
             let out = &mut chunk.list_vector();
-            struct_array_to_vector(map_array.entries(), &mut out.struct_child(map_array.entries().len()))?;
+            struct_array_to_vector(
+                map_array.entries(),
+                &mut out.struct_child(map_array.entries().len()),
+            )?;
 
             for i in 0..map_array.len() {
                 let offset = map_array.value_offsets()[i];
@@ -683,7 +761,10 @@ pub fn record_batch_to_duckdb_data_chunk(
     Ok(())
 }
 
-fn primitive_array_to_flat_vector<T: ArrowPrimitiveType>(array: &PrimitiveArray<T>, out_vector: &mut FlatVector) {
+fn primitive_array_to_flat_vector<T: ArrowPrimitiveType>(
+    array: &PrimitiveArray<T>,
+    out_vector: &mut FlatVector,
+) {
     // assert!(array.len() <= out_vector.capacity());
     out_vector.copy::<T::Native>(array.values());
     set_nulls_in_flat_vector(array, out_vector);
@@ -694,16 +775,23 @@ fn primitive_array_to_flat_vector_cast<T: ArrowPrimitiveType>(
     array: &dyn Array,
     out_vector: &mut dyn Vector,
 ) {
-    let array = cast(array, &data_type).unwrap_or_else(|_| panic!("array is casted into {data_type}"));
+    let array =
+        cast(array, &data_type).unwrap_or_else(|_| panic!("array is casted into {data_type}"));
     let out_vector: &mut FlatVector = out_vector.as_mut_any().downcast_mut().unwrap();
     out_vector.copy::<T::Native>(array.as_primitive::<T>().values());
     set_nulls_in_flat_vector(&array, out_vector);
 }
 
-fn primitive_array_to_vector(array: &dyn Array, out: &mut dyn Vector) -> Result<(), Box<dyn std::error::Error>> {
+fn primitive_array_to_vector(
+    array: &dyn Array,
+    out: &mut dyn Vector,
+) -> Result<(), Box<dyn std::error::Error>> {
     match array.data_type() {
         DataType::Boolean => {
-            boolean_array_to_vector(as_boolean_array(array), out.as_mut_any().downcast_mut().unwrap());
+            boolean_array_to_vector(
+                as_boolean_array(array),
+                out.as_mut_any().downcast_mut().unwrap(),
+            );
         }
         DataType::UInt8 => {
             primitive_array_to_flat_vector::<UInt8Type>(
@@ -779,7 +867,9 @@ fn primitive_array_to_vector(array: &dyn Array, out: &mut dyn Vector) -> Result<
                     .as_primitive::<IntervalMonthDayNanoType>()
                     .values()
                     .iter()
-                    .map(|a| IntervalMonthDayNanoType::make_value(a.months, a.days, a.nanoseconds / 1000))
+                    .map(|a| {
+                        IntervalMonthDayNanoType::make_value(a.months, a.days, a.nanoseconds / 1000)
+                    })
                     .collect::<Vec<_>>(),
             );
             primitive_array_to_flat_vector::<IntervalMonthDayNanoType>(
@@ -788,11 +878,13 @@ fn primitive_array_to_vector(array: &dyn Array, out: &mut dyn Vector) -> Result<
             );
         }
         // DuckDB Only supports timetamp_tz in microsecond precision
-        DataType::Timestamp(_, Some(tz)) => primitive_array_to_flat_vector_cast::<TimestampMicrosecondType>(
-            DataType::Timestamp(TimeUnit::Microsecond, Some(tz.clone())),
-            array,
-            out,
-        ),
+        DataType::Timestamp(_, Some(tz)) => {
+            primitive_array_to_flat_vector_cast::<TimestampMicrosecondType>(
+                DataType::Timestamp(TimeUnit::Microsecond, Some(tz.clone())),
+                array,
+                out,
+            )
+        }
         DataType::Timestamp(unit, None) => match unit {
             TimeUnit::Second => primitive_array_to_flat_vector::<TimestampSecondType>(
                 as_primitive_array(array),
@@ -817,14 +909,22 @@ fn primitive_array_to_vector(array: &dyn Array, out: &mut dyn Vector) -> Result<
                 out.as_mut_any().downcast_mut().unwrap(),
             );
         }
-        DataType::Date64 => primitive_array_to_flat_vector_cast::<Date32Type>(Date32Type::DATA_TYPE, array, out),
-        DataType::Time32(_) => {
-            primitive_array_to_flat_vector_cast::<Time64MicrosecondType>(Time64MicrosecondType::DATA_TYPE, array, out)
+        DataType::Date64 => {
+            primitive_array_to_flat_vector_cast::<Date32Type>(Date32Type::DATA_TYPE, array, out)
         }
-        DataType::Time64(_) => {
-            primitive_array_to_flat_vector_cast::<Time64MicrosecondType>(Time64MicrosecondType::DATA_TYPE, array, out)
+        DataType::Time32(_) => primitive_array_to_flat_vector_cast::<Time64MicrosecondType>(
+            Time64MicrosecondType::DATA_TYPE,
+            array,
+            out,
+        ),
+        DataType::Time64(_) => primitive_array_to_flat_vector_cast::<Time64MicrosecondType>(
+            Time64MicrosecondType::DATA_TYPE,
+            array,
+            out,
+        ),
+        datatype => {
+            return Err(format!("Data type \"{datatype}\" not yet supported by ArrowVTab").into())
         }
-        datatype => return Err(format!("Data type \"{datatype}\" not yet supported by ArrowVTab").into()),
     }
     Ok(())
 }
@@ -947,7 +1047,10 @@ fn list_array_to_vector<O: OffsetSizeTrait + AsPrimitive<usize>>(
             primitive_array_to_vector(value_array.as_ref(), &mut out.child(value_array.len()))?;
         }
         DataType::Utf8 => {
-            string_array_to_vector(as_string_array(value_array.as_ref()), &mut out.child(value_array.len()));
+            string_array_to_vector(
+                as_string_array(value_array.as_ref()),
+                &mut out.child(value_array.len()),
+            );
         }
         DataType::Utf8View => {
             string_view_array_to_vector(
@@ -955,7 +1058,9 @@ fn list_array_to_vector<O: OffsetSizeTrait + AsPrimitive<usize>>(
                     .as_ref()
                     .as_any()
                     .downcast_ref::<StringViewArray>()
-                    .ok_or_else(|| Box::<dyn std::error::Error>::from("Unable to downcast to StringViewArray"))?,
+                    .ok_or_else(|| {
+                        Box::<dyn std::error::Error>::from("Unable to downcast to StringViewArray")
+                    })?,
                 &mut out.child(value_array.len()),
             );
         }
@@ -971,7 +1076,9 @@ fn list_array_to_vector<O: OffsetSizeTrait + AsPrimitive<usize>>(
                     .as_ref()
                     .as_any()
                     .downcast_ref::<BinaryViewArray>()
-                    .ok_or_else(|| Box::<dyn std::error::Error>::from("Unable to downcast to BinaryViewArray"))?,
+                    .ok_or_else(|| {
+                        Box::<dyn std::error::Error>::from("Unable to downcast to BinaryViewArray")
+                    })?,
                 &mut out.child(value_array.len()),
             );
         }
@@ -979,7 +1086,10 @@ fn list_array_to_vector<O: OffsetSizeTrait + AsPrimitive<usize>>(
             list_array_to_vector(as_list_array(value_array.as_ref()), &mut out.list_child())?;
         }
         DataType::FixedSizeList(_, _) => {
-            fixed_size_list_array_to_vector(as_fixed_size_list_array(value_array.as_ref()), &mut out.array_child())?;
+            fixed_size_list_array_to_vector(
+                as_fixed_size_list_array(value_array.as_ref()),
+                &mut out.array_child(),
+            )?;
         }
         DataType::Struct(_) => {
             struct_array_to_vector(
@@ -1038,7 +1148,10 @@ fn as_fixed_size_list_array(arr: &dyn Array) -> &FixedSizeListArray {
     arr.as_any().downcast_ref::<FixedSizeListArray>().unwrap()
 }
 
-fn struct_array_to_vector(array: &StructArray, out: &mut StructVector) -> Result<(), Box<dyn std::error::Error>> {
+fn struct_array_to_vector(
+    array: &StructArray,
+    out: &mut StructVector,
+) -> Result<(), Box<dyn std::error::Error>> {
     for i in 0..array.num_columns() {
         let column = array.column(i);
         match column.data_type() {
@@ -1046,16 +1159,28 @@ fn struct_array_to_vector(array: &StructArray, out: &mut StructVector) -> Result
                 primitive_array_to_vector(column, &mut out.child(i, array.len()))?;
             }
             DataType::Utf8 => {
-                string_array_to_vector(as_string_array(column.as_ref()), &mut out.child(i, array.len()));
+                string_array_to_vector(
+                    as_string_array(column.as_ref()),
+                    &mut out.child(i, array.len()),
+                );
             }
             DataType::Binary => {
-                binary_array_to_vector(as_generic_binary_array(column.as_ref()), &mut out.child(i, array.len()));
+                binary_array_to_vector(
+                    as_generic_binary_array(column.as_ref()),
+                    &mut out.child(i, array.len()),
+                );
             }
             DataType::List(_) => {
-                list_array_to_vector(as_list_array(column.as_ref()), &mut out.list_vector_child(i))?;
+                list_array_to_vector(
+                    as_list_array(column.as_ref()),
+                    &mut out.list_vector_child(i),
+                )?;
             }
             DataType::LargeList(_) => {
-                list_array_to_vector(as_large_list_array(column.as_ref()), &mut out.list_vector_child(i))?;
+                list_array_to_vector(
+                    as_large_list_array(column.as_ref()),
+                    &mut out.list_vector_child(i),
+                )?;
             }
             DataType::FixedSizeList(_, _) => {
                 fixed_size_list_array_to_vector(
@@ -1156,21 +1281,22 @@ fn set_nulls_in_list_vector(array: &dyn Array, out_vector: &mut ListVector) {
 #[cfg(test)]
 mod test {
     use super::{arrow_recordbatch_to_query_params, ArrowVTab};
-    use crate::{Connection, Result};
+    use crate::duckdb::{Connection, Result};
     use arrow::{
         array::{
-            Array, ArrayRef, AsArray, BinaryArray, BinaryViewArray, BooleanArray, Date32Array, Date64Array,
-            Decimal128Array, Decimal256Array, DurationSecondArray, FixedSizeListArray, FixedSizeListBuilder,
-            GenericByteArray, GenericListArray, Int32Array, Int32Builder, IntervalDayTimeArray,
-            IntervalMonthDayNanoArray, IntervalYearMonthArray, LargeStringArray, ListArray, ListBuilder, MapArray,
-            OffsetSizeTrait, PrimitiveArray, StringArray, StringViewArray, StructArray, Time32SecondArray,
-            Time64MicrosecondArray, TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+            Array, ArrayRef, AsArray, BinaryArray, BinaryViewArray, BooleanArray, Date32Array,
+            Date64Array, Decimal128Array, Decimal256Array, DurationSecondArray, FixedSizeListArray,
+            FixedSizeListBuilder, GenericByteArray, GenericListArray, Int32Array, Int32Builder,
+            IntervalDayTimeArray, IntervalMonthDayNanoArray, IntervalYearMonthArray,
+            LargeStringArray, ListArray, ListBuilder, MapArray, OffsetSizeTrait, PrimitiveArray,
+            StringArray, StringViewArray, StructArray, Time32SecondArray, Time64MicrosecondArray,
+            TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
             TimestampSecondArray, UInt32Array,
         },
         buffer::{OffsetBuffer, ScalarBuffer},
         datatypes::{
-            i256, ArrowPrimitiveType, ByteArrayType, DataType, DurationSecondType, Field, IntervalDayTimeType,
-            IntervalMonthDayNanoType, IntervalYearMonthType, Schema,
+            i256, ArrowPrimitiveType, ByteArrayType, DataType, DurationSecondType, Field,
+            IntervalDayTimeType, IntervalMonthDayNanoType, IntervalYearMonthType, Schema,
         },
         record_batch::RecordBatch,
     };
@@ -1190,7 +1316,11 @@ mod test {
         let mut arr = stmt.query_arrow(param)?;
         let rb = arr.next().expect("no record batch");
         assert_eq!(rb.num_columns(), 1);
-        let column = rb.column(0).as_any().downcast_ref::<Decimal128Array>().unwrap();
+        let column = rb
+            .column(0)
+            .as_any()
+            .downcast_ref::<Decimal128Array>()
+            .unwrap();
         assert_eq!(column.len(), 1);
         assert_eq!(column.value(0), i128::from(30000));
         Ok(())
@@ -1205,7 +1335,8 @@ mod test {
         // and pass into duckdb
         let schema = Schema::new(vec![Field::new("a", DataType::Int32, false)]);
         let array = Int32Array::from(vec![1, 2, 3, 4, 5]);
-        let rb = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(array)]).expect("failed to create record batch");
+        let rb = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(array)])
+            .expect("failed to create record batch");
         let param = arrow_recordbatch_to_query_params(rb);
         let mut stmt = db.prepare("select sum(a)::int32 from arrow(?, ?)")?;
         let mut arr = stmt.query_arrow(param)?;
@@ -1245,7 +1376,8 @@ mod test {
                 true,
             )]);
 
-            let record_batch = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(struct_array)])?;
+            let record_batch =
+                RecordBatch::try_new(Arc::new(schema), vec![Arc::new(struct_array)])?;
             let mut app = db.appender("t1")?;
             app.append_record_batch(record_batch)?;
         }
@@ -1286,7 +1418,8 @@ mod test {
                 true,
             )]);
 
-            let record_batch = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(struct_array)])?;
+            let record_batch =
+                RecordBatch::try_new(Arc::new(schema), vec![Arc::new(struct_array)])?;
             let mut app = db.appender("t1")?;
             app.append_record_batch(record_batch)?;
         }
@@ -1319,7 +1452,9 @@ mod test {
         let output_any_array = rb.column(0);
         match (output_any_array.data_type(), expected_array.data_type()) {
             // TODO: DuckDB doesnt return timestamp_tz properly yet, so we just check that the units are the same
-            (DataType::Timestamp(unit_a, _), DataType::Timestamp(unit_b, _)) => assert_eq!(unit_a, unit_b),
+            (DataType::Timestamp(unit_a, _), DataType::Timestamp(unit_b, _)) => {
+                assert_eq!(unit_a, unit_b)
+            }
             (a, b) => assert_eq!(a, b),
         }
 
@@ -1337,7 +1472,10 @@ mod test {
                 }
             }
             None => {
-                panic!("Output array is not a PrimitiveArray {:?}", rb.column(0).data_type());
+                panic!(
+                    "Output array is not a PrimitiveArray {:?}",
+                    rb.column(0).data_type()
+                );
             }
         }
 
@@ -1404,7 +1542,9 @@ mod test {
         let output_any_array = rb.column(0);
 
         assert!(
-            output_any_array.data_type().equals_datatype(arry_out.data_type()),
+            output_any_array
+                .data_type()
+                .equals_datatype(arry_out.data_type()),
             "{} != {}",
             output_any_array.data_type(),
             arry_out.data_type()
@@ -1466,7 +1606,13 @@ mod test {
         let array = FixedSizeListArray::new(
             Arc::new(Field::new("item", DataType::Int32, true)),
             2,
-            Arc::new(Int32Array::from(vec![Some(1), Some(2), Some(3), Some(4), Some(5)])),
+            Arc::new(Int32Array::from(vec![
+                Some(1),
+                Some(2),
+                Some(3),
+                Some(4),
+                Some(5),
+            ])),
             None,
         );
 
@@ -1555,7 +1701,10 @@ mod test {
 
     #[test]
     fn test_timestamp_roundtrip() -> Result<(), Box<dyn Error>> {
-        check_rust_primitive_array_roundtrip(Int32Array::from(vec![1, 2, 3]), Int32Array::from(vec![1, 2, 3]))?;
+        check_rust_primitive_array_roundtrip(
+            Int32Array::from(vec![1, 2, 3]),
+            Int32Array::from(vec![1, 2, 3]),
+        )?;
 
         check_rust_primitive_array_roundtrip(
             TimestampMicrosecondArray::from(vec![1, 2, 3]),
@@ -1593,7 +1742,8 @@ mod test {
 
         check_rust_primitive_array_roundtrip(
             TimestampSecondArray::from(vec![1, 2, 3]).with_timezone_utc(),
-            TimestampMicrosecondArray::from(vec![1_000_000, 2_000_000, 3_000_000]).with_timezone_utc(),
+            TimestampMicrosecondArray::from(vec![1_000_000, 2_000_000, 3_000_000])
+                .with_timezone_utc(),
         )?;
 
         check_rust_primitive_array_roundtrip(
@@ -1601,7 +1751,10 @@ mod test {
             TimestampMicrosecondArray::from(vec![1, 2, 3]).with_timezone_utc(),
         )?;
 
-        check_rust_primitive_array_roundtrip(Date32Array::from(vec![1, 2, 3]), Date32Array::from(vec![1, 2, 3]))?;
+        check_rust_primitive_array_roundtrip(
+            Date32Array::from(vec![1, 2, 3]),
+            Date32Array::from(vec![1, 2, 3]),
+        )?;
 
         let mid = arrow::temporal_conversions::MILLISECONDS_IN_DAY;
         check_rust_primitive_array_roundtrip(
@@ -1626,12 +1779,14 @@ mod test {
 
         // With custom width and scale
         let array: PrimitiveArray<arrow::datatypes::Decimal128Type> =
-            Decimal128Array::from(vec![i128::from(12345)]).with_data_type(DataType::Decimal128(5, 2));
+            Decimal128Array::from(vec![i128::from(12345)])
+                .with_data_type(DataType::Decimal128(5, 2));
         check_rust_primitive_array_roundtrip(array.clone(), array)?;
 
         // With width and zero scale
         let array: PrimitiveArray<arrow::datatypes::Decimal128Type> =
-            Decimal128Array::from(vec![i128::from(12345)]).with_data_type(DataType::Decimal128(5, 0));
+            Decimal128Array::from(vec![i128::from(12345)])
+                .with_data_type(DataType::Decimal128(5, 0));
         check_rust_primitive_array_roundtrip(array.clone(), array)?;
 
         Ok(())
@@ -1639,11 +1794,12 @@ mod test {
 
     #[test]
     fn test_interval_roundtrip() -> Result<(), Box<dyn Error>> {
-        let array: PrimitiveArray<IntervalMonthDayNanoType> = IntervalMonthDayNanoArray::from(vec![
-            IntervalMonthDayNanoType::make_value(1, 1, 1000),
-            IntervalMonthDayNanoType::make_value(2, 2, 2000),
-            IntervalMonthDayNanoType::make_value(3, 3, 3000),
-        ]);
+        let array: PrimitiveArray<IntervalMonthDayNanoType> =
+            IntervalMonthDayNanoArray::from(vec![
+                IntervalMonthDayNanoType::make_value(1, 1, 1000),
+                IntervalMonthDayNanoType::make_value(2, 2, 2000),
+                IntervalMonthDayNanoType::make_value(3, 3, 3000),
+            ]);
         check_rust_primitive_array_roundtrip(array.clone(), array)?;
 
         let array: PrimitiveArray<IntervalYearMonthType> = IntervalYearMonthArray::from(vec![
@@ -1651,11 +1807,12 @@ mod test {
             IntervalYearMonthType::make_value(2, 20),
             IntervalYearMonthType::make_value(3, 30),
         ]);
-        let expected_array: PrimitiveArray<IntervalMonthDayNanoType> = IntervalMonthDayNanoArray::from(vec![
-            IntervalMonthDayNanoType::make_value(22, 0, 0),
-            IntervalMonthDayNanoType::make_value(44, 0, 0),
-            IntervalMonthDayNanoType::make_value(66, 0, 0),
-        ]);
+        let expected_array: PrimitiveArray<IntervalMonthDayNanoType> =
+            IntervalMonthDayNanoArray::from(vec![
+                IntervalMonthDayNanoType::make_value(22, 0, 0),
+                IntervalMonthDayNanoType::make_value(44, 0, 0),
+                IntervalMonthDayNanoType::make_value(66, 0, 0),
+            ]);
         check_rust_primitive_array_roundtrip(array, expected_array)?;
 
         let array: PrimitiveArray<IntervalDayTimeType> = IntervalDayTimeArray::from(vec![
@@ -1663,11 +1820,12 @@ mod test {
             IntervalDayTimeType::make_value(2, 2),
             IntervalDayTimeType::make_value(3, 3),
         ]);
-        let expected_array: PrimitiveArray<IntervalMonthDayNanoType> = IntervalMonthDayNanoArray::from(vec![
-            IntervalMonthDayNanoType::make_value(0, 1, 1_000_000),
-            IntervalMonthDayNanoType::make_value(0, 2, 2_000_000),
-            IntervalMonthDayNanoType::make_value(0, 3, 3_000_000),
-        ]);
+        let expected_array: PrimitiveArray<IntervalMonthDayNanoType> =
+            IntervalMonthDayNanoArray::from(vec![
+                IntervalMonthDayNanoType::make_value(0, 1, 1_000_000),
+                IntervalMonthDayNanoType::make_value(0, 2, 2_000_000),
+                IntervalMonthDayNanoType::make_value(0, 3, 3_000_000),
+            ]);
         check_rust_primitive_array_roundtrip(array, expected_array)?;
 
         Ok(())
@@ -1676,11 +1834,12 @@ mod test {
     #[test]
     fn test_duration_roundtrip() -> Result<(), Box<dyn Error>> {
         let array: PrimitiveArray<DurationSecondType> = DurationSecondArray::from(vec![1, 2, 3]);
-        let expected_array: PrimitiveArray<IntervalMonthDayNanoType> = IntervalMonthDayNanoArray::from(vec![
-            IntervalMonthDayNanoType::make_value(0, 0, 1_000_000_000),
-            IntervalMonthDayNanoType::make_value(0, 0, 2_000_000_000),
-            IntervalMonthDayNanoType::make_value(0, 0, 3_000_000_000),
-        ]);
+        let expected_array: PrimitiveArray<IntervalMonthDayNanoType> =
+            IntervalMonthDayNanoArray::from(vec![
+                IntervalMonthDayNanoType::make_value(0, 0, 1_000_000_000),
+                IntervalMonthDayNanoType::make_value(0, 0, 2_000_000_000),
+                IntervalMonthDayNanoType::make_value(0, 0, 3_000_000_000),
+            ]);
         check_rust_primitive_array_roundtrip(array, expected_array)?;
 
         Ok(())
@@ -1697,7 +1856,8 @@ mod test {
         let schema = Schema::new(vec![Field::new("a", array.data_type().clone(), false)]);
 
         // Since we cant get TIMESTAMP_TZ from the rust client yet, we just check that we can insert it properly here.
-        let rb = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(array)]).expect("failed to create record batch");
+        let rb = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(array)])
+            .expect("failed to create record batch");
         let param = arrow_recordbatch_to_query_params(rb);
         let mut stmt = db.prepare("select typeof(a)::VARCHAR from arrow(?, ?)")?;
         let mut arr = stmt.query_arrow(param)?;
@@ -1710,7 +1870,11 @@ mod test {
 
     #[test]
     fn test_arrow_error() {
-        let arc: ArrayRef = Arc::new(Decimal256Array::from(vec![i256::from(1), i256::from(2), i256::from(3)]));
+        let arc: ArrayRef = Arc::new(Decimal256Array::from(vec![
+            i256::from(1),
+            i256::from(2),
+            i256::from(3),
+        ]));
         let batch = RecordBatch::try_from_iter(vec![("x", arc)]).unwrap();
 
         let db = Connection::open_in_memory().unwrap();
@@ -1718,13 +1882,16 @@ mod test {
 
         let mut stmt = db.prepare("SELECT * FROM arrow(?, ?)").unwrap();
 
-        let res = stmt.execute(arrow_recordbatch_to_query_params(batch)).err().unwrap();
+        let res = stmt
+            .execute(arrow_recordbatch_to_query_params(batch))
+            .err()
+            .unwrap();
 
         assert_eq!(
             res,
-            crate::error::Error::DuckDBFailure(
-                crate::ffi::Error {
-                    code: crate::ffi::ErrorCode::Unknown,
+            crate::duckdb::error::Error::DuckDBFailure(
+                crate::duckdb::ffi::Error {
+                    code: crate::duckdb::ffi::ErrorCode::Unknown,
                     extended_code: 1
                 },
                 Some("Invalid Input Error: Data type \"Decimal256(76, 10)\" not yet supported by ArrowVTab".to_owned())
@@ -1743,7 +1910,9 @@ mod test {
 
         let mut stmt = db.prepare("SELECT * FROM arrow(?, ?)").unwrap();
 
-        let mut arr = stmt.query_arrow(arrow_recordbatch_to_query_params(batch)).unwrap();
+        let mut arr = stmt
+            .query_arrow(arrow_recordbatch_to_query_params(batch))
+            .unwrap();
         let rb = arr.next().expect("no record batch");
 
         let column = rb.column(0).as_any().downcast_ref::<BinaryArray>().unwrap();
@@ -1871,7 +2040,8 @@ mod test {
     fn test_list_of_fixed_size_lists_roundtrip() -> Result<(), Box<dyn Error>> {
         // field name must be empty to match `query_arrow` behavior, otherwise record batches will not match
         let field = Field::new("", DataType::Int32, true);
-        let mut list_builder = ListBuilder::new(FixedSizeListBuilder::new(Int32Builder::new(), 2).with_field(field));
+        let mut list_builder =
+            ListBuilder::new(FixedSizeListBuilder::new(Int32Builder::new(), 2).with_field(field));
 
         // Append first list of FixedSizeList items
         {
@@ -1904,7 +2074,8 @@ mod test {
     fn test_list_of_lists_roundtrip() -> Result<(), Box<dyn Error>> {
         // field name must be 'l' to match `query_arrow` behavior, otherwise record batches will not match
         let field = Field::new("l", DataType::Int32, true);
-        let mut list_builder = ListBuilder::new(ListBuilder::new(Int32Builder::new()).with_field(field.clone()));
+        let mut list_builder =
+            ListBuilder::new(ListBuilder::new(Int32Builder::new()).with_field(field.clone()));
 
         // Append first list of items
         {
@@ -1933,7 +2104,13 @@ mod test {
         let field_s = Arc::new(Field::new("s", DataType::Utf8, true));
 
         let int32_array = Int32Array::from(vec![Some(1), Some(2), Some(3), Some(4), Some(5)]);
-        let string_array = StringArray::from(vec![Some("foo"), Some("baz"), Some("bar"), Some("foo"), Some("baz")]);
+        let string_array = StringArray::from(vec![
+            Some("foo"),
+            Some("baz"),
+            Some("bar"),
+            Some("foo"),
+            Some("baz"),
+        ]);
 
         let struct_array = StructArray::from(vec![
             (field_i.clone(), Arc::new(int32_array) as Arc<dyn Array>),
@@ -1996,7 +2173,9 @@ mod test {
         // Construct a buffer for value offsets, for the nested array:
         //  [[a, b, c], [d, e, f], [g, h]]
         let entry_offsets = [0, 3, 6, 8];
-        let map_array = MapArray::new_from_strings(keys.clone().into_iter(), &values_data, &entry_offsets).unwrap();
+        let map_array =
+            MapArray::new_from_strings(keys.clone().into_iter(), &values_data, &entry_offsets)
+                .unwrap();
         check_map_array_roundtrip(map_array)?;
 
         // Test 2 - large MapArray of 4000 elements to test buffers capacity adjustment
@@ -2008,9 +2187,12 @@ mod test {
         );
         let mut entry_offsets: Vec<u32> = (0..=4000).step_by(3).collect();
         entry_offsets.push(4000);
-        let map_array =
-            MapArray::new_from_strings(keys.iter().map(String::as_str), &values_data, entry_offsets.as_slice())
-                .unwrap();
+        let map_array = MapArray::new_from_strings(
+            keys.iter().map(String::as_str),
+            &values_data,
+            entry_offsets.as_slice(),
+        )
+        .unwrap();
         check_map_array_roundtrip(map_array)?;
 
         Ok(())

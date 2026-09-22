@@ -11,9 +11,12 @@ keywords.workspace = true
 categories.workspace = true
 
 description = "FFI bindings for frozen-duckdb mega-library"
+# Required so cargo:DUCKDB_LIB_DIR from the build script reaches dependents as
+# DEP_DUCKDB_DUCKDB_LIB_DIR, and to enforce a single linking duckdb provider
+links = "duckdb"
 
 [build-dependencies]
-frozen-duckdb-builder = { path = "../frozen-duckdb-builder" }
+frozen-duckdb-builder = { path = "../frozen-duckdb-builder", version = "1.5.5" }
 bindgen = "0.69"
 
 [dependencies]
@@ -21,3 +24,11 @@ bindgen = "0.69"
 [features]
 default = []
 bundled = []
+
+[package.metadata.docs.rs]
+# build.rs detects the DOCS_RS env var that docs.rs sets and generates
+# bindings from frozen-duckdb-builder's vendored headers without emitting any
+# linking directive (no libduckdb .so exists on docs.rs, pre-release), so the
+# default configuration is already correct. Recorded here so the docs.rs
+# contract is discoverable from the manifest.
+targets = ["x86_64-unknown-linux-gnu"]

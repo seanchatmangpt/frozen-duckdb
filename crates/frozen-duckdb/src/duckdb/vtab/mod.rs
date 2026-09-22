@@ -2,7 +2,7 @@
 
 use std::ffi::c_void;
 
-use crate::{error::Error, inner_connection::InnerConnection, Connection, Result};
+use crate::duckdb::{error::Error, inner_connection::InnerConnection, Connection, Result};
 
 use super::ffi;
 
@@ -23,7 +23,7 @@ mod excel;
 pub use function::{BindInfo, InitInfo, TableFunction, TableFunctionInfo};
 pub use value::Value;
 
-use crate::core::{DataChunkHandle, LogicalTypeHandle};
+use crate::duckdb::core::{DataChunkHandle, LogicalTypeHandle};
 use ffi::{duckdb_bind_info, duckdb_data_chunk, duckdb_function_info, duckdb_init_info};
 
 /// Given a raw pointer to a box, free the box and the data contained within it.
@@ -64,7 +64,10 @@ pub trait VTab: Sized {
     /// The implementation should populate the `output` parameter with the rows to be returned.
     ///
     /// When the table function is done, the implementation should set the length of the output to 0.
-    fn func(func: &TableFunctionInfo<Self>, output: &mut DataChunkHandle) -> Result<(), Box<dyn std::error::Error>>;
+    fn func(
+        func: &TableFunctionInfo<Self>,
+        output: &mut DataChunkHandle,
+    ) -> Result<(), Box<dyn std::error::Error>>;
 
     /// Does the table function support pushdown
     /// default is false
@@ -168,7 +171,7 @@ impl InnerConnection {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::core::{Inserter, LogicalTypeId};
+    use crate::duckdb::core::{Inserter, LogicalTypeId};
     use std::{
         error::Error,
         ffi::CString,
@@ -240,7 +243,10 @@ mod test {
             HelloVTab::init(init_info)
         }
 
-        fn func(func: &TableFunctionInfo<Self>, output: &mut DataChunkHandle) -> Result<(), Box<dyn Error>> {
+        fn func(
+            func: &TableFunctionInfo<Self>,
+            output: &mut DataChunkHandle,
+        ) -> Result<(), Box<dyn Error>> {
             let init_data = func.get_init_data();
             let bind_data = func.get_bind_data();
 
@@ -268,7 +274,9 @@ mod test {
         let conn = Connection::open_in_memory()?;
         conn.register_table_function::<HelloVTab>("hello")?;
 
-        let val = conn.query_row("select * from hello('duckdb')", [], |row| <(String,)>::try_from(row))?;
+        let val = conn.query_row("select * from hello('duckdb')", [], |row| {
+            <(String,)>::try_from(row)
+        })?;
         assert_eq!(val, ("Hello duckdb".to_string(),));
 
         Ok(())

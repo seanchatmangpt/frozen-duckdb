@@ -4,7 +4,7 @@
 //! in Parquet format for comprehensive testing.
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use std::fs;
 use std::time::Instant;
 use tempfile::NamedTempFile;
@@ -135,7 +135,7 @@ fn test_parquet_performance() -> Result<()> {
     for i in 0..1000 {
         conn.execute(
             "INSERT INTO parquet_perf_test VALUES (?, ?, ?, ?)",
-            duckdb::params![
+            frozen_duckdb::params![
                 i,
                 format!("user_{}", i),
                 (i as f64) * 1.5,
@@ -199,7 +199,7 @@ fn test_parquet_json_integration() -> Result<()> {
     for i in 0..100 {
         conn.execute(
             "INSERT INTO parquet_json_test VALUES (?, ?, ?, ?, ?)",
-            duckdb::params![
+            frozen_duckdb::params![
                 i,
                 format!("user_{}", i),
                 (i as f64) * 1.5,
@@ -263,7 +263,7 @@ fn test_parquet_analytics() -> Result<()> {
         };
         conn.execute(
             "INSERT INTO complex_parquet_analytics VALUES (?, ?, ?, ?, ?)",
-            duckdb::params![
+            frozen_duckdb::params![
                 i % 10, // 10 users
                 event_type,
                 (i as f64) * 0.5,

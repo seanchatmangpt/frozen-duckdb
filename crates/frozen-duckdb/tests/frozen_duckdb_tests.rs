@@ -8,10 +8,26 @@
 
 use frozen_duckdb::{architecture, benchmark, env_setup};
 use std::env;
+use std::sync::{Mutex, MutexGuard};
 use tempfile::tempdir;
+
+// Every test in this file mutates process env (DUCKDB_*); the harness runs
+// them in parallel threads, so serialize env access or the tests race.
+static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+fn lock_env() -> MutexGuard<'static, ()> {
+    ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+fn clean_duckdb_env() {
+    env::remove_var("DUCKDB_LIB_DIR");
+    env::remove_var("DUCKDB_INCLUDE_DIR");
+}
 
 #[test]
 fn test_architecture_detection_with_arch_override() {
+    let _env = lock_env();
+    clean_duckdb_env();
     // Test x86_64 override
     env::set_var("ARCH", "x86_64");
     assert_eq!(architecture::detect(), "x86_64");
@@ -27,6 +43,8 @@ fn test_architecture_detection_with_arch_override() {
 
 #[test]
 fn test_environment_setup_validation() {
+    let _env = lock_env();
+    clean_duckdb_env();
     // Clear any existing environment variables
     env::remove_var("DUCKDB_LIB_DIR");
     env::remove_var("DUCKDB_INCLUDE_DIR");
@@ -72,6 +90,8 @@ fn test_environment_setup_validation() {
 
 #[test]
 fn test_cross_module_integration() {
+    let _env = lock_env();
+    clean_duckdb_env();
     // Test that architecture detection and env setup work together
     let temp_dir = tempdir().unwrap();
     let lib_path = temp_dir.path().join("lib");
@@ -116,6 +136,8 @@ fn test_cross_module_integration() {
 
 #[test]
 fn test_binary_path_resolution() {
+    let _env = lock_env();
+    clean_duckdb_env();
     let temp_dir = tempdir().unwrap();
     let lib_path = temp_dir.path().join("lib");
     std::fs::create_dir_all(&lib_path).unwrap();
@@ -156,6 +178,8 @@ fn test_binary_path_resolution() {
 
 #[test]
 fn test_error_handling_missing_binaries() {
+    let _env = lock_env();
+    clean_duckdb_env();
     let temp_dir = tempdir().unwrap();
     let lib_path = temp_dir.path().join("lib");
     std::fs::create_dir_all(&lib_path).unwrap();
@@ -182,6 +206,8 @@ fn test_error_handling_missing_binaries() {
 
 #[test]
 fn test_environment_variable_handling() {
+    let _env = lock_env();
+    clean_duckdb_env();
     // Test with partial environment setup
     env::set_var("DUCKDB_LIB_DIR", "/some/path");
     assert!(!env_setup::is_configured()); // Missing DUCKDB_INCLUDE_DIR
@@ -219,6 +245,8 @@ fn test_environment_variable_handling() {
 
 #[test]
 fn test_benchmark_integration() {
+    let _env = lock_env();
+    clean_duckdb_env();
     // Test that benchmarking works with real operations
     let temp_dir = tempdir().unwrap();
     let lib_path = temp_dir.path().join("lib");
@@ -266,6 +294,8 @@ fn test_benchmark_integration() {
 
 #[test]
 fn test_real_world_scenario() {
+    let _env = lock_env();
+    clean_duckdb_env();
     // Simulate a real-world usage scenario
     let temp_dir = tempdir().unwrap();
     let lib_path = temp_dir.path().join("lib");

@@ -65,7 +65,7 @@ serde_json = "1"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 # Build with ALL features to cache everything
-duckdb = { version = "1.4.0", features = [
+duckdb = { version = "1.10505.0", features = [
   "json",
   "parquet",
   "appender-arrow",

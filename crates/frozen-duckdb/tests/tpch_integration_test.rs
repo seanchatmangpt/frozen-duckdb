@@ -4,9 +4,18 @@
 //! using the frozen DuckDB binary with industry-standard benchmark data.
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
+use std::sync::{Mutex, MutexGuard};
 use std::time::Instant;
 use tracing::info;
+
+// DuckDB's TPC-H dbgen extension is not safe to call concurrently within one
+// process (observed SIGSEGV under parallel `cargo test`); serialize it.
+static DBGEN_LOCK: Mutex<()> = Mutex::new(());
+
+fn lock_dbgen() -> MutexGuard<'static, ()> {
+    DBGEN_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 #[test]
 fn test_tpch_extension_available() -> Result<()> {
@@ -36,7 +45,10 @@ fn test_tpch_data_generation() -> Result<()> {
 
     // Generate TPC-H data with scale factor 0.01 (tiny dataset for fast tests)
     let start = Instant::now();
-    conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    {
+        let _dbgen = lock_dbgen();
+        conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    }
     let generation_time = start.elapsed();
 
     info!("🔄 TPC-H data generation took: {:?}", generation_time);
@@ -72,7 +84,10 @@ fn test_tpch_query_execution() -> Result<()> {
     conn.execute_batch("INSTALL tpch; LOAD tpch;")?;
 
     // Generate TPC-H data
-    conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    {
+        let _dbgen = lock_dbgen();
+        conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    }
 
     // Run TPC-H query 4 (Order Priority Checking Query)
     let start = Instant::now();
@@ -122,7 +137,10 @@ fn test_tpch_expected_row_counts() -> Result<()> {
     conn.execute_batch("INSTALL tpch; LOAD tpch;")?;
 
     // Generate TPC-H data with scale factor 0.01
-    conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    {
+        let _dbgen = lock_dbgen();
+        conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    }
 
     // Expected row counts for SF 0.01 (from TPC-H specification)
     // Note: Actual counts may vary significantly due to TPC-H data generation algorithm
@@ -172,7 +190,10 @@ fn test_tpch_relationships() -> Result<()> {
     conn.execute_batch("INSTALL tpch; LOAD tpch;")?;
 
     // Generate TPC-H data
-    conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    {
+        let _dbgen = lock_dbgen();
+        conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    }
 
     // Test foreign key relationships exist
     // Check that all lineitems have valid order references
@@ -213,7 +234,10 @@ fn test_tpch_performance_characteristics() -> Result<()> {
 
     // Generate TPC-H data
     let start = Instant::now();
-    conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    {
+        let _dbgen = lock_dbgen();
+        conn.execute("CALL dbgen(sf = 0.01)", [])?;
+    }
     let generation_time = start.elapsed();
 
     // Test query performance on generated data

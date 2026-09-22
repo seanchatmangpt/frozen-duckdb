@@ -34,19 +34,19 @@
 //!     .collect::<Result<_, _>>()
 //!     .unwrap()
 //! ```
-use crate::{Config, Connection, Error, Result};
+use crate::duckdb::{Config, Connection, Error, Result};
 use std::{
     path::Path,
     sync::{Arc, Mutex},
 };
 
 #[cfg(feature = "vscalar")]
-use crate::vscalar::VScalar;
+use crate::duckdb::vscalar::VScalar;
 #[cfg(feature = "vscalar")]
 use std::fmt::Debug;
 
 #[cfg(feature = "vtab")]
-use crate::vtab::VTab;
+use crate::duckdb::vtab::VTab;
 
 /// An `r2d2::ManageConnection` for `duckdb::Connection`s.
 pub struct DuckdbConnectionManager {
@@ -120,7 +120,7 @@ impl r2d2::ManageConnection for DuckdbConnectionManager {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::types::Value;
+    use crate::duckdb::types::Value;
     use std::{sync::mpsc, thread};
 
     use tempfile::TempDir;
@@ -203,7 +203,8 @@ mod test {
     #[test]
     fn test_error_handling() -> Result<()> {
         //! We specify a directory as a database. This is bound to fail.
-        let dir = TempDir::with_prefix("r2d2-duckdb").expect("Could not create temporary directory");
+        let dir =
+            TempDir::with_prefix("r2d2-duckdb").expect("Could not create temporary directory");
         let dirpath = dir.path().to_str().unwrap();
         assert!(DuckdbConnectionManager::file(dirpath).is_err());
         Ok(())
@@ -212,9 +213,9 @@ mod test {
     #[test]
     fn test_with_flags() -> Result<()> {
         let config = Config::default()
-            .access_mode(crate::AccessMode::ReadWrite)?
-            .default_null_order(crate::DefaultNullOrder::NullsLast)?
-            .default_order(crate::DefaultOrder::Desc)?
+            .access_mode(crate::duckdb::AccessMode::ReadWrite)?
+            .default_null_order(crate::duckdb::DefaultNullOrder::NullsLast)?
+            .default_order(crate::duckdb::DefaultOrder::Desc)?
             .enable_external_access(true)?
             .enable_object_cache(false)?
             .max_memory("2GB")?

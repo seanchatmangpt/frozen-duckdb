@@ -4,7 +4,7 @@
 //! the frozen DuckDB binary vs. compiling from source.
 
 use anyhow::Result;
-use duckdb::Connection;
+use frozen_duckdb::Connection;
 use std::time::Instant;
 use tracing::info;
 
@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     // Create test schema
     let start = Instant::now();
-        conn.execute(
+    conn.execute(
         "CREATE TABLE performance_test (
             id INTEGER,
             name TEXT,

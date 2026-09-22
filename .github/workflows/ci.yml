@@ -11,12 +11,20 @@ env:
 
 jobs:
   test:
-    name: Test Suite
+    name: Test Suite (${{ matrix.os }}, ${{ matrix.rust }})
     runs-on: ${{ matrix.os }}
+    # A single red leg must not destroy the diagnostics of the other legs
+    # (observed 2026-09-21: one fmt failure cancelled three unrelated legs).
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         rust: [stable, beta]
+    # The builder's last-resort fallback is a full DuckDB source compile
+    # (~1h, exit codes ignored). With the pre-seeded library below that path
+    # is unreachable; this timeout turns any regression back into a loud,
+    # bounded failure instead of a silent hang.
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +33,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
+          # beta installs without rustfmt/clippy by default; the fmt/clippy
+          # steps below need both (observed 2026-09-21: "'cargo-fmt' is not
+          # installed for the toolchain 'beta'").
+          components: rustfmt, clippy
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -37,11 +49,50 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Set up frozen DuckDB environment
+      # frozen_duckdb_builder::ensure_binary() looks FIRST in
+      # ~/.frozen-duckdb/cache/v<version>-<arch>/libduckdb_<arch>.<dylib|so>.
+      # Its own fallbacks are unusable on CI: prebuilt/ ships no binaries, the
+      # project release download 404s pre-publish, and the source-compile
+      # fallback ignores cmake/make failures. Pre-seeding the cache here makes
+      # every platform deterministic. Keep DUCKDB_VERSION in sync with
+      # crates/frozen-duckdb-builder/src/lib.rs (const VERSION).
+      - name: Provision DuckDB library (pre-seed builder cache)
         run: |
-          source prebuilt/setup_env.sh
-          echo "DUCKDB_LIB_DIR=$DUCKDB_LIB_DIR" >> $GITHUB_ENV
-          echo "DUCKDB_INCLUDE_DIR=$DUCKDB_INCLUDE_DIR" >> $GITHUB_ENV
+          set -euo pipefail
+          DUCKDB_VERSION="1.5.5"
+          ARCH="$(uname -m)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            case "$ARCH" in
+              x86_64)  ASSET="libduckdb-linux-amd64.zip"; ARCH_TAG="x86_64" ;;
+              aarch64) ASSET="libduckdb-linux-arm64.zip"; ARCH_TAG="arm64"  ;;
+              *) echo "Unsupported linux arch: $ARCH"; exit 1 ;;
+            esac
+            LIB_EXT="so"
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            case "$ARCH" in
+              x86_64) ARCH_TAG="x86_64" ;;
+              arm64)  ARCH_TAG="arm64"  ;;
+              *) echo "Unsupported macOS arch: $ARCH"; exit 1 ;;
+            esac
+            ASSET="libduckdb-osx-universal.zip"
+            LIB_EXT="dylib"
+          else
+            echo "Unsupported runner OS: $RUNNER_OS"; exit 1
+          fi
+          CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
+          mkdir -p "$CACHE_DIR"
+          TMP="$(mktemp -d)"
+          curl -fL --retry 5 --silent --show-error \
+            "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \
+            -o "$TMP/libduckdb.zip"
+          unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
+          cp "$TMP/libduckdb.${LIB_EXT}" "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
+          # -lduckdb resolves the plain name; the builder only symlinks
+          # libduckdb.dylib, which the linux linker never searches for.
+          ln -sf "libduckdb_${ARCH_TAG}.${LIB_EXT}" "$CACHE_DIR/libduckdb.${LIB_EXT}"
+          test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
+          echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
+          rm -rf "$TMP"
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -63,17 +114,35 @@ jobs:
   build-examples:
     name: Build Examples
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Set up frozen DuckDB environment
+      - name: Provision DuckDB library (pre-seed builder cache)
         run: |
-          source prebuilt/setup_env.sh
-          echo "DUCKDB_LIB_DIR=$DUCKDB_LIB_DIR" >> $GITHUB_ENV
-          echo "DUCKDB_INCLUDE_DIR=$DUCKDB_INCLUDE_DIR" >> $GITHUB_ENV
+          set -euo pipefail
+          DUCKDB_VERSION="1.5.5"
+          ARCH="$(uname -m)"
+          case "$ARCH" in
+            x86_64)  ASSET="libduckdb-linux-amd64.zip"; ARCH_TAG="x86_64" ;;
+            aarch64) ASSET="libduckdb-linux-arm64.zip"; ARCH_TAG="arm64"  ;;
+            *) echo "Unsupported linux arch: $ARCH"; exit 1 ;;
+          esac
+          CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
+          mkdir -p "$CACHE_DIR"
+          TMP="$(mktemp -d)"
+          curl -fL --retry 5 --silent --show-error \
+            "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \
+            -o "$TMP/libduckdb.zip"
+          unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
+          cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
+          test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          rm -rf "$TMP"
 
       - name: Build all examples
         run: |
@@ -82,17 +151,35 @@ jobs:
   performance:
     name: Performance Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Set up frozen DuckDB environment
+      - name: Provision DuckDB library (pre-seed builder cache)
         run: |
-          source prebuilt/setup_env.sh
-          echo "DUCKDB_LIB_DIR=$DUCKDB_LIB_DIR" >> $GITHUB_ENV
-          echo "DUCKDB_INCLUDE_DIR=$DUCKDB_INCLUDE_DIR" >> $GITHUB_ENV
+          set -euo pipefail
+          DUCKDB_VERSION="1.5.5"
+          ARCH="$(uname -m)"
+          case "$ARCH" in
+            x86_64)  ASSET="libduckdb-linux-amd64.zip"; ARCH_TAG="x86_64" ;;
+            aarch64) ASSET="libduckdb-linux-arm64.zip"; ARCH_TAG="arm64"  ;;
+            *) echo "Unsupported linux arch: $ARCH"; exit 1 ;;
+          esac
+          CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
+          mkdir -p "$CACHE_DIR"
+          TMP="$(mktemp -d)"
+          curl -fL --retry 5 --silent --show-error \
+            "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \
+            -o "$TMP/libduckdb.zip"
+          unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
+          cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
+          test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          rm -rf "$TMP"
 
       - name: Run performance benchmarks
         run: |

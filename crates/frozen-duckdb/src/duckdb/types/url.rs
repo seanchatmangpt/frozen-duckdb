@@ -1,5 +1,5 @@
 //! [`ToSql`] and [`FromSql`] implementation for [`url::Url`].
-use crate::{
+use crate::duckdb::{
     types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
     Result,
 };
@@ -29,7 +29,7 @@ impl FromSql for Url {
 
 #[cfg(test)]
 mod test {
-    use crate::{params, Connection, Error, Result};
+    use crate::duckdb::{params, Connection, Error, Result};
     use url::{ParseError, Url};
 
     fn checked_memory_handle() -> Result<Connection> {
@@ -70,7 +70,10 @@ mod test {
         let err = get_url(db, 3).unwrap_err();
         match err {
             Error::FromSqlConversionFailure(_, _, e) => {
-                assert_eq!(*e.downcast::<ParseError>().unwrap(), ParseError::RelativeUrlWithoutBase,);
+                assert_eq!(
+                    *e.downcast::<ParseError>().unwrap(),
+                    ParseError::RelativeUrlWithoutBase,
+                );
             }
             e => {
                 panic!("Expected conversion failure, got {e}");

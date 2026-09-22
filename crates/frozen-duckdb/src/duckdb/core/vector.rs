@@ -1,15 +1,16 @@
 use std::{any::Any, ffi::CString, slice};
 
 use frozen_duckdb_sys::{
-    duckdb_array_type_array_size, duckdb_array_vector_get_child, duckdb_validity_row_is_valid, DuckDbString,
+    duckdb_array_type_array_size, duckdb_array_vector_get_child, duckdb_validity_row_is_valid,
+    DuckDbString,
 };
 
 use super::LogicalTypeHandle;
-use crate::ffi::{
-    duckdb_list_entry, duckdb_list_vector_get_child, duckdb_list_vector_get_size, duckdb_list_vector_reserve,
-    duckdb_list_vector_set_size, duckdb_struct_type_child_count, duckdb_struct_type_child_name,
-    duckdb_struct_vector_get_child, duckdb_validity_set_row_invalid, duckdb_vector,
-    duckdb_vector_assign_string_element, duckdb_vector_assign_string_element_len,
+use crate::duckdb::ffi::{
+    duckdb_list_entry, duckdb_list_vector_get_child, duckdb_list_vector_get_size,
+    duckdb_list_vector_reserve, duckdb_list_vector_set_size, duckdb_struct_type_child_count,
+    duckdb_struct_type_child_name, duckdb_struct_vector_get_child, duckdb_validity_set_row_invalid,
+    duckdb_vector, duckdb_vector_assign_string_element, duckdb_vector_assign_string_element_len,
     duckdb_vector_ensure_validity_writable, duckdb_vector_get_column_type, duckdb_vector_get_data,
     duckdb_vector_get_validity, duckdb_vector_size,
 };
@@ -200,7 +201,10 @@ impl ListVector {
     // TODO: not ideal interface. Where should we keep capacity.
     pub fn child(&self, capacity: usize) -> FlatVector {
         self.reserve(capacity);
-        FlatVector::with_capacity(unsafe { duckdb_list_vector_get_child(self.entries.ptr) }, capacity)
+        FlatVector::with_capacity(
+            unsafe { duckdb_list_vector_get_child(self.entries.ptr) },
+            capacity,
+        )
     }
 
     /// Take the child as [StructVector].
@@ -368,7 +372,7 @@ impl StructVector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{DataChunkHandle, LogicalTypeId};
+    use crate::duckdb::core::{DataChunkHandle, LogicalTypeId};
     use std::ffi::CString;
 
     #[test]
@@ -392,7 +396,9 @@ mod tests {
         vector.insert(0, b"hello world".as_slice());
         vector.insert(
             1,
-            &vec![0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64],
+            &vec![
+                0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+            ],
         );
     }
 }

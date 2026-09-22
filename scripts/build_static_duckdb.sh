@@ -18,8 +18,8 @@ echo "📦 Step 1: Setting up isolated build environment..."
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-echo "📥 Step 2: Cloning DuckDB-rs source..."
-git clone https://github.com/duckdb/duckdb-rs.git
+echo "📥 Step 2: Cloning DuckDB-rs source (pinned to v1.10505.0 = DuckDB 1.5.5)..."
+git clone --branch v1.10505.0 https://github.com/duckdb/duckdb-rs.git
 cd duckdb-rs
 
 echo "🔧 Step 3: Applying Arrow patch..."
@@ -90,7 +90,7 @@ echo "  Binary: $(ls -1 *.dylib *.so *.a 2>/dev/null | head -1)"
 echo ""
 echo "To use in your project:"
 echo "  source $DUCKDB_LIB_DIR/setup_env.sh"
-echo "  Update kcura-duck to use: duckdb = { version = \"1.4.0\", default-features = false }"
+echo "  Update kcura-duck to use: duckdb = { version = \"1.10505.0\", default-features = false }"
 echo "  cargo build -p kcura-duck"
 EOF
 

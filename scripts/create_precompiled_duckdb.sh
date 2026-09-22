@@ -8,7 +8,7 @@ echo "🦆 Creating Pre-compiled DuckDB Binary (Never Compile Again!)"
 echo "============================================================"
 
 # Configuration
-DUCKDB_VERSION="1.4.0"
+DUCKDB_VERSION="1.5.5"
 BUILD_DIR="target/duckdb-precompiled"
 BINARY_NAME="libduckdb_precompiled.a"
 

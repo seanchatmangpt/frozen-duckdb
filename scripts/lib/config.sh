@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# STATUS (TR6 2026-09-21): KEPT-UNCERTAIN. Generic 80/20 infra (config/logging/cache/self-heal)
+# carrying kcura-era defaults (kcura-config.yaml, kcura-cache/kcura-healing/kcura_audit.log
+# names). After TR6 removed ci_gate.sh/ci_gates.sh/smoke_all.sh, the only remaining consumers
+# are scripts/scan_fakes.sh and scripts/scan_fakes_core_team.sh, which are OUTSIDE TR6 scope —
+# removing scripts/lib/ requires removing or repointing those first (recorded in
+# docs/sjira/v26.9.21/TR6.md History). Directory-wide note; applies to all lib/*.sh.
 # KCura Configuration Management Library
 # Provides configuration loading, validation, and environment-specific overrides
 # Version: 1.0 - 80/20 implementation

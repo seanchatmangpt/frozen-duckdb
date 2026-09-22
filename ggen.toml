@@ -1,0 +1,576 @@
+# ggen consumer configuration — frozen-duckdb
+# 源 hierarchy: ~/ggen-marketplace/marketplace.toml → packs/<name>/pack.toml
+#   → ontology.ttl → templates/ → gates/ → THIS projection.
+# Generated files are consequences: edit the owning pack/ontology, never the
+# projection. Canonical union of wave-4 capability compositions (tickets
+# C2..C11, docs/sjira/v26.9.21/). NOTE: [[ontology.pack]] does not exist on
+# ggen 26.8.18's declarative schema (FM-CONFIG-003); [[ontology]].imports is
+# the operative pack binding; [[packs]] documents registry intent only.
+[project]
+name = "frozen-duckdb"
+version = "1.5.5"
+description = "Drop-in replacement for the duckdb (duckdb-rs) crate backed by prebuilt DuckDB binaries"
+authors = ["Sean Chatman"]
+license = "MIT"
+
+[ontology]
+source = "schema/domain.ttl"
+imports = [
+  "/Users/sac/ggen-marketplace/packs/dry-run-publish-pack/ontology.ttl",
+  "schema/reconciliation-vocab.ttl",
+  "/Users/sac/ggen-marketplace/packs/repo-as-found-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/repo-load-path-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/repo-intervention-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/temporary-works-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/mermaid-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/receipt-provenance-unification-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/castle-changelog-release-pack/ontology.ttl",
+  "schema/changelog.ttl",
+  "schema/verify.ttl",
+  "/Users/sac/ggen-marketplace/packs/ggen-verify-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/evidence-standing-pack/ontology.ttl",
+]
+standard_only = true
+
+[generation]
+output_dir = "."
+
+[[generation.rules]]
+name = "c3-reconciliation-ledger"
+query = { inline = '''PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?id ?classLabel ?surface ?before ?after ?decisionLabel ?reason ?blocking WHERE {
+  ?d a ret:Delta ; ret:deltaId ?id ; ret:deltaClass ?class ; ret:targetSurface ?surface ; ret:beforeValue ?before ; ret:afterValue ?after ; ret:admissionDecision ?decision ; ret:decisionReason ?reason ; ret:blocking ?blocking .
+  ?class skos:prefLabel ?classLabel . ?decision skos:prefLabel ?decisionLabel .
+} ORDER BY ?id
+''' }
+template = { inline = '''# 差異受領台帳
+
+| 差異 | 分類 | 面 | 前 | 後 | 判定 | 理由 | 停止性 |
+|---|---|---|---|---|---|---|---|
+{% for d in results %}| `{{ d.id }}` | {{ d.classLabel }} | `{{ d.surface }}` | `{{ d.before }}` | `{{ d.after }}` | {{ d.decisionLabel }} | {{ d.reason }} | {{ d.blocking }} |
+{% endfor %}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/\u5dee\u7570\u53d7\u9818\u53f0\u5e33.md"
+skip_empty = false
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "c3-state-reconciliation-mmd"
+query = { inline = '''PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?index ?id ?label ?hash WHERE { ?s a ret:RepositoryState ; ret:generationIndex ?index ; ret:stateId ?id ; ret:stateKind ?kind ; ret:graphHash ?hash . ?kind skos:prefLabel ?label . } ORDER BY ?index
+''' }
+template = { inline = '''flowchart LR
+{% for s in results %}  g{{ s.index }}["{{ s.label }}\n{{ s.id }}\n{{ s.hash }}"]
+{% endfor %}{% set edges = sparql(query="PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#> SELECT ?fromIndex ?toIndex WHERE { ?from a ret:RepositoryState ; ret:generationIndex ?fromIndex ; ret:nextState ?to . ?to ret:generationIndex ?toIndex . } ORDER BY ?fromIndex") %}{% for e in edges %}  g{{ e.fromIndex }} --> g{{ e.toIndex }}
+{% endfor %}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/\u72b6\u614b\u7167\u5408.mmd"
+skip_empty = false
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "c3-promotion-judgment"
+query = { inline = '''PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+SELECT ?andon ?ceiling ?allowed WHERE { ?r a ret:Reconciliation ; ret:andon ?andon ; ret:standingCeiling ?ceiling ; ret:promotionAllowed ?allowed . } ORDER BY ?andon ?ceiling ?allowed
+''' }
+template = { inline = '''# 再認証判定
+
+{% for r in results %}- アンドン: `{{ r.andon }}`
+- standing上限: `{{ r.ceiling }}`
+- 昇格許可: `{{ r.allowed }}`
+{% endfor %}
+
+## 未解決義務
+
+| 義務 | 状態 | 停止性 |
+|---|---|---|
+{% set obligations = sparql(query="PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#> PREFIX dct: <http://purl.org/dc/terms/> SELECT ?title ?status ?blocking WHERE { ?o a ret:Obligation ; dct:title ?title ; ret:obligationStatus ?status ; ret:blocking ?blocking . } ORDER BY ?title") %}{% for o in obligations %}| {{ o.title }} | {{ o.status }} | {{ o.blocking }} |
+{% endfor %}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/\u518d\u8a8d\u8a3c\u5224\u5b9a.md"
+skip_empty = false
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "c3-recertification-receipt"
+query = { inline = '''PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+SELECT ?previous ?current ?andon ?ceiling ?allowed WHERE { ?r a ret:RecertificationReceipt ; ret:previousReceiptHash ?previous ; ret:receiptHash ?current ; ret:andon ?andon ; ret:standingCeiling ?ceiling ; ret:promotionAllowed ?allowed . } ORDER BY ?current
+''' }
+template = { inline = '''{"schema":"tcps-recertification-v1","receipts":[{% for r in results %}{"previous":"{{ r.previous }}","current":"{{ r.current }}","andon":"{{ r.andon }}","standingCeiling":"{{ r.ceiling }}","promotionAllowed":{{ r.allowed }}}{% if not loop.last %},{% endif %}{% endfor %}]}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/recertification-receipt.json"
+skip_empty = false
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "dry-run-publish-gate-matrix"
+query = { inline = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX fd: <https://seanchatmangpt.github.io/frozen-duckdb/ns#>
+SELECT ?order ?notation ?label ?binding ?steps ?evidence ?v ?subject ?entry ?exit
+WHERE {
+  ?ph a skos:Concept ;
+      skos:notation ?notation ;
+      rdfs:label ?label .
+  ?b a skos:Concept ;
+      skos:notation ?notation ;
+      skos:prefLabel ?binding ;
+      fd:phaseOrder ?order ;
+      fd:runbookSteps ?steps ;
+      fd:evidenceCommand ?evidence ;
+      fd:entryAtom ?entry ;
+      fd:exitAtom ?exit .
+  fd:project dcterms:version ?v .
+  fd:gateObject skos:notation ?subject .
+}
+ORDER BY ?order
+''' }
+template = { inline = '''{% for r in results %}{% if loop.first %}# Dry-Run Publish Gate — frozen-duckdb v{{ r.v }} (dry-run-publish-pack composition)
+
+Rendered consequence of `schema/domain.ttl` (gate bindings) + the marketplace
+pack `dry-run-publish-pack` v26.7.13 ontology (loaded via `ggen.toml`
+[ontology] imports). EDIT THE SOURCES, NEVER THIS FILE. Join key across the
+two graphs: `skos:notation` (`DRY-RUN-*`).
+
+> **DRY-RUN-OVERCLAIM FENCE** (pack law — packs/dry-run-publish-pack/ontology.ttl):
+> this gate models LOCAL, REVERSIBLE dry-run verification only. No atom in the
+> modeled domain is named 'published', 'crates-io-uploaded', or
+> 'release-complete'; the only terminal goal atom is 'dry-run-verified'.
+> Gate-green means an evidence bundle is complete for a human go/no-go
+> decision — never that a release shipped. The live cuts (merge, tag push,
+> `cargo publish` without `--dry-run`) are operator authority (権) and stay
+> outside the modeled domain.
+
+{% endif %}{% endfor %}| # | Pack phase | Repo gate binding | PUBLISH_RUNBOOK steps it gates | Evidence command (exit 0 required) |
+|---|------------|-------------------|--------------------------------|-------------------------------------|
+{% for r in results %}| {{ r.order }} | `{{ r.notation }}` — {{ r.label }} | {{ r.binding }} | {{ r.steps }} | `{{ r.evidence }}` |
+{% endfor %}
+{% for r in results %}{% if loop.first %}## The modeled cycle
+
+PDDL8 STRIPS domain + merged cycle problem: `gates/dry-run-publish/dry-run-publish-domain.ttl`.
+SHACL shapes for a filled dry-run evidence graph: `gates/dry-run-publish/dry-run-publish-shapes.ttl`.
+Subject: `{{ r.subject }}` (schema/domain.ttl fd:gateObject); publish set:
+the three `PKG-FROZEN-DUCKDB-*` members in dependency order (fd:publishMember*).
+{% endif %}{% endfor %}
+{% for r in results %}{% if loop.first %}Init atom: `{{ r.entry }}` (phase 1).
+{% endif %}{% endfor %}{% for r in results %}{% if loop.last %}Sole GOAL atom: `{{ r.exit }}` (phase 6 terminal) — the fence requires it to read unambiguously as a dry-run result, never as a release claim.
+{% endif %}{% endfor %}
+## Executing the modeled gate (repeatable)
+
+```
+ggen sync run    # render these artifacts (exit 0); a second pass must be byte-identical
+```
+
+Then walk phases 1-6 against PUBLISH_RUNBOOK.md with the evidence commands in
+the table above, preserving command + exit for each (証). Fence tripwire
+(structural, must exit 0 — the modeled domain carries the real terminal atom
+and none of the banned ones):
+
+```
+! grep -qE '\b(published|crates-io-uploaded|release-complete)\b' gates/dry-run-publish/dry-run-publish-domain.ttl && grep -q 'dry-run-verified' gates/dry-run-publish/dry-run-publish-domain.ttl
+```
+''' }
+output_file = "gates/dry-run-publish-gates.md"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "dry-run-publish-domain"
+query = { inline = '''PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX fd: <https://seanchatmangpt.github.io/frozen-duckdb/ns#>
+SELECT ?order ?notation ?phaseDesc ?entry ?a1 ?a2 ?exit ?act1 ?act2 ?act3 ?obj
+WHERE {
+  ?b a skos:Concept ;
+     skos:inScheme fd:publishGateBindings ;
+     skos:notation ?notation ;
+     dcterms:description ?phaseDesc ;
+     fd:phaseOrder ?order ;
+     fd:entryAtom ?entry ;
+     fd:step1Atom ?a1 ; fd:step1Action ?act1 ;
+     fd:step2Atom ?a2 ; fd:step2Action ?act2 ;
+     fd:exitAtom ?exit ; fd:exitAction ?act3 .
+  fd:gateObject fd:pddlObject ?obj .
+}
+ORDER BY ?order
+''' }
+template = { inline = '''# frozen-duckdb dry-run publish gate — modeled PDDL8 domain (RENDERED CONSEQUENCE).
+# Sources: schema/domain.ttl (fd:publishGateBindings) + packs/dry-run-publish-pack
+# ontology (ggen.toml [ontology] imports). Edit the sources, never this file.
+# One PDDL8 STRIPS fragment per gate phase (uniform pack convention:
+# {phase}-step1-done / {phase}-step2-done / {phase}-complete; the disclosed
+# phase-6 deviation carries the merged problem's sole GOAL atom — see
+# gates/dry-run-publish-gates.md for the DRY-RUN-OVERCLAIM FENCE wording:
+# this domain models LOCAL, REVERSIBLE dry-run verification only, and no
+# effect atom anywhere below implies an external mutation; phase 6's third
+# action records external_mutation=false on the way to the terminal atom).
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+{% for r in results %}_:phase{{ r.order }}
+    skos:notation "{{ r.notation }}" ;
+    dcterms:description "{{ r.phaseDesc }}" ;
+    ceng:pddlDomain """
+(define (domain frozen-duckdb-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    ({{ r.entry }} ?x)
+    ({{ r.a1 }} ?x)
+    ({{ r.a2 }} ?x)
+    ({{ r.exit }} ?x))
+  (:action {{ r.act1 }}
+    :parameters (?x)
+    :precondition (and ({{ r.entry }} ?x))
+    :effect (and ({{ r.a1 }} ?x)))
+  (:action {{ r.act2 }}
+    :parameters (?x)
+    :precondition (and ({{ r.a1 }} ?x))
+    :effect (and ({{ r.a2 }} ?x)))
+  (:action {{ r.act3 }}
+    :parameters (?x)
+    :precondition (and ({{ r.a2 }} ?x))
+    :effect (and ({{ r.exit }} ?x))))
+""" .
+
+{% endfor %}{% for r in results %}{% if loop.first %}_:problem
+    skos:notation "FROZEN-DUCKDB-DRY-RUN-PUBLISH-CYCLE-PROBLEM" ;
+    dcterms:description "Merged dry-run publish gate cycle problem for {{ r.obj }}: init = phase-1 entry atom {{ r.entry }}; the sole GOAL atom is the phase-6 fence terminal (dry-run-verified), reached only after external_mutation=false is recorded."@en ;
+    ceng:pddlProblem """
+(define (problem frozen-duckdb-dry-run-publish-cycle-p)
+  (:domain frozen-duckdb-dry-run-publish-cycle)
+  (:objects {{ r.obj }})
+  (:init ({{ r.entry }} {{ r.obj }}))
+{% endif %}{% endfor %}{% for r in results %}{% if loop.last %}  (:goal ({{ r.exit }} {{ r.obj }})))
+""" .
+{% endif %}{% endfor %}''' }
+output_file = "gates/dry-run-publish/dry-run-publish-domain.ttl"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "dry-run-publish-shapes"
+query = { inline = '''PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX fd: <https://seanchatmangpt.github.io/frozen-duckdb/ns#>
+SELECT ?v ?rc
+WHERE {
+  fd:project dcterms:version ?v .
+  fd:gateObject skos:notation ?rc .
+}
+ORDER BY ?rc
+''' }
+template = { inline = '''{% for r in results %}# dry-run-publish-shapes.ttl — frozen-duckdb v{{ r.v }} SHACL shapes for a filled
+# dry-run publish evidence graph (RENDERED CONSEQUENCE). Adapted from
+# packs/dry-run-publish-pack/templates/dry-run-publish-shapes.ttl.tmpl (same
+# generic shape queries as the pack family: sh:targetClass + sh:path +
+# sh:minCount / sh:closed+sh:ignoredProperties / sh:pattern — no SPARQL-based
+# target extension). Sources: schema/domain.ttl + the pack ontology via
+# ggen.toml [ontology] imports. Edit the sources, never this file.
+#
+# Subject release candidate: {{ r.rc }} (schema/domain.ttl fd:gateObject).
+# Fence: the modeled gate's only terminal goal atom is dry-run-verified and
+# no effect atom implies an external mutation — full DRY-RUN-OVERCLAIM FENCE
+# wording lives in gates/dry-run-publish-gates.md.
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ex:      <urn:frozen-duckdb:shapes#> .
+
+# Every SKOS concept in the evidence graph must carry a deterministic
+# uppercase notation handle (the blank-node join key).
+ex:DryRunConceptShape a sh:NodeShape ;
+  sh:targetClass skos:Concept ;
+  sh:property [
+    sh:path skos:notation ;
+    sh:minCount 1 ;
+    sh:pattern "^[A-Z0-9][A-Z0-9-]*$" ;
+  ] .
+
+# Every gate-phase execution (prov:Activity) must be notated, described,
+# associated with the release candidate, and generate at least one
+# deliverable entity. Closed: no undeclared predicates sneak onto a phase.
+ex:DryRunPhaseShape a sh:NodeShape ;
+  sh:targetClass prov:Activity ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^DRY-RUN-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:generated ; sh:minCount 1 ; ] .
+
+# The release candidate under test (prov:Agent target of every
+# prov:wasAssociatedWith): notated and described. Not closed: the same node
+# is dual-typed prov:Entity and carries the entity-side handle checked by
+# ex:DryRunDeliverableShape.
+ex:DryRunReleaseCandidateShape a sh:NodeShape ;
+  sh:targetClass prov:Agent ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^RC-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .
+
+# Every prov:Entity — phase deliverable (DELIV-*), publish-set member
+# (PKG-*), or the release candidate (RC-*) — must be notated and described.
+ex:DryRunDeliverableShape a sh:NodeShape ;
+  sh:targetClass prov:Entity ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^(DELIV|PKG|RC)-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .
+{% endfor %}''' }
+output_file = "gates/dry-run-publish/dry-run-publish-shapes.ttl"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "receipt-contract-census"
+query = { inline = "PREFIX rp: <http://seanchatmangpt.github.io/packs/receipt-provenance#> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> PREFIX dcterms: <http://purl.org/dc/terms/> SELECT ?key ?title ?path ?form ?pattern ?jtype ?mandatory WHERE { ?f a rp:FieldBinding ; rp:contract ?c ; rp:dottedPath ?path ; rp:mandatory ?mandatory ; rp:valueForm ?vf . ?c rp:contractKey ?key ; dcterms:title ?title . ?vf skos:prefLabel ?form ; rp:jsonType ?jtype ; rp:pattern ?pattern . } ORDER BY ?key ?path" }
+template = { file = "templates/receipt_contract_matrix.json.tmpl" }
+output_file = "generated/receipt_contract_matrix.json"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "changelog"
+query = { inline = "PREFIX rel: <http://seanchatmangpt.github.io/packs/changelog-release#> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> SELECT ?kind ?rel ?version ?date ?yanked ?category ?entryOrder ?description WHERE { { BIND(0 AS ?kind) ?rel a rel:Release ; rel:version ?version . OPTIONAL { ?rel rel:date ?date } OPTIONAL { ?rel rel:yanked ?yanked } } UNION { BIND(1 AS ?kind) ?entry a rel:ChangeEntry ; rel:inRelease ?rel ; rel:category ?catConcept ; rel:description ?description . ?catConcept skos:notation ?category . OPTIONAL { ?entry rel:entryOrder ?ord0 } BIND(COALESCE(?ord0, 0) AS ?entryOrder) } } ORDER BY ?kind DESC(?date) DESC(?version) ?rel ?category ?entryOrder" }
+template = { file = "templates/CHANGELOG.md.tmpl" }
+output_file = "CHANGELOG.md"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "render-verify-gates"
+query = { file = "schema/verify-gates.rq" }
+template = { inline = '''#!/usr/bin/env bash
+# GENERATED by `ggen sync run` (rule render-verify-gates in ggen.toml).
+# Consequence — edit schema/verify.ttl (the ver:RequiredCheck facts), never
+# this file. Vocabularies: ver: packs/ggen-verify-pack,
+# es: packs/evidence-standing-pack (bound via [ontology].imports).
+# Runs every required check, records REAL exit codes as ver:Check facts in
+# scripts/verify-evidence.ttl, and exits nonzero if any gate is red.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+EV="scripts/verify-evidence.ttl"
+RECORDED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+GRAPH_HASH="unsynced"
+if [ -f .ggen-v2/receipt.json ]; then
+  GRAPH_HASH="$(python3 -c 'import json;print(json.load(open(".ggen-v2/receipt.json"))["payload"]["graph_hash"])' 2>/dev/null || echo unsynced)"
+fi
+
+NAMES=(); CODES=(); TOOLS=(); REDS=()
+FAILED_RED=""
+
+run_gate() { # name command redStandingName(lowercase, from es:standingName)
+  name="$1"; cmd="$2"; red="$3"
+  echo "=== [C8 gate] $name"
+  log="$(mktemp -t verify-gate)"
+  bash -c "$cmd" >"$log" 2>&1
+  code=$?
+  tail -n 3 "$log" | sed 's/^/    | /'
+  rm -f "$log"
+  NAMES+=("$name"); CODES+=("$code"); TOOLS+=("$cmd"); REDS+=("$red")
+  if [ "$code" -ne 0 ] && [ -z "$FAILED_RED" ]; then FAILED_RED="$red"; fi
+  return 0
+}
+
+{% for r in results %}{% if r.kind == "check" %}run_gate '{{ r.name }}' '{{ r.command }}' '{{ r.standing }}'
+{% endif %}{% endfor %}
+{% raw %}
+{
+  echo "# GENERATED by scripts/verify-gates.sh at $RECORDED_AT -- do not edit."
+  echo "# Real exit codes from real runs of the schema/verify.ttl gate battery."
+  echo "# Vocabulary: ver: packs/ggen-verify-pack; standing: es: evidence-standing-pack."
+  echo "@prefix ver: <http://seanchatmangpt.github.io/packs/ggen-verify#> ."
+  echo ""
+  i=0
+  while [ "$i" -lt "${#NAMES[@]}" ]; do
+    echo "ver:check-${NAMES[$i]} a ver:Check ;"
+    echo "    ver:name \"${NAMES[$i]}\" ;"
+    echo "    ver:tool \"${TOOLS[$i]}\" ;"
+    echo "    ver:exitCode ${CODES[$i]} ;"
+    echo "    ver:verifiedGraphHash \"$GRAPH_HASH\" ;"
+    echo "    ver:recordedAt \"$RECORDED_AT\" ."
+    echo ""
+    i=$((i + 1))
+  done
+} > "$EV"
+
+TOTAL=${#NAMES[@]}
+GREEN=0
+i=0
+while [ "$i" -lt "$TOTAL" ]; do
+  [ "${CODES[$i]}" -eq 0 ] && GREEN=$((GREEN + 1))
+  i=$((i + 1))
+done
+echo "verify-gates: $GREEN/$TOTAL gates green -> $EV (graph hash binding: $GRAPH_HASH)"
+i=0
+while [ "$i" -lt "$TOTAL" ]; do
+  echo "  ${NAMES[$i]}: exit ${CODES[$i]}"
+  i=$((i + 1))
+done
+{% endraw %}
+
+if [ -n "$FAILED_RED" ]; then
+  echo "STANDING: $(echo "$FAILED_RED" | tr '[:lower:]' '[:upper:]') (red gate above; evidence: $EV)"
+  exit 1
+fi
+echo "STANDING: ALIVE — all $TOTAL gates green (evidence: $EV)"
+''' }
+output_file = "scripts/verify-gates.sh"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "render-makefile-verify"
+query = { file = "schema/verify-gates.rq" }
+template = { inline = '''# GENERATED by `ggen sync run` (rule render-makefile-verify in ggen.toml).
+# Consequence — edit schema/verify.ttl / schema/verify-gates.rq, never this
+# file. One-command gate battery (ticket docs/sjira/v26.9.21/C8.md):
+#   make verify = verify-gates (rendered runner, records evidence)
+#               + ggen sync run (render + receipt)
+#               + ggen receipt verify (receipt chain check)
+# Standing vocabulary (ALIVE/BLOCKED/BUILD_BROKEN/…) is rendered from the
+# packs/evidence-standing-pack es:Standing facts; per-gate red standings
+# from schema/verify.ttl fdv:redStanding. Target-name law: claims `verify`
+# and `verify-*` only (`sync`/`gates` belong to C10).
+
+{% for r in results %}{% if r.kind == "standing" %}# standing vocabulary (es:standingName): {{ r.name }}
+{% endif %}{% endfor %}SHELL := /bin/bash
+
+.PHONY: verify verify-gates{% for r in results %}{% if r.kind == "check" %} verify-{{ r.name }}{% endif %}{% endfor %}
+
+verify: verify-gates
+	ggen sync run
+	ggen receipt verify
+
+verify-gates:
+	bash scripts/verify-gates.sh
+{% for r in results %}{% if r.kind == "check" %}
+verify-{{ r.name }}:
+	bash -c '{{ r.command }}'
+{% endif %}{% endfor %}
+# --- C10 reconciliation targets (rule-owned since the wave-4 dry run: these
+# bytes live in THIS owning template, not in a hand-unioned Makefile — the
+# HANDWRITTEN.md multi-rule-union row is paid down. Failure modes this cures:
+# every `ggen sync run` overwrote the hand-unioned block away (this rule owns
+# Makefile in Overwrite mode), and the wave-4 integration merge had truncated
+# the block's head: no GENESIS := / .PHONY / sync: / genesis-check: lines
+# survived the union) ---
+GENESIS := docs/GENESIS.md
+
+.PHONY: sync genesis-check gates
+
+sync:
+	ggen sync run
+
+# Proposed CI check-mode step (documented in GENESIS.md, NOT enabled):
+#   ggen sync run --dry-run --format quiet && make genesis-check
+genesis-check:
+	@set -euo pipefail; \
+	fail=0; checked=0; deferred=0; gaps=0; \
+	while IFS=$$'\t' read -r cons src status; do \
+	  [ -n "$$cons" ] || continue; \
+	  label="[$$status] $$cons <- $$src"; \
+	  case "$$status" in \
+	    pending) \
+	      if [ -e "$$src" ]; then \
+	        echo "FAIL $$label (source landed — flip row to active in $(GENESIS))"; fail=$$((fail+1)); \
+	      else \
+	        echo "DEFERRED $$label (source not in this tree yet)"; deferred=$$((deferred+1)); \
+	      fi ;; \
+	    gap) \
+	      if [ -e "$$cons" ]; then \
+	        echo "GAP-OK $$label"; gaps=$$((gaps+1)); \
+	      else \
+	        echo "FAIL $$label (gap file missing)"; fail=$$((fail+1)); \
+	      fi ;; \
+	    active) \
+	      ok=1; \
+	      case "$$src" in \
+	        upstream:*) \
+	          ref="$${src##*@}"; \
+	          if [[ "$$ref" =~ ^[0-9a-f]{40}$$ ]]; then \
+	            git ls-files -s vendors/duckdb-rs | grep -q "$$ref" || { echo "FAIL $$label (vendors/duckdb-rs gitlink != $$ref)"; ok=0; }; \
+	          else \
+	            grep -q "$${ref#v}" schema/domain.ttl || { echo "FAIL $$label (pin $$ref absent from schema/domain.ttl)"; ok=0; }; \
+	          fi ;; \
+	        HANDWRITTEN.md) \
+	          grep -qF "$$cons" HANDWRITTEN.md || { echo "FAIL $$label (no ledger row names this path)"; ok=0; }; \
+	          [ -e "$$cons" ] || { echo "FAIL $$label (file missing)"; ok=0; } ;; \
+	        hand:*|unknown:*) : ;; \
+	        *) \
+	          if [[ "$$src" == *[\[\*\?]* ]]; then \
+	            compgen -G "$$src" >/dev/null || { echo "FAIL $$label (source glob unmatched)"; ok=0; }; \
+	          else \
+	            [ -e "$$src" ] || { echo "FAIL $$label (source missing)"; ok=0; }; \
+	          fi ;; \
+	      esac; \
+	      case "$$cons" in \
+	        ext:*) : ;; \
+	        *[\[\*\?]*) \
+	          compgen -G "$$cons" >/dev/null || { echo "FAIL $$label (consequence glob unmatched)"; ok=0; } ;; \
+	        *) \
+	          [ -e "$$cons" ] || { echo "FAIL $$label (consequence missing)"; ok=0; } ;; \
+	      esac; \
+	      if [ $$ok -eq 1 ]; then echo "OK $$label"; checked=$$((checked+1)); else fail=$$((fail+1)); fi ;; \
+	    *) \
+	      echo "FAIL $$label (unknown status '$$status')"; fail=$$((fail+1)) ;; \
+	  esac; \
+	done < <(awk -F'|' '/^\| `/ { c=$$2; s=$$3; t=$$4; gsub(/[` ]/,"",c); gsub(/[` ]/,"",s); gsub(/[` ]/,"",t); print c "\t" s "\t" t }' $(GENESIS)); \
+	echo "genesis-check: checked=$$checked deferred=$$deferred gaps=$$gaps failed=$$fail"; \
+	[ $$fail -eq 0 ]
+
+gates: sync genesis-check
+	@echo "GATES GREEN: sync exit 0 + genesis-check exit 0 (verify remains reserved for ticket C8)"
+''' }
+output_file = "Makefile"
+mode = "Overwrite"
+
+# Pack registry intent (documentation on the declarative schema).
+
+[[packs]]
+name = "repo-reconciliation-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack"
+
+[[packs]]
+name = "repo-as-found-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-as-found-pack"
+
+[[packs]]
+name = "repo-load-path-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-load-path-pack"
+
+[[packs]]
+name = "repo-intervention-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-intervention-pack"
+
+[[packs]]
+name = "temporary-works-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/temporary-works-pack"
+
+[[packs]]
+name = "mermaid-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/mermaid-pack"
+
+[[packs]]
+name = "receipt-provenance-unification-pack"
+version = "0.1.0"
+path = "/Users/sac/ggen-marketplace/packs/receipt-provenance-unification-pack"
+
+[[packs]]
+name = "castle-changelog-release-pack"
+version = "0.1.0"
+path = "/Users/sac/ggen-marketplace/packs/castle-changelog-release-pack"
+
+[sync]
+enabled = true
+on_change = "manual"
+validate_after = true
+conflict_mode = "fail"
+
+[rdf]
+formats = ["turtle"]
+default_format = "turtle"
+strict_validation = false
