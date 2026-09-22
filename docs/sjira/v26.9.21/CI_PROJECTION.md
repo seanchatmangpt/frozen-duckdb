@@ -145,3 +145,31 @@ near-fit topology, recorded per 階 law).
 - Standing deltas: github-actions-pack ASSESSED (viable family, blocked landing), cargo-cicd-pack REFUSED (family mismatch)
 - Falsifiers attempted: pack-fairness re-render (my authoring vs template defect — 2 corruptions were mine, corrected); single-vs-two parser confirmation; TemplateSource shape space (3 variants); both wiring schemas
 - What the operator did NOT have to write: this assessment, the probe, and the evidence battery — no production byte was hand-written this wave
+
+## Re-verification (G7 crawl, 2026-09-21 — no edits to the verdicts above)
+
+All five failed edges re-falsified against the SAME ggen (26.8.18, `ggen --version`
+exit 0 today) and the SAME pack (github-actions-pack v0.3.2; no commits touching
+`packs/github-actions-pack/` since 97e630cb9 2026-09-10, tree clean):
+
+- **FE-1 re-proven LIVE**: transient `[[ontology.pack]]` appended to this repo's
+  `ggen.toml` → `ggen sync run` exit 1, `[FM-CONFIG-003]` "unknown field `pack`,
+  expected one of `source`, `imports`, `base_iri`, `prefixes`, `standard_only`" —
+  byte-identical to evidence #2. Config restored, tree clean. (The `[packs]`
+  ambiguity and `TemplateSource` legs carry over: same ggen binary as the original
+  observation; no upgrade occurred.)
+- **FE-2 source-confirmed**: gates/020_security.rq branch (3) refuses any
+  `gha:usesAction` value containing `@` that is not `./`-local and not pinned to
+  40-hex — exactly the wave-3 ref set.
+- **FE-3 source-confirmed**: no `gha:withBlock` property exists in ontology.ttl
+  (grep count 0); `with:`/`env:` still render GROUP_CONCAT-joined kv at fixed indent
+  (workflow.yml.tmpl steps query + `{{ kv }}` loops).
+- **FE-4 source-confirmed**: `permissions:` + `{{ permissionCeiling }}` renders
+  unconditionally at top level (no `{%- if %}` guard, unlike `concurrency:`).
+- **FE-5 source-confirmed**: `GROUP_CONCAT(DISTINCT ...)` for with/env unchanged —
+  the mechanism note stands.
+
+Also recorded this crawl: the wave-3 laws this document inventories are now proven on
+real runners — merged master `a3a69e4` (PR #3): CI run 35674110999, CI Simple
+35674111087, Test Minimal 35674111126, all conclusion **success** (8/8 jobs, both
+beta legs included, ~2.5 min each). Paydown path above is unchanged and still owed.
