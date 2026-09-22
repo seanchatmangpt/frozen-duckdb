@@ -52,4 +52,5 @@ cobertura.xml
 *.backup
 .lh/
 
-frozen-test-project/
+frozen-test-project/.ggen/
+.ggen-v2/
