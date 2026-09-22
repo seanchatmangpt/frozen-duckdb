@@ -18,10 +18,23 @@ marketplace pack; (2) the FAILED-EDGE LEDGER — capabilities this repo needed t
 marketplace pack expresses — feeding the pack author as the prior-art-closure evidence
 that makes INVENT lawful (階 step 4).
 
-At authoring time the C6 worktree carried no `packs/frozen-duckdb-pack` yet (checked
-2026-09-21: `ls packs/ | grep -i -E 'frozen|duckdb'` → empty on branch
-`pack/frozen-duckdb-capabilities`), so the path below is stated generically with pack
-citations; it binds the moment the pack directory exists.
+At authoring time the C6 worktree carried no `packs/frozen-duckdb-pack` yet, so
+the path below was stated generically with pack citations. **Update (G7
+re-verification, 2026-09-21): the pack now EXISTS** on branch
+`pack/frozen-duckdb-capabilities` (commit `301ebc42f` "feat: add
+frozen-duckdb-pack (DuckDB frozen-binary domain laws)"): `pack.toml` v0.1.0
+(name `frozen-duckdb-pack`, SemVer `0.1.0`, verification-story description
+covering the version-encoding arithmetic, `libduckdb_{arch}.{dylib|so}` asset
+law, cache normalization, DOCS_RS builds and the `@rpath/libduckdb.dylib`
+install-name law), `ontology.ttl`, `templates/`
+(`frozen_duckdb_laws.md.tmpl`, `sys_build_rs.tmpl`), `gates/` (3 SPARQL +
+1 executable structural check), `qualification/consumer.ttl`, `README.md` —
+the §2 Step 2 shape minus the optional `targets.toml`. The path below binds
+now. Admission steps 2–4 are NOT yet traversed: the pack is absent from
+canonical `main` (checked 2026-09-21: `git show
+main:packs/frozen-duckdb-pack/pack.toml` → path does not exist), so structure
+inspection, the governance check and the qualification court are all still
+pending; court standing remains UNKNOWN.
 
 ## 0. 源 hierarchy (what admission means)
 
@@ -136,8 +149,9 @@ cap) — a pack rendering a broken manifest cannot qualify ALIVE.
 Outcome vocabulary is the standing vocabulary: ALIVE | WARN | REFUSED:* — recorded as a
 QualificationReceipt; `ALIVE` on this court is what moves the pack CANDIDATE → QUALIFIED.
 This ticket did NOT execute the court (it qualifies every admitted pack; the
-frozen-duckdb-pack does not exist yet) — court standing for the new pack is UNKNOWN
-until C6 lands and the court runs. Claimed-ALIVE-before-court = fabricated evidence.
+frozen-duckdb-pack exists only on the unmerged feature branch — see the G7
+update above) — court standing for the new pack is UNKNOWN until the
+coordinator merges it to canonical `main` and the court runs. Claimed-ALIVE-before-court = fabricated evidence.
 
 ### Step 5 — Compatibility requirements (pack-compatibility-pack)
 
@@ -230,19 +244,28 @@ Ledger rule: a row leaves this table (and its HANDWRITTEN.md twin) only when the
 admitted, QUALIFIED pack expresses the semantic element and this repo renders it as a
 consequence — proven by a `ggen sync run` receipt, never by assertion. C6 owns turning
 rows 1–9 into ontology facts + gates inside the ONE pack (families inside a pack; no
-pack-per-capability sprawl — 階 step 3/4 topology law).
+pack-per-capability sprawl — 階 step 3/4 topology law). G7 update (2026-09-21): the
+pack skeleton now exists on the feature branch with gate + template files in place;
+whether each row's semantic element is actually expressed there is C6/G9's admission
+evidence to prove — no row leaves this table on existence alone.
 
 ## 4. What this ticket did NOT do (falsifiers declared, not hidden)
 
-- Qualification court NOT executed for frozen-duckdb-pack: the pack does not exist yet;
-  its standing is UNKNOWN until C6 lands and `qualify_packs.py` runs. §2 Step 4 cites
-  the court's documented mechanics from its source, not an observed run.
+- Qualification court NOT executed for frozen-duckdb-pack: the pack exists on the
+  unmerged `pack/frozen-duckdb-capabilities` branch only (G7 check 2026-09-21); the
+  court has never run against it, so its standing is UNKNOWN until the merge lands
+  and `qualify_packs.py` executes. §2 Step 4 cites the court's documented mechanics
+  from its source, not an observed run.
 - `ggen law validate` not run against the law packs: it validates a project's own
   `[law]`-configured graph, not an arbitrary pack directory; gate execution for
   admitted packs belongs to the qualification court.
 - No [[ontology.pack]] composition added to this repo's ggen.toml: the pack is
-  unadmitted; composing it now would break `ggen sync run`. Composition is a later
-  wave's scope.
+  unadmitted; composing it now would break `ggen sync run` — and independently,
+  `[[ontology.pack]]` does not exist on ggen 26.8.18's declarative schema at all
+  (G7 live re-probe 2026-09-21: exit 1, `[FM-CONFIG-003]` unknown field `pack`,
+  expected `source/imports/base_iri/prefixes/standard_only`). The operative pack
+  binding on this schema is `[ontology].imports`; composition is a later wave's
+  scope.
 
 ## 5. Session receipt (証 — observed execution, 2026-09-21)
 

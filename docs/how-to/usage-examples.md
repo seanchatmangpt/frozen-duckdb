@@ -10,9 +10,13 @@ Swap the dependency — no code changes needed; same API as duckdb-rs, 99% faste
 duckdb = "1.10505.0"   # upstream duckdb-rs crate bundling DuckDB 1.5.5
 
 # After (99% faster builds)
-frozen-duckdb = "1.5.5"
+frozen-duckdb = { git = "https://github.com/seanchatmangpt/frozen-duckdb" }
 
 ```
+
+The crates.io `frozen-duckdb` package is still at the early `0.1.0`; the `1.5.5`
+release line is consumed from this repository until the crates.io publication
+lands.
 
 Open a connection, create a table, insert rows, and query — the drop-in replacement in action.
 
@@ -40,7 +44,7 @@ fn main() -> Result<()> {
 Install and drive the CLI tool: TPC-H data generation, format conversion, and Flock LLM integration.
 
 ```bash
-cargo install frozen-duckdb
+cargo install --path crates/frozen-duckdb
 frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./data
 frozen-duckdb-cli convert --input data.csv --output data.parquet
 frozen-duckdb-cli flock-setup --text-model llama3.2 --embedding-model nomic-embed-text

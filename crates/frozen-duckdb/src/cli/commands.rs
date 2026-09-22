@@ -15,12 +15,12 @@ use clap::{Parser, Subcommand};
 ///
 /// ```bash
 /// # Basic usage with default verbosity
-/// frozen-duckdb info
+/// frozen-duckdb-cli info
 ///
 /// # Increased verbosity for debugging
-/// frozen-duckdb -v download --dataset chinook
-/// frozen-duckdb -vv convert --input data.csv --output data.parquet
-/// frozen-duckdb -vvv benchmark --operation query
+/// frozen-duckdb-cli -v download --dataset chinook
+/// frozen-duckdb-cli -vv convert --input data.csv --output data.parquet
+/// frozen-duckdb-cli -vvv benchmark --operation query
 /// ```
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -57,10 +57,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Download Chinook dataset in CSV format
-    /// frozen-duckdb download --dataset chinook --format csv
+    /// frozen-duckdb-cli download --dataset chinook --format csv
     ///
     /// # Generate TPC-H dataset in Parquet format
-    /// frozen-duckdb download --dataset tpch --format parquet --output-dir ./data
+    /// frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./data
     /// ```
     Download {
         /// Dataset name to download or generate
@@ -98,10 +98,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Convert CSV to Parquet
-    /// frozen-duckdb convert --input data.csv --output data.parquet
+    /// frozen-duckdb-cli convert --input data.csv --output data.parquet
     ///
     /// # Convert Parquet to CSV with explicit formats
-    /// frozen-duckdb convert --input data.parquet --output data.csv --input-format parquet --output-format csv
+    /// frozen-duckdb-cli convert --input data.parquet --output data.csv --input-format parquet --output-format csv
     /// ```
     Convert {
         /// Input file path to convert from
@@ -115,13 +115,18 @@ pub enum Commands {
         /// Input file format
         ///
         /// Supported input formats: csv, parquet, json
-        #[arg(short, long, default_value = "csv")]
+        // Long-only (G3 2026-09-21): `-i` collided with `input`, which made
+        // clap's debug asserts panic at parse time (exit 101) — `convert`
+        // could not run at all. Guard: tests/cli_surface_tests.rs.
+        #[arg(long, default_value = "csv")]
         input_format: String,
 
         /// Output file format
         ///
         /// Supported output formats: csv, parquet, json, arrow
-        #[arg(short, long, default_value = "parquet")]
+        // Long-only (G3 2026-09-21): `-o` collided with `output` (same panic
+        // class as --input-format).
+        #[arg(long, default_value = "parquet")]
         output_format: String,
     },
 
@@ -142,10 +147,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Benchmark query operations
-    /// frozen-duckdb benchmark --operation query --iterations 1000
+    /// frozen-duckdb-cli benchmark --operation query --iterations 1000
     ///
     /// # Benchmark with different dataset sizes
-    /// frozen-duckdb benchmark --operation insert --size large --iterations 100
+    /// frozen-duckdb-cli benchmark --operation insert --size large --iterations 100
     /// ```
     Benchmark {
         /// Operation type to benchmark
@@ -184,10 +189,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Show basic information
-    /// frozen-duckdb info
+    /// frozen-duckdb-cli info
     ///
     /// # Show detailed information with verbose output
-    /// frozen-duckdb -v info
+    /// frozen-duckdb-cli -v info
     /// ```
     Info,
 
@@ -202,10 +207,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Setup default Ollama models
-    /// frozen-duckdb flock-setup
+    /// frozen-duckdb-cli flock-setup
     ///
     /// # Setup with custom Ollama URL
-    /// frozen-duckdb flock-setup --ollama-url http://localhost:11434
+    /// frozen-duckdb-cli flock-setup --ollama-url http://localhost:11434
     /// ```
     FlockSetup {
         /// Ollama server URL
@@ -245,13 +250,13 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Complete a single prompt
-    /// frozen-duckdb complete --prompt "Write a hello world function in Python"
+    /// frozen-duckdb-cli complete --prompt "Write a hello world function in Python"
     ///
     /// # Complete with specific model
-    /// frozen-duckdb complete --prompt "Explain recursion" --model coder
+    /// frozen-duckdb-cli complete --prompt "Explain recursion" --model coder
     ///
     /// # Batch completion from file
-    /// frozen-duckdb complete --input prompts.txt --output responses.txt
+    /// frozen-duckdb-cli complete --input prompts.txt --output responses.txt
     /// ```
     Complete {
         /// Text prompt for completion
@@ -308,10 +313,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Generate embedding for single text
-    /// frozen-duckdb embed --text "Python is a programming language"
+    /// frozen-duckdb-cli embed --text "Python is a programming language"
     ///
     /// # Generate embeddings for multiple texts from file
-    /// frozen-duckdb embed --input texts.txt --output embeddings.json
+    /// frozen-duckdb-cli embed --input texts.txt --output embeddings.json
     /// ```
     Embed {
         /// Text to generate embeddings for
@@ -359,10 +364,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Search in a document corpus
-    /// frozen-duckdb search --query "machine learning algorithms" --corpus documents.txt
+    /// frozen-duckdb-cli search --query "machine learning algorithms" --corpus documents.txt
     ///
     /// # Search with specific similarity threshold
-    /// frozen-duckdb search --query "data science" --corpus docs/ --threshold 0.8
+    /// frozen-duckdb-cli search --query "data science" --corpus docs/ --threshold 0.8
     /// ```
     Search {
         /// Search query text
@@ -409,10 +414,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Filter code samples for validity
-    /// frozen-duckdb filter --criteria "Is this valid Python code?" --input code_samples.csv --output valid_code.csv
+    /// frozen-duckdb-cli filter --criteria "Is this valid Python code?" --input code_samples.csv --output valid_code.csv
     ///
     /// # Filter with custom prompt
-    /// frozen-duckdb filter --prompt "Does this text contain positive sentiment?" --input reviews.txt
+    /// frozen-duckdb-cli filter --prompt "Does this text contain positive sentiment?" --input reviews.txt
     /// ```
     Filter {
         /// Filtering criteria or prompt
@@ -466,10 +471,10 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Summarize multiple text files
-    /// frozen-duckdb summarize --input documents/ --output summary.txt
+    /// frozen-duckdb-cli summarize --input documents/ --output summary.txt
     ///
     /// # Summarize with custom aggregation strategy
-    /// frozen-duckdb summarize --input articles.txt --strategy reduce --max-length 200
+    /// frozen-duckdb-cli summarize --input articles.txt --strategy reduce --max-length 200
     /// ```
     Summarize {
         /// Input file or directory containing text to summarize
@@ -496,7 +501,10 @@ pub enum Commands {
         /// Maximum summary length in words
         ///
         /// Controls the length of the generated summary.
-        #[arg(short, long, default_value = "150")]
+        // Long-only (G3 2026-09-21): `-m` collided with `model`, making
+        // clap's debug asserts panic at parse time (exit 101) — `summarize`
+        // could not run at all. Guard: tests/cli_surface_tests.rs.
+        #[arg(long, default_value = "150")]
         max_length: usize,
 
         /// Model to use for summarization
@@ -517,18 +525,23 @@ pub enum Commands {
     ///
     /// ```bash
     /// # Run all FFI validation tests
-    /// frozen-duckdb validate-ffi
+    /// frozen-duckdb-cli validate-ffi
     ///
     /// # Run with specific architecture
-    /// ARCH=x86_64 frozen-duckdb validate-ffi
-    /// ARCH=arm64 frozen-duckdb validate-ffi
+    /// ARCH=x86_64 frozen-duckdb-cli validate-ffi
+    /// ARCH=arm64 frozen-duckdb-cli validate-ffi
     ///
-    /// # Skip LLM validation (faster, no Ollama required)
-    /// frozen-duckdb validate-ffi --skip-llm
+    /// # Skip LLM validation (accepted but NOT yet wired — see the note below)
+    /// frozen-duckdb-cli validate-ffi --skip-llm
     ///
     /// # Output results in JSON format
-    /// frozen-duckdb validate-ffi --format json
+    /// frozen-duckdb-cli validate-ffi --format json
     /// ```
+    ///
+    /// NOTE: as of 2026-09-22 `--skip-llm` and `--verbose` are parsed but
+    /// unused — `main.rs` holds them as `_skip_llm`/`_verbose` and calls
+    /// `FlockManager::validate_ffi()` with no knobs, so the LLM layers
+    /// always run. Only `--format` currently changes behavior.
     ///
     /// # Validation Layers
     ///

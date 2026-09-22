@@ -14,21 +14,21 @@ The **Chinook dataset** is a sample music database that contains information abo
 
 ```bash
 # Generate in CSV format (default)
-frozen-duckdb download --dataset chinook --format csv
+frozen-duckdb-cli download --dataset chinook --format csv
 
 # Generate in Parquet format (recommended for analytics)
-frozen-duckdb download --dataset chinook --format parquet --output-dir ./data
-
-# Generate in DuckDB native format (fastest queries)
-frozen-duckdb download --dataset chinook --format duckdb
+frozen-duckdb-cli download --dataset chinook --format parquet --output-dir ./data
 ```
+
+**Supported Chinook formats:** `csv` and `parquet` only. (`duckdb` is **not**
+supported for Chinook — the CLI warns "Unsupported format" and writes no
+database file. TPC-H is the dataset with native `duckdb` output.)
 
 **Generated Files:**
 ```
 datasets/
 ├── chinook.csv      # CSV format (human-readable)
-├── chinook.parquet  # Parquet format (columnar, compressed)
-└── chinook.duckdb   # DuckDB native format (fastest)
+└── chinook.parquet  # Parquet format (columnar, compressed)
 ```
 
 #### Chinook Schema
@@ -51,19 +51,19 @@ The **TPC-H dataset** is an industry-standard benchmark for decision support sys
 
 ```bash
 # Generate small dataset (SF 0.01) - recommended for testing
-frozen-duckdb download --dataset tpch --format parquet
+frozen-duckdb-cli download --dataset tpch --format parquet
 
 # Generate in specific location
-frozen-duckdb download --dataset tpch --format csv --output-dir ./benchmark_data
+frozen-duckdb-cli download --dataset tpch --format csv --output-dir ./benchmark_data
 
 # Generate in DuckDB native format for maximum performance
-frozen-duckdb download --dataset tpch --format duckdb
+frozen-duckdb-cli download --dataset tpch --format duckdb
 ```
 
-**Scale Factors Available:**
-- **SF 0.01** (Tiny): ~19,000 rows across 8 tables - perfect for testing
-- **SF 0.1** (Small): ~190,000 rows - good for development
-- **SF 1.0** (Standard): ~1.9M rows - for performance testing
+**Scale Factor:** the CLI generates **SF 0.01** (fixed — `CALL dbgen(sf = 0.01)`),
+roughly 19,000 rows across 8 tables. There is no scale-factor flag; larger
+scale factors (SF 0.1, SF 1.0, ...) require calling `dbgen` directly in a
+DuckDB session with the TPC-H extension loaded.
 
 #### TPC-H Schema
 
@@ -88,6 +88,17 @@ frozen-duckdb download --dataset tpch --format duckdb
 
 ### Supported Formats
 
+The `convert` command currently implements **CSV ↔ Parquet only** (any other
+format pair errors with "Unsupported conversion"). Format support by command:
+
+| Format | `download` (chinook) | `download` (tpch) | `convert` |
+|--------|----------------------|-------------------|-----------|
+| **CSV** | ✅ | ✅ | ✅ (to and from Parquet) |
+| **Parquet** | ✅ | ✅ | ✅ (to and from CSV) |
+| **JSON** | ❌ | ❌ | ❌ not implemented |
+| **Arrow** | ⚠️ no-op notice | ❌ | ❌ not implemented |
+| **DuckDB** | ❌ | ✅ | ❌ |
+
 | Format | Description | Use Case | Performance |
 |--------|-------------|----------|-------------|
 | **CSV** | Comma-separated values | Human-readable, universal | Good for small data |
@@ -102,10 +113,10 @@ frozen-duckdb download --dataset tpch --format duckdb
 
 ```bash
 # Convert CSV to Parquet for better performance
-frozen-duckdb convert --input data.csv --output data.parquet
+frozen-duckdb-cli convert --input data.csv --output data.parquet
 
 # With explicit format specification
-frozen-duckdb convert \
+frozen-duckdb-cli convert \
   --input customer_data.csv \
   --output customer_data.parquet \
   --input-format csv \
@@ -122,10 +133,10 @@ frozen-duckdb convert \
 
 ```bash
 # Convert Parquet back to CSV
-frozen-duckdb convert --input data.parquet --output data.csv
+frozen-duckdb-cli convert --input data.parquet --output data.csv
 
 # Include headers in output
-frozen-duckdb convert \
+frozen-duckdb-cli convert \
   --input analytics_data.parquet \
   --output report.csv \
   --input-format parquet \
@@ -142,7 +153,7 @@ frozen-duckdb convert \
 for file in *.csv; do
     parquet_file="${file%.csv}.parquet"
     echo "Converting $file to $parquet_file"
-    frozen-duckdb convert --input "$file" --output "$parquet_file"
+    frozen-duckdb-cli convert --input "$file" --output "$parquet_file"
 done
 
 echo "✅ Converted $(ls *.csv | wc -l) files to Parquet"
@@ -220,20 +231,20 @@ echo "📊 Query performance comparison:"
 
 # CSV format
 time duckdb -c "
-SELECT COUNT(*) FROM 'datasets/tpch/customer.csv';
-SELECT AVG(c_acctbal) FROM 'datasets/tpch/customer.csv';
+SELECT COUNT(*) FROM 'datasets/customer.csv';
+SELECT AVG(c_acctbal) FROM 'datasets/customer.csv';
 " 2>&1 | grep real
 
 # Parquet format
 time duckdb -c "
-SELECT COUNT(*) FROM 'datasets/tpch/customer.parquet';
-SELECT AVG(c_acctbal) FROM 'datasets/tpch/customer.parquet';
+SELECT COUNT(*) FROM 'datasets/customer.parquet';
+SELECT AVG(c_acctbal) FROM 'datasets/customer.parquet';
 " 2>&1 | grep real
 
-# DuckDB native format
+# DuckDB native format (single tpch.duckdb database file)
 time duckdb -c "
-SELECT COUNT(*) FROM 'datasets/tpch/customer.duckdb';
-SELECT AVG(c_acctbal) FROM 'datasets/tpch/customer.duckdb';
+ATTACH 'datasets/tpch.duckdb' AS tpch;
+SELECT COUNT(*) FROM tpch.customer;
 " 2>&1 | grep real
 ```
 
@@ -298,7 +309,7 @@ def setup_datasets():
 
     print("Customer analysis by nation:")
     for row in result:
-        print(f"  {row[0]}: {row[1]} customers, avg balance ${row[2]:.2".2f"
+        print(f"  {row[0]}: {row[1]} customers, avg balance ${row[2]:.2f}")
 ```
 
 ### Node.js Integration
@@ -310,7 +321,7 @@ const DuckDB = require('duckdb');
 function setupDatasets() {
     // Generate test data
     return new Promise((resolve, reject) => {
-        const child = spawn('frozen-duckdb', [
+        const child = spawn('frozen-duckdb-cli', [
             'download',
             '--dataset', 'chinook',
             '--format', 'parquet',
@@ -374,18 +385,18 @@ async function analyzeData() {
 ### Storage Optimization
 
 ```bash
-# Compare file sizes
+# Compare file sizes (8 per-table files, or one tpch.duckdb database)
 echo "📊 File size comparison:"
-ls -lah datasets/tpch.*
+ls -lah datasets/customer.* datasets/lineitem.* datasets/tpch.duckdb
 
 # CSV vs Parquet compression
-echo "CSV size: $(du -sh datasets/tpch/customer.csv | cut -f1)"
-echo "Parquet size: $(du -sh datasets/tpch/customer.parquet | cut -f1)"
+echo "CSV size: $(du -sh datasets/customer.csv | cut -f1)"
+echo "Parquet size: $(du -sh datasets/customer.parquet | cut -f1)"
 
 # Query performance comparison
 echo "🔍 Query performance:"
-time duckdb -c "SELECT COUNT(*) FROM 'datasets/tpch/customer.csv'" 2>&1 | grep real
-time duckdb -c "SELECT COUNT(*) FROM 'datasets/tpch/customer.parquet'" 2>&1 | grep real
+time duckdb -c "SELECT COUNT(*) FROM 'datasets/customer.csv'" 2>&1 | grep real
+time duckdb -c "SELECT COUNT(*) FROM 'datasets/customer.parquet'" 2>&1 | grep real
 ```
 
 ### Memory-Efficient Processing
@@ -489,7 +500,7 @@ df -h
 ls -la datasets/
 
 # Try different output directory
-frozen-duckdb download --dataset chinook --output-dir /tmp/test
+frozen-duckdb-cli download --dataset chinook --output-dir /tmp/test
 
 # Check DuckDB connection
 duckdb -c "SELECT 1;"
@@ -508,7 +519,7 @@ ls -la input_file.csv
 mkdir -p output_dir && touch output_dir/test
 
 # Try explicit format specification
-frozen-duckdb convert --input file.csv --output file.parquet --input-format csv --output-format parquet
+frozen-duckdb-cli convert --input file.csv --output file.parquet --input-format csv --output-format parquet
 
 # Check for special characters in file paths
 ls -la "file with spaces.csv"
@@ -524,13 +535,13 @@ ls -la "file with spaces.csv"
 htop
 
 # Use smaller scale factor
-frozen-duckdb download --dataset tpch --format parquet  # Uses SF 0.01
+frozen-duckdb-cli download --dataset tpch --format parquet  # Uses SF 0.01
 
 # Process in chunks
 # Split large files before conversion
 split -l 100000 large_file.csv chunk_
 for chunk in chunk_*; do
-    frozen-duckdb convert --input "$chunk" --output "${chunk}.parquet"
+    frozen-duckdb-cli convert --input "$chunk" --output "${chunk}.parquet"
 done
 ```
 
@@ -559,7 +570,7 @@ EXPLAIN SELECT * FROM customer WHERE c_acctbal > 1000;
 **Solutions:**
 ```bash
 # Use Parquet format (better compression)
-frozen-duckdb download --dataset tpch --format parquet
+frozen-duckdb-cli download --dataset tpch --format parquet
 
 # Remove unnecessary formats
 rm datasets/*.csv datasets/*.json
@@ -612,10 +623,10 @@ datasets/
 echo "🚀 Starting ETL pipeline..."
 
 # Extract: Generate source data
-frozen-duckdb download --dataset tpch --format csv --output-dir ./extracted
+frozen-duckdb-cli download --dataset tpch --format csv --output-dir ./extracted
 
 # Transform: Convert and clean data
-frozen-duckdb convert --input ./extracted/customer.csv --output ./transformed/customer.parquet
+frozen-duckdb-cli convert --input ./extracted/customer.csv --output ./transformed/customer.parquet
 
 # Load: Import into target system
 duckdb target.duckdb -c "
@@ -671,7 +682,7 @@ Dataset management with Frozen DuckDB provides **comprehensive capabilities** fo
 
 **Key Capabilities:**
 - **Sample data generation**: Chinook music database and TPC-H benchmark
-- **Format conversion**: CSV ↔ Parquet ↔ JSON ↔ Arrow ↔ DuckDB
+- **Format conversion**: CSV ↔ Parquet via `convert` (JSON/Arrow not implemented); `download` emits CSV, Parquet, and — for TPC-H — native DuckDB
 - **Performance optimization**: Choose optimal formats for your workload
 - **Integration ready**: Works seamlessly with Rust, Python, Node.js applications
 

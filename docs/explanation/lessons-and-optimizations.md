@@ -15,5 +15,5 @@ Subsequent builds take about 0.1 seconds from the global cache under ~/.frozen-d
 
 No DYLD_* environment variables are needed: the frozen dylib carries the neutral install name @rpath/libduckdb.dylib and the frozen-duckdb build script emits the matching runtime rpath for binaries, tests, and examples.
 
-Download size is about 117MB for the universal binary (arm64 + x86_64), roughly 40% smaller than the ~200MB it replaces.
+Release assets are per architecture (`libduckdb_{arch}.dylib`, arm64 and x86_64), not single universal binaries; published download sizes are measured at the v1.5.5 release (README projects ~117MB universal vs ~200MB duckdb-rs source builds).
 

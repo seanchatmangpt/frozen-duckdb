@@ -3,10 +3,24 @@
 
 # API reference
 
-| Method | Path | Description |
+frozen-duckdb is a Rust library crate, not an HTTP service. The public API is
+the duckdb-rs-compatible surface, re-exported from the crate root:
+
+| Export | Kind | Purpose |
 |---|---|---|
+| `Connection` | struct | Open and drive DuckDB connections |
+| `Statement` | struct | Prepared statements |
+| `Transaction` | struct | Transaction handles |
+| `Appender` | struct | Bulk insert |
+| `Config` | struct | Connection configuration |
+| `Row`, `Rows` | structs | Result access |
+| `Result<T>`, `Error` | types | DuckDB result/error taxonomy |
+| `ToSql`, `FromSql`, `Type`, `Value` | types | Parameter and value conversion |
+| `arrow` | module | Apache Arrow integration |
+| `params_from_iter` | macro | Parameter binding from iterators |
 
-## Parameters
+Generate and browse the full rendered API documentation locally:
 
-| Endpoint | Parameter | Type | Required | Description |
-|---|---|---|---|---|
+```bash
+cargo doc --open
+```

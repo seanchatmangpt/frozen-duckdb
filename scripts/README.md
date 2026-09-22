@@ -1,130 +1,79 @@
-# KCura De-Fakery Protocol
+# frozen-duckdb scripts
 
-This directory contains tools and scripts for systematically detecting and eliminating fake/mock/hardcoded implementations in the KCura codebase.
+Support tooling for the frozen-duckdb workspace: builder/fetch scripts, FFI
+validation, release checks, repo gates, and ticket renderers. Each file stands
+alone; STATUS headers in the file mark triage state where one exists.
 
-## 🎯 Prime Directive
+## Directory map (families)
 
-**No stubs in production paths.** Any function exposed via FFI/public API must prove real effects via tests (state change, plan diff, cryptographic proof, OTEL trace).
+### Build and fetch (the frozen-cache pipeline)
+`build_frozen_duckdb.sh`, `build_static_duckdb.sh`, `build_frozen_everything.sh`,
+`create_frozen_setup.sh`, `create_precompiled_duckdb.sh`, `create_arrow_cache.sh`,
+`download_duckdb_binaries.sh`, `precompile_deps.sh`, `use_prebuilt_duckdb.sh`,
+`setup_optimized_build.sh`, `setup_workspace_caching.sh`,
+`build_duckdb_optimized.sh`, `build_full_featured_duckdb.sh`,
+`setup_flock_ollama.sh`.
 
-## 📋 Protocol Components
+The builder keeps DuckDB binaries in the central cache
+`~/.frozen-duckdb/cache/v{VER}-{arch}/` and normalizes link names there;
+`prebuilt/setup_env.sh` points consumers at a repo-local `prebuilt/` copy.
 
-### 1. Static Scanning (`scan_fakes.sh`)
-Detects fake implementations at the code level using pattern matching.
+### FFI validation
+`test_ffi_simple.sh`, `run_ffi_validation.sh`, `test_new_ffi_structure.sh`,
+`test_comprehensive_flock.sh`, `build_go_smoketest.sh`, `smoke_go.go`,
+`smoke_go_simple.go`, `duckdb_ffi.h`.
 
-```bash
-./scripts/scan_fakes.sh .  # Scan entire repo for fake patterns
-```
+STATUS (TR6 2026-09-21, re-verified G5 2026-09-21): the FFI scripts are
+BLOCKED as committed — they resolve `DUCKDB_LIB_DIR` through
+`prebuilt/setup_env.sh`, which derives the path from `$0` and therefore
+resolves to `scripts/` when sourced by `scripts/` callers (observed live:
+`./scripts/test_ffi_simple.sh` exits 1 "DuckDB library not found"; the Go leg
+of `run_ffi_validation.sh` fails the same way). The repair is the T6
+(scripts-fix) lane; see `docs/sjira/v26.9.21/TR6.md` History.
 
-**Patterns Detected:**
-- `unimplemented!` and `todo!` panics
-- Trivial constant `Ok(...)` returns
-- `dummy|fake|stub|placeholder` tokens
-- FFI functions returning constants without dependency calls
+### Release and verification
+`validate_prod_build.sh`, `validate_frozen_approach.sh` (consumer-flow checks
+against the crates.io-published crate — re-verify at TR8 release),
+`release_checklist.sh`, `bench_gate.sh`, `run_bench_suite.sh`,
+`verify_golden_traces.py`, `verify_publish_receipt.py`,
+`verify_semantic_coverage.sh`.
 
-### 2. Runtime Probes (`redteam_probe.rs`)
-Systematically probes functions to detect if they're returning hardcoded responses.
+### Generated repo gates (do not edit)
+`verify-gates.sh` + `verify-evidence.ttl` are rendered by `ggen sync run`
+(rule `render-verify-gates`); edit `schema/verify.ttl` and re-render.
+`make gates` runs `ggen sync run` + `make genesis-check`
+(`docs/GENESIS.md` is the reconciliation manifest).
 
-```bash
-cargo build --release --bin redteam_probe --manifest-path scripts/Cargo.toml
-./target/release/redteam_probe
-```
+### Hygiene and gap detection
+`rg_sweep.sh` — informational pattern sweep (stub/fake/TODO tokens, telemetry
+probes, the real frozen-duckdb-sys FFI surface). Never a gate; see
+`README_gap_detection.md` for what happened to the former gate scripts.
+`check_workspace_deps.sh`, `scan_cli.sh`, `scan_cli_help.sh`, `test_doctests.sh`,
+`open_gaps.sh`, `spec_sync_check.sh`, `generate-changelog.sh`,
+`ffi_constant_return_check.py`.
 
-**Probes:**
-- **Kernel Routing:** Forces different query patterns, checks if execution paths differ
-- **Timer Hooks:** Advances deterministic clock, verifies firings occur at expected intervals
-- **Transactions:** Attempts transactions, verifies database state actually changes
-- **Receipts:** Tamper-tests cryptographic verification
+### Ticket renderers
+`gen_sjira_tickets*.sh` — edit the SPECS table, re-run the script; the
+`docs/sjira/` tickets are rendered consequences (票 law: History appends are
+the sanctioned exception).
 
-### 3. CI Gates (`.github/workflows/ci.yml`)
-Hard gates that prevent fake implementations from merging:
+## Removed tooling record (de-fakery era)
 
-- `de-fakery-scan`: Static analysis before any tests
-- `redteam-probe`: Runtime probing after compilation
-- `semantic-coverage`: Ensures meaningful test coverage
+The kcura-era "de-fakery" tooling was removed after falsification showed it
+dead against this repo. Do not resurrect it from old revisions without a pack
+admission and bash-3.2-clean implementation:
 
-## 🚨 Current Fake Implementations Detected
+- TR6 (commit 1a6fd72): `ci_gate.sh`, `ci_gates.sh`, `fake_guard.sh`,
+  `smoke_all.sh`, `smoke.py`, `smoke_py.py`, `smoke_node.mjs`,
+  `demo_ffi_validation.sh` — kcura-symbol gates, unconditional exits, parse
+  failures; evidence in `docs/sjira/v26.9.21/TR6.md` History.
+- G5 (commits 075d1d4, dc70ea6): `scan_fakes.sh`, `scan_fakes_core_team.sh`,
+  `lib/{config,intelligent_cache,logging,self_healing}.sh` (die under stock
+  macOS bash 3.2: `declare -A` at lib/config.sh:39; live exit 2),
+  `kcura-config{,.example}.yaml`, `redteam_probe.rs` + `Cargo.toml`
+  (manifest has no targets — exit 101; probes were hardcoded mocks),
+  `docs_check.sh` (failed `bash -n`; required a kcura MkDocs tree that does
+  not exist). Evidence in `docs/sjira/v26.9.21/G5.md` History.
 
-Run the scan script to see current issues:
-
-```bash
-./scripts/scan_fakes.sh .
-```
-
-**Known Issues:**
-- `kc_last_exec_path`: Returns hardcoded JSON instead of tracking real execution paths
-- `kc_tick_hooks`: Returns fake timer results instead of evaluating real hooks
-- `kc_begin_tx`/`kc_commit_tx`/`kc_receipt_verify`: Mock transaction lifecycle
-- `kc_metrics_snapshot`: Returns hardcoded metrics instead of live data
-
-## 🔧 Implementation Queue
-
-### A) Kernel Router (replace fake `kc_last_exec_path`)
-- [ ] Route decision uses cost model (pattern match + stats)
-- [ ] OTEL span `exec.kernel|exec.duckdb` with real data
-- [ ] `EXPLAIN` snapshot saved for duckdb route
-- [ ] Unit tests: route flips when adding regex/joins
-
-### B) Timer Hooks (replace fake `kc_tick_hooks`)
-- [ ] Deterministic clock injected; durable scheduled registry
-- [ ] Idempotent fire with dedup key `(hook_id, scheduled_at)`
-- [ ] Backoff + catch-up logic
-- [ ] E2E tests with controlled time
-
-### C) Transactions & Receipts
-- [ ] Real DuckDB tx handle (BEGIN/COMMIT/ROLLBACK)
-- [ ] SHA3-256 Merkle over normalized delta; Ed25519 signatures
-- [ ] Tamper tests (any bit flip → invalid)
-- [ ] OTEL spans `tx.*`, `receipts.verify`
-
-### D) Metrics Snapshot
-- [ ] Snapshots read from live meters/histograms
-- [ ] Proven non-constant via workload deltas
-- [ ] Prometheus scrape parity test
-
-## 🧪 Testing Strategy
-
-### Property Testing
-```bash
-cargo test proptest  # Test SPARQL subset with random inputs
-```
-
-### Mutation Testing
-```bash
-cargo mutants        # Inject faults, ensure tests catch them
-```
-
-### Fuzzing
-```bash
-cargo fuzz run fuzz_sparql_lowering  # Fuzz parsers/compilers
-```
-
-## 📊 Success Metrics
-
-A capability is **DONE** only when:
-
-1. **Spec → Tests → Code** traceability exists
-2. **Golden trace** shows correct span set & attributes
-3. **State proof** exists (DB diff, receipt verify, or metrics delta)
-4. **Mutation tests** break with injected faults
-5. **No static scan hits** (stubs/fake tokens)
-6. **Docs** updated (USER_GUIDE + API reference + examples)
-
-## 🚀 Quick Start
-
-1. **Run the scan:** `./scripts/scan_fakes.sh .`
-2. **Build the probe:** `cargo build --release --bin redteam_probe --manifest-path scripts/Cargo.toml`
-3. **Run the probe:** `./target/release/redteam_probe`
-4. **Check CI gates:** All de-fakery jobs should pass
-
-## 🔍 Debugging Fake Implementations
-
-Use the **Red-Team Playbook**:
-
-* **Constant-output probe:** Call target function 100× with varied inputs; if output entropy ≈0, flag
-* **Side-effect probe:** Wrap calls in DuckDB snapshot; diff affected tables; if no diff where expected, flag
-* **Time-correlation probe:** For timer hooks, advance clock; if firings don't change, flag
-* **Crypto probe:** Change one byte of payload; if verification still `true`, flag
-* **Trace probe:** Assert missing expected spans/attrs → flag
-
-This protocol ensures KCura maintains production-quality implementations that **cannot** pass tests unless they're genuinely real.
-
+If a static fake-pattern gate is wanted again, manufacture it as a pack fact
+with a gate (帳/器 law) — not as loose scripts in this directory.

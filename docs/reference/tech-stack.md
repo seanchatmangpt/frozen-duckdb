@@ -8,4 +8,4 @@
 | client | Cargo |
 | client | Rust (three-crate workspace) |
 | server | DuckDB 1.5.5 (embedded engine, all extensions enabled) |
-| server | GitHub Releases (prebuilt universal dylibs, cached under ~/.frozen-duckdb/) |
+| server | GitHub Releases (prebuilt per-arch dylibs, cached under ~/.frozen-duckdb/) |

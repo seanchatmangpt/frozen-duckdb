@@ -25,6 +25,7 @@ zip = "0.6"
 
 [workspace.package]
 version = "1.5.5"
+authors = ["Sean Chatman"]
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/seanchatmangpt/frozen-duckdb"

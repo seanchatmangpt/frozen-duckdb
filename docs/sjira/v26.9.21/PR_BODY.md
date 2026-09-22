@@ -1,5 +1,11 @@
 # feat: DuckDB 1.5.5 support — pin bump, release asset fix, API layer restoration (closes #1)
 
+> **STATUS (wave-5 G8, 2026-09-22):** PR #3 is **MERGED** (merge commit
+> a3a69e4, 2026-09-22T00:59:40Z). This file is the merged PR's body, preserved
+> verbatim as release evidence — every checklist box, dry-run table, and cited
+> test head below is historical, not open work. The live release procedure is
+> `PUBLISH_RUNBOOK.md`; current state lives in `MILESTONE.md`.
+
 ## Summary
 
 This release makes crate `frozen-duckdb` v1.5.5 track upstream DuckDB v1.5.5:

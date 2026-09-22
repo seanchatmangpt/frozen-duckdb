@@ -14,9 +14,9 @@ RUSTC_WRAPPER = "sccache"
 [registry]
 default = "crates-io"
 
-[source.crates-io]
-# Use sparse registry protocol for faster dependency resolution
-protocol = "sparse"
+# Note: sparse is cargo's default registry protocol since 1.68 — no config
+# key needed (an explicit `[source.crates-io] protocol = "sparse"` here
+# triggers "unused config key" on modern cargo, so it's omitted).
 
 # Network configuration
 [net]

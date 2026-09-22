@@ -1,5 +1,12 @@
 # Ollama Setup Guide
 
+> **STATUS (audited 2026-09-22):** this page was authored for the v1.4.0
+> release (commit b41574b) and was not part of the v1.5.5 doc
+> reconciliation. Known inaccuracies: the executable is
+> `frozen-duckdb-cli` (not `frozen-duckdb`), `RUST_LOG` has no effect on
+> the CLI (verbosity is the `-v` flag), and the `embed`/`search`
+> commands it references are not implemented (exit 101).
+
 ## Overview
 
 **Ollama** is a **local LLM server** that enables running **large language models** on your own hardware. This guide covers **installation**, **configuration**, and **optimization** of Ollama for use with the **Flock extension** in Frozen DuckDB.

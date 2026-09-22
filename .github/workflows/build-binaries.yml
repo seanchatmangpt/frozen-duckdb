@@ -7,13 +7,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to build (e.g., v1.5.5)"
+        description: "Must match the builder pin (const VERSION in crates/frozen-duckdb-builder/src/lib.rs, e.g. v1.5.5); any other value fails the run"
         required: true
         default: "v1.5.5"
 
 jobs:
   build-binaries:
     runs-on: macos-latest
+    # The cache-miss path is a full DuckDB source compile (clone + make -j4,
+    # 30-90 min on GH runners per TR1/TR2 evidence); this timeout turns a
+    # silent hang into a loud, bounded failure (same law as ci.yml's 45).
+    timeout-minutes: 150
     strategy:
       matrix:
         arch: [x86_64, arm64]
@@ -45,12 +49,30 @@ jobs:
           # macos-latest is an arm64 runner: uname -m reports arm64 even on the
           # x86_64 matrix leg, so the local-compile fallback must be told the
           # target slice explicitly. CMAKE_OSX_ARCHITECTURES labels the slice
-          # clang emits. The builder (crates/frozen-duckdb-builder) is being
-          # taught to honor this env for arch detection in coordinated change
-          # TR7 (docs/sjira/v26.9.21/TR7.md); until that lands, the x86_64 leg
-          # fails closed at "Find built binary" rather than shipping a
-          # mislabeled arm64 slice.
+          # clang emits. TR7 LANDED the builder side of the coordination
+          # (crates/frozen-duckdb-builder passes this env to cmake), but arch
+          # DETECTION and cache PLACEMENT there still key off `uname -m`: the
+          # x86_64 slice lands under v1.5.5-arm64/libduckdb_arm64.dylib, the
+          # find step below misses libduckdb_x86_64.dylib, and this leg fails
+          # closed rather than shipping a mislabeled slice. The
+          # detection/placement fix stays builder-owned (TR7 scope).
           echo "CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}" >> "$GITHUB_ENV"
+
+      - name: Guard version input
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          # The builder pins the DuckDB version (const VERSION in
+          # crates/frozen-duckdb-builder/src/lib.rs); before this guard a
+          # dispatch for any other version silently built the pinned one.
+          # Fail loudly instead (証: the input must not lie about capability).
+          BUILDER_VERSION="1.5.5"
+          WANT="v${BUILDER_VERSION}"
+          GOT="${{ inputs.version }}"
+          if [[ "$GOT" != "$WANT" ]]; then
+            echo "inputs.version='${GOT}' does not match the builder pin ${WANT}; refusing to build the wrong version silently." >&2
+            exit 1
+          fi
 
       - name: Build mega-library
         run: |
@@ -113,6 +135,7 @@ jobs:
   release:
     needs: build-binaries
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:

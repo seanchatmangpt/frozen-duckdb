@@ -1,5 +1,13 @@
 # 🦆 Frozen DuckDB Binary - Project Context
 
+> **Historical document (October 2024, DuckDB v1.4.0 era).** This file records the
+> project's origin and early architecture decisions as they stood at creation. For
+> current behavior — prebuilt dylibs downloaded automatically from GitHub Releases,
+> vendored DuckDB 1.5.5 headers, zero `DYLD_*` setup, no local dylibs in the repo —
+> see [README.md](README.md), [QUICKSTART.md](QUICKSTART.md), and
+> [prebuilt/README.md](prebuilt/README.md). The narrative below is preserved as
+> history; current-reality corrections are marked in place.
+
 ## 📋 Project Summary
 
 This project was created to solve a critical performance bottleneck in Rust projects using DuckDB: **slow compilation times**. The `duckdb-rs` crate requires compiling DuckDB from source, which takes 1-2 minutes on every build, severely impacting developer productivity.
@@ -53,18 +61,23 @@ The `duckdb-rs` crate uses the `bundled` feature by default, which compiles Duck
 | **Download Size** | N/A | 50-55MB | Architecture-specific |
 | **Storage Efficiency** | N/A | 50% reduction | vs universal binary |
 
+*Download sizes and the storage-efficiency rows are v1.4.0-era measurements. As of v1.5.5, release assets are `libduckdb_{arch}.dylib` (one per architecture, ~117MB as staged in the development cache); the "50% reduction vs universal binary" trade-off no longer applies to the download path.*
+
 ## 🏗️ Technical Implementation
 
 ### Core Components
 
 #### 1. Prebuilt Binaries (`prebuilt/`)
+
+*Current reality (v1.5.5): the dylibs are **not** committed to the repository — they are GitHub Release assets (`libduckdb_{arch}.dylib`) downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()`. `prebuilt/` now carries only `duckdb.h` (244KB), `duckdb.hpp` (2.0MB), `setup_env.sh` (legacy manual workflow), and a README. The listing below is the v1.4.0-era layout, kept for history.*
+
 ```
 prebuilt/
-├── libduckdb_x86_64.dylib    # Intel Mac binary (55MB)
-├── libduckdb_arm64.dylib     # Apple Silicon binary (50MB)
-├── duckdb.h                  # C header (186KB)
-├── duckdb.hpp                # C++ header (1.8MB)
-└── setup_env.sh              # Smart environment setup
+├── libduckdb_x86_64.dylib    # Intel Mac binary (55MB) — v1.4.0 era, no longer in repo
+├── libduckdb_arm64.dylib     # Apple Silicon binary (50MB) — v1.4.0 era, no longer in repo
+├── duckdb.h                  # C header (186KB then; 244KB for 1.5.5)
+├── duckdb.hpp                # C++ header (1.8MB then; 2.0MB for 1.5.5)
+└── setup_env.sh              # Smart environment setup (legacy manual workflow)
 ```
 
 #### 2. Environment Setup (`setup_env.sh`)
@@ -115,6 +128,8 @@ prebuilt/
 - Transparent to end users
 
 ## 🔧 Integration Process
+
+*Superseded (v1.5.5): add `frozen-duckdb = "1.5.5"` to `Cargo.toml` and run `cargo build` — the builder downloads the dylib, vendored headers feed bindgen offline, and runtime rpaths are emitted automatically. No `setup_env.sh`, no custom `build.rs`, no environment variables. The steps below are the v1.4.0-era workflow, kept for history.*
 
 ### For End Users
 1. **Clone repository**: `git clone https://github.com/seanchatmangpt/frozen-duckdb.git`

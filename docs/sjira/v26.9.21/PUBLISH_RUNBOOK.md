@@ -85,7 +85,7 @@ signature checked), `ggen receipt history` replaying the full log, and all 7
 
 ## Modeled dry-run gate (dry-run-publish-pack — 6 phases, C4)
 
-The cut sequence above is a repeatable modeled gate: marketplace pack
+The cut sequence below is a repeatable modeled gate: marketplace pack
 `dry-run-publish-pack` v26.7.13 models this release's DoD as a 6-phase PDDL8
 STRIPS domain (scope, generate, verify, manufacture, cleanroom, receipt).
 `ggen sync run` (declared in `ggen.toml` `[ontology] imports` + bound in
@@ -111,11 +111,11 @@ Phase mapping (authoritative matrix with evidence commands:
 | pack phase | gates these runbook steps |
 |------------|---------------------------|
 | 1 `DRY-RUN-SCOPE` | pre-flight name/ownership check; steps 1–2 (merge, tag) |
-| 2 `DRY-RUN-GENERATE` | pre-cut repo law: `ggen sync run` exit 0 two-pass byte-identical; `cargo build --workspace` green |
+| 2 `DRY-RUN-GENERATE` | pre-cut repo law: `ggen sync run` exit 0 two-pass byte-identical; `cargo build --workspace` green; C5 provenance gate `python3 scripts/verify_publish_receipt.py` exit 0 |
 | 3 `DRY-RUN-VERIFY` | step 3 (CI release assets green — hold the publish while missing) |
 | 4 `DRY-RUN-MANUFACTURE` | TPUB dry-run battery; steps 4–8 packaging validation per member |
 | 5 `DRY-RUN-CLEANROOM` | TPUB unpack-build + docs.rs rehearsal; step 11 clean-machine smoke |
-| 6 `DRY-RUN-RECEIPT` | steps 9–11 (observe, reply, post-verify) + History/MILESTONE receipts; terminal: `dry-run-verified` |
+| 6 `DRY-RUN-RECEIPT` | steps 9–11 (observe, reply, post-verify) + History/MILESTONE receipts; C5 provenance gate re-run (final head `chain_hash` into the History row); terminal: `dry-run-verified` |
 
 Fence tripwire (must exit 0; the modeled domain carries the terminal atom and
 none of the banned ones):
@@ -133,20 +133,39 @@ repo root on `master` (post-merge). A `no matching package named … found` erro
 in steps 5–8 means **the crates.io index has not caught up** — it is never a
 manifest defect; wait and retry (see step 5).
 
-### 1. Merge PR #3
+**Pre-cut repo law** (pack phase 2 — `DRY-RUN-GENERATE`; provenance gate is C5):
+on the merged master, before step 2 where possible (tag verified content) and
+always before step 4 (the first permanent cut): `ggen sync run` two-pass
+byte-identical; `cargo build --workspace` green; `python3
+scripts/verify_publish_receipt.py` exit 0. Any red → fix forward on a branch,
+never cut (RED/exit-2 semantics: Provenance gate above).
+
+### 1. Merge PR #3 — DONE
+
+> **DONE** (wave-5 reconciliation, 2026-09-22): PR #3 is **MERGED** —
+> `gh pr view 3 --repo seanchatmangpt/frozen-duckdb` → `state: MERGED`,
+> `mergedAt: 2026-09-22T00:59:40Z`, `mergeCommit: a3a69e4`
+> (feat/duckdb-1.5.5 → master; the branch tip c7b95ce "test: remove
+> scheduler-dependent benchmark ordering" is inside the merge). Post-merge
+> master carries 63070af (wave-5 ticket docs only — no product code).
 
 ```
-gh pr view 3   # OPEN: "feat: DuckDB 1.5.5 support — pin bump, … (closes #1)", feat/duckdb-1.5.5 → master
-gh pr merge 3 --merge   # or --squash per house style; coordinator holds the exact merge form
+gh pr view 3 --repo seanchatmangpt/frozen-duckdb   # MERGED: a3a69e4, 2026-09-22T00:59:40Z
 ```
 
-- **Conflict at merge time** → resolve toward the branch whose ticket scope owns
-  the file (scope table in each ticket), re-run the ci.yml gate suite locally,
-  update the PR.
-- **CI red on the PR** → do not merge; fix forward on `feat/duckdb-1.5.5`.
-- Note the merge SHA — it is what step 2 tags.
+- Pre-merge doctrine, retained for any re-merge scenario: **conflict at merge
+  time** → resolve toward the branch whose ticket scope owns the file (scope
+  table in each ticket), re-run the ci.yml gate suite locally, update the PR.
+  **CI red on the PR** → do not merge; fix forward on the branch.
+- The merge SHA is what step 2 tags: **a3a69e4**.
 
 ### 2. Tag v1.5.5 and push the tag
+
+- **Tag target (wave-5 reconciliation): `a3a69e4`** — the PR #3 merge commit
+  (step 1). Master tip has moved only by docs (63070af, sjira tickets), so the
+  merge SHA remains the release-content boundary. v1.5.5 verified absent local
+  + remote on 2026-09-22 (`git tag -l 'v1.5*'` → empty; `git ls-remote --tags
+  origin` → empty) — no re-tag hazard exists yet.
 
 ```
 git fetch origin && git checkout master && git pull
@@ -268,9 +287,15 @@ bindings from builder's vendored headers and emits no link directive, so no
 
 ### 10. Post the issue #1 reply
 
+> **State note (wave-5 reconciliation, 2026-09-22):** issue #1 is **CLOSED** —
+> auto-closed by the PR #3 merge (the PR title carries "closes #1"; verified
+> `gh issue view 1` → `state: CLOSED`). The reply is still owed: commenting on
+> a closed issue notifies the asker; reopening first is operator discretion.
+
 ```
-gh issue view 1 --repo seanchatmangpt/frozen-duckdb   # OPEN: "Did you plan to release a version with DuckDB 1.5 ?"
-sed 's/#{PR_NUMBER}/#3/g' docs/sjira/v26.9.21/ISSUE_1_COMMENT.md > /tmp/issue-1-comment.md
+gh issue view 1 --repo seanchatmangpt/frozen-duckdb   # CLOSED 2026-09-22 (auto via PR #3 merge): "Did you plan to release a version with DuckDB 1.5 ?"
+# Post the BODY only (text after the `---` separator); the meta header + fence stay in the repo:
+awk 'f; /^---$/{f=1}' docs/sjira/v26.9.21/ISSUE_1_COMMENT.md | sed 's/#{PR_NUMBER}/#3/g' > /tmp/issue-1-comment.md
 gh issue comment 1 --repo seanchatmangpt/frozen-duckdb --body-file /tmp/issue-1-comment.md
 ```
 

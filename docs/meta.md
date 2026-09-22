@@ -9,15 +9,15 @@ explanation content, kept out of the four Diataxis quadrants on purpose.
 ## Features
 
 - Drop-in duckdb-rs replacement — same API, no code changes
-- DuckDB 1.5.5 bundled with all extensions enabled: JSON, Parquet, Arrow, ICU, HTTPFS, Visualizer, TPC-H/TPC-DS, FTS, INET, Excel, SQLSmith, TPC-E, Jemalloc, Autoload
+- DuckDB 1.5.5 bundled with extensions built in: Parquet, JSON, ICU, HTTPFS, TPC-H, TPC-DS, FTS, INET, SQLSmith, plus Jemalloc; further extensions (e.g. Excel, Visualizer, TPC-E) load on demand via DuckDB autoload
 - Integration features: Apache Arrow, Polars, R2D2 connection pooling, Serde, Chrono
-- Prebuilt macOS universal binaries (arm64 + x86_64) downloaded automatically on first build and cached under ~/.frozen-duckdb/cache/
+- Prebuilt macOS dylibs per architecture (arm64, x86_64) downloaded automatically on first build and cached under ~/.frozen-duckdb/cache/
 - Offline-capable builds via vendored DuckDB headers (duckdb.h, duckdb.hpp) in crates/frozen-duckdb-builder/vendored-headers/
 - No DYLD_* environment variables needed — neutral @rpath/libduckdb.dylib install name with matching runtime rpath
 
 ## Roadmap
 
-- Prebuilt Linux .so release assets (Linux currently builds via the pinned local-compile fallback of DuckDB v1.5.5 source)
+- Prebuilt Linux .so release assets (Linux currently builds via the pinned local-compile fallback of DuckDB v1.5.5 source; same is true of Windows today)
 
 ## License
 
@@ -25,8 +25,9 @@ MIT
 
 ## Contributing
 
-Contributions are always welcome! See `contributing.md` for ways to get
-started. Please adhere to this project's `code of conduct`.
+Contributions are always welcome! See the [contributing guides](contributing/coding-standards.md) for ways to get
+started.
 
 ## Support
 
+Open an issue on the [GitHub issue tracker](https://github.com/seanchatmangpt/frozen-duckdb/issues).

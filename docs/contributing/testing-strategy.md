@@ -18,9 +18,10 @@ cargo test --all && cargo test --all && cargo test --all
 ```bash
 # Run with different configurations
 cargo test --release --all
-ARCH=x86_64 source prebuilt/setup_env.sh && cargo test --all
-ARCH=arm64 source prebuilt/setup_env.sh && cargo test --all
-```
+cargo test --all
+# (ARCH + prebuilt/setup_env.sh combos from an earlier revision of this doc
+# are gone: tests do not read ARCH — the builder detects it via `uname -m`
+# and no environment sourcing is involved)
 
 **Performance Validation:**
 ```bash
@@ -82,11 +83,14 @@ tests/
 └── performance_tests.rs          # Performance validation
 ```
 
-### 3. Property Tests
+### 3. Property Tests (illustrative — not wired up)
 
 **Purpose**: Test properties and invariants using generated test data
 
-**Tools**: `proptest` crate for property-based testing
+**Tools**: `proptest` crate for property-based testing. NOTE (G3,
+2026-09-21): `proptest` is NOT a dependency of this crate — the snippets
+below show the intended shape only; the wired-up guards are the plain unit
+and integration suites (incl. `tests/cli_surface_tests.rs`).
 
 **Example:**
 ```rust
@@ -354,9 +358,8 @@ cargo test --all
 # Test with release build
 cargo test --release --all
 
-# Test with different architectures
-ARCH=x86_64 source prebuilt/setup_env.sh && cargo test --all
-ARCH=arm64 source prebuilt/setup_env.sh && cargo test --all
+# (Architecture-matrix invocations from an earlier revision are gone:
+# tests never read ARCH, and no setup_env.sh sourcing is needed)
 ```
 
 ### 2. CI/CD Testing
@@ -374,8 +377,7 @@ ARCH=arm64 source prebuilt/setup_env.sh && cargo test --all
 - name: Test with different configurations
   run: |
     cargo test --release --all
-    ARCH=x86_64 source prebuilt/setup_env.sh && cargo test --all
-    ARCH=arm64 source prebuilt/setup_env.sh && cargo test --all
+    cargo test --all
 
 - name: Performance validation
   run: |
@@ -383,7 +385,7 @@ ARCH=arm64 source prebuilt/setup_env.sh && cargo test --all
     # Validate build time requirements
 ```
 
-### 3. Property-Based Testing
+### 3. Property-Based Testing (illustrative — proptest is not a dependency)
 
 **Comprehensive Input Testing:**
 ```rust
@@ -428,10 +430,10 @@ proptest! {
 echo "🧪 Generating test datasets..."
 
 # Generate Chinook dataset
-frozen-duckdb download --dataset chinook --format parquet --output-dir test_data
+frozen-duckdb-cli download --dataset chinook --format parquet --output-dir test_data
 
 # Generate TPC-H dataset
-frozen-duckdb download --dataset tpch --format parquet --output-dir test_data
+frozen-duckdb-cli download --dataset tpch --format parquet --output-dir test_data
 
 # Generate custom test data
 duckdb test_data/custom.duckdb -c "
@@ -790,10 +792,10 @@ fn test_error_message_quality() {
     assert!(result.is_err());
     let error_msg = format!("{}", result.unwrap_err());
 
-    // Error message should be actionable
+    // Error message should be actionable — the actual message from
+    // env_setup::validate_binary() is "DUCKDB_LIB_DIR not set"
     assert!(error_msg.contains("DUCKDB_LIB_DIR"));
-    assert!(error_msg.contains("setup_env.sh"));
-    assert!(error_msg.to_lowercase().contains("run"));
+    assert!(error_msg.contains("not set"));
 }
 ```
 
@@ -998,18 +1000,19 @@ fn test_embedding_generation() {
 echo "🔄 Refreshing test datasets..."
 
 # Update Chinook dataset
-frozen-duckdb download --dataset chinook --format parquet --output-dir test_data
+frozen-duckdb-cli download --dataset chinook --format parquet --output-dir test_data
 
 # Update TPC-H dataset
-frozen-duckdb download --dataset tpch --format parquet --output-dir test_data
+frozen-duckdb-cli download --dataset tpch --format parquet --output-dir test_data
 
-# Validate updated data
-duckdb test_data/chinook.duckdb -c "
-SELECT 'Chinook' as dataset, COUNT(*) as tracks FROM tracks;
+# Validate updated data (the commands above generate Parquet files, not
+# .duckdb databases — query the per-table Parquet outputs)
+duckdb -c "
+SELECT 'Chinook' as dataset, COUNT(*) as tracks FROM 'test_data/chinook.parquet';
 "
 
-duckdb test_data/tpch.duckdb -c "
-SELECT 'TPC-H' as dataset, COUNT(*) as customers FROM customer;
+duckdb -c "
+SELECT 'TPC-H' as dataset, COUNT(*) as customers FROM 'test_data/customer.parquet';
 "
 
 echo "✅ Test data refresh complete"

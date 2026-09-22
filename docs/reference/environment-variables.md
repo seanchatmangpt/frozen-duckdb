@@ -5,5 +5,10 @@
 
 | Variable | Required | Description |
 |---|---|---|
-| `ARCH` | false | Selects the architecture for prebuilt/setup_env.sh and the architecture helper module only; the builder's download path is unaffected because each v1.5.5 release asset is a universal binary (arm64 + x86_64). |
-| `RUST_LOG` | false | Set to debug for verbose build output. |
+| `ARCH` | false | Overrides the architecture reported by `prebuilt/setup_env.sh` and `frozen_duckdb::architecture::detect()`. The builder ignores it; downloads always use its own `uname -m` detection. |
+| `DUCKDB_LIB_DIR` | false | Directory containing a manually installed DuckDB library; checked by `frozen_duckdb::env_setup::is_configured()`. |
+| `DUCKDB_INCLUDE_DIR` | false | Directory containing a manually installed DuckDB headers; checked by `frozen_duckdb::env_setup::is_configured()`. |
+| `DOCS_RS` | false | Set by docs.rs infrastructure only: sys-crate build script generates bindings from vendored headers and skips linking. |
+| `CMAKE_OSX_ARCHITECTURES` | false | Passed through to cmake by the local-compile fallback to target a specific macOS arch (used by the release workflow per matrix leg). |
+
+Verbosity is CLI-flag based (`-v`, `-vv`, `-vvv`), not `RUST_LOG`-based.

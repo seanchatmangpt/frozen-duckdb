@@ -1,5 +1,13 @@
 # Embedding Generation Guide
 
+> **STATUS (audited 2026-09-22):** the `frozen-duckdb-cli embed` command
+> documented on this page is **not implemented** — it panics with exit
+> code 101 after the Flock readiness check (vector extraction from
+> DuckDB's array type is a TODO). SQL-level `llm_embedding` remains
+> available. This page was authored for the v1.4.0 release (commit
+> b41574b) and was not part of the v1.5.5 doc reconciliation; treat
+> command examples as the intended surface, not verified behavior.
+
 ## Overview
 
 **Embedding generation** creates **vector representations** of text that capture semantic meaning, enabling **similarity search**, **clustering**, and **semantic analysis** directly within DuckDB using the **Flock extension** and **Ollama models**.

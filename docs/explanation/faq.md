@@ -9,15 +9,31 @@ Yes — same API, same functionality, no code changes needed; builds are 99% fas
 
 #### What does "Failed to get frozen DuckDB binary" mean?
 
-The builder is compiling locally. This is normal for first-time use; subsequent builds use the cached binary.
+The builder could not obtain the DuckDB library at all: no cached binary, the
+release-asset download failed (no published release for the pinned version —
+the expected state before the v1.5.5 tag exists), and the local source-compile
+fallback also failed. The panic comes from the sys-crate build script; read the
+error tail for the underlying cause. A normal first-time local compile logs its
+progress instead and only uses this panic when it fails.
 
 #### What if no cached binary is found?
 
-Check ~/.frozen-duckdb/cache/ and try cargo clean followed by a rebuild.
+The builder downloads the matching per-arch release asset, or compiles DuckDB
+v1.5.5 locally when the download fails (the supported Linux and pre-release
+path). Check ~/.frozen-duckdb/cache/ afterwards; try cargo clean followed by a
+rebuild if the state looks stale.
 
 #### What does the ARCH environment variable do?
 
-The builder auto-detects the architecture via uname -m, and each v1.5.5 release asset is a universal binary (arm64 + x86_64) that runs on any supported Mac. ARCH only affects prebuilt/setup_env.sh and the architecture helper module, not the builder's download path.
+The builder auto-detects the architecture via uname -m and ignores ARCH. ARCH
+only affects prebuilt/setup_env.sh and the architecture helper module
+(`frozen_duckdb::architecture::detect()`).
+
+#### Which platforms are supported?
+
+macOS uses prebuilt per-arch release assets (arm64 and x86_64 dylibs).
+Linux and Windows build via the pinned local-compile fallback of DuckDB
+v1.5.5 source; prebuilt Linux .so assets are planned.
 
 #### Why is it called frozen?
 

@@ -381,18 +381,22 @@ cargo test benchmark
 
 ### Property Tests
 
+This crate does not depend on `proptest`; the property-style check below is
+illustrative only. What actually guards architecture detection today is the
+plain unit/integration suite (`cargo test architecture`):
+
 ```rust
+// Illustrative shape (NOT compiled in this crate — proptest is not a
+// dependency). The equivalent concrete tests live in the crate's test suite.
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proptest::prelude::*;
 
-    proptest! {
-        #[test]
-        fn test_architecture_detection_consistency(arch in "x86_64|arm64|aarch64") {
+    #[test]
+    fn test_architecture_detection_consistency() {
+        for arch in ["x86_64", "arm64", "aarch64"] {
             std::env::set_var("ARCH", arch);
-            let detected = detect();
-            assert_eq!(detected, arch);
+            assert_eq!(detect(), arch);
             std::env::remove_var("ARCH");
         }
     }

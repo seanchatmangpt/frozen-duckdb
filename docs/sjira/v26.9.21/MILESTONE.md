@@ -49,11 +49,11 @@ aps:standing: https://w3id.org/chatman/aps#OPEN
 
 ## Operator cuts (権 — agent-attempted only with fresh operator authority)
 
-- [ ] Merge feat/duckdb-1.5.5 → master (coordinator opens draft PR; operator merges)
-- [ ] git tag v1.5.5 && git push origin v1.5.5 → build-binaries.yml publishes libduckdb_{arm64,x86_64}.dylib
+- [x] Merge feat/duckdb-1.5.5 → master — DONE 2026-09-22T00:59:40Z: PR #3 MERGED, merge commit a3a69e4 (verified `gh pr view 3` → state=MERGED); branch tip c7b95ce (benchmark test fix) is inside the merge; post-merge master = 63070af (wave-5 ticket docs only)
+- [ ] git tag v1.5.5 && git push origin v1.5.5 → build-binaries.yml publishes libduckdb_{arm64,x86_64}.dylib — PENDING; v1.5.5 verified absent local+remote 2026-09-22 (`git ls-remote --tags origin` → empty); tag target a3a69e4 per PUBLISH_RUNBOOK step 2
 - [ ] Verify release assets + clean-machine download path — checklist rendered in docs/sjira/v26.9.21/PR_BODY.md (Release-asset verification checklist)
 - [ ] cargo publish — STRICT order with index wait: `cargo publish -p frozen-duckdb-builder` → wait for crates.io index to reflect 1.5.5 (usually <1 min) → `-p frozen-duckdb-sys` → `-p frozen-duckdb`. T8 pre-flight (2026-09-21): builder dry-run green; sys/frozen-duckdb dry-runs cannot pass until builder/sys are live on the index (cargo resolves their path+version deps from crates.io) — a `no matching package named frozen-duckdb-{builder,sys} found` error there means the index has not caught up, not a broken manifest. Version keys verified: `version = "1.5.5"` present on all internal path deps. Sizes verified ≤ 2.3 MiB, well under the 10 MiB crates.io cap.
-- [ ] Post ISSUE_1_COMMENT.md on issue #1 after publish (substitute #{PR_NUMBER} with the merged PR number first)
+- [ ] Post ISSUE_1_COMMENT.md on issue #1 after publish (substitute #{PR_NUMBER} with the merged PR number first) — issue #1 verified CLOSED 2026-09-22 (auto-closed by the PR #3 merge; reply still posted after publish; body-only extraction per PUBLISH_RUNBOOK step 10)
 
 ## Wave 4 dry run (integration-finisher, 2026-09-21, head 30b14fc)
 
@@ -134,3 +134,23 @@ ggen schema convergence (HANDWRITTEN.md `ggen.toml` row). Not silently pruned.
 
 Operator did NOT write: this entire dry run, both fixes, the re-renders, and every
 battery execution were agent-manufactured.
+
+## Wave 5 (gap/staleness crawl, 2026-09-21..22 — tickets G1..G10, in flight)
+
+Tickets manufactured at 63070af. **Merge event:** PR #3 merged to master at
+a3a69e4 (2026-09-22T00:59:40Z, verified via `gh pr view 3`); tag v1.5.5 not yet
+cut (verified absent local + remote 2026-09-22). Operator cuts above are
+current as of this section; the wave-4 section below is a historical receipt —
+its "operator cuts remain pending" line is superseded by the merge event only.
+
+G8 (release docs coherence crawl; slice: PUBLISH_RUNBOOK, MILESTONE, PR_BODY,
+ISSUE_1_COMMENT, TPUB): PUBLISH_RUNBOOK harmonized into ONE procedure (base
+steps + C4 6-phase modeled gate + C5 provenance gate; step numbering and the
+phase mapping kept; step 1 marked DONE with merge evidence; tag target pinned
+to a3a69e4; pre-cut repo law incl. the provenance gate folded into the
+cut-sequence preamble and phase rows 2/6). MILESTONE checkboxes reconciled to
+the merge. PR_BODY marked historical (merged PR body preserved verbatim).
+ISSUE_1_COMMENT fenced: post only after PUBLISH_RUNBOOK steps 4–8; present-tense
+publication claims conditioned on post time. Rendered `gates/
+dry-run-publish-gates.md` phase-1 `(OPEN)` annotation is stale at merge — owned
+by pack sources, not prose; recorded in PACK_FEEDBACK.md (new, G8 section).

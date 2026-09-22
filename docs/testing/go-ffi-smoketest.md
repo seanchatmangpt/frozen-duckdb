@@ -1,5 +1,17 @@
 # Go FFI Smoke Test for Frozen DuckDB
 
+> **STATUS (G3, 2026-09-21):** the scripts documented here are kept with
+> on-script status headers, not verified green. `run_ffi_validation.sh` and
+> `test_ffi_simple.sh` carry a **KEPT-UNCERTAIN / BLOCKED-as-committed**
+> header (TR6, see the script tops and `docs/sjira/v26.9.21/TR6.md`): they
+> assume a repo-local `prebuilt/` dylib, but the builder caches binaries in
+> `~/.frozen-duckdb/cache/v{VER}-{arch}/`, so as committed they would fail at
+> the library-resolution step. Repair belongs to the T6 (scripts-fix) lane.
+> The maintained FFI validation path is `frozen-duckdb-cli validate-ffi`
+> (audited 2026-09-22: the `--skip-llm` flag is accepted but **not yet
+> wired** — LLM validation layers run regardless, so Ollama is always
+> needed for a fully green run; see `docs/api/cli.md`).
+
 ## Overview
 
 The Go FFI smoke test validates that the frozen-duckdb library properly exposes all required FFI functionality, including:
@@ -21,17 +33,16 @@ The Go FFI smoke test validates that the frozen-duckdb library properly exposes 
 ### Running the Tests
 
 ```bash
-# Set up frozen DuckDB environment
-source prebuilt/setup_env.sh
+# Maintained FFI validation (validates the same surface through the CLI)
+frozen-duckdb-cli validate-ffi # full; needs Ollama — --skip-llm is
+                               # accepted but NOT wired (audited 2026-09-22)
 
-# Run comprehensive FFI validation
-./scripts/run_ffi_validation.sh
-
-# Run simple FFI test (faster, no Go required)
-./scripts/test_ffi_simple.sh
-
-# Run Go-specific smoke test
-./scripts/build_go_smoketest.sh
+# Kept-with-header scripts (KEPT-UNCERTAIN — see STATUS above; they assume a
+# repo-local prebuilt/ dylib that the builder no longer provides, and are NOT
+# verified green in this tree):
+./scripts/run_ffi_validation.sh   # BLOCKED as committed (TR6)
+./scripts/test_ffi_simple.sh      # BLOCKED as committed (TR6)
+./scripts/build_go_smoketest.sh   # not run this session
 ```
 
 ## Test Coverage
@@ -161,24 +172,22 @@ ARCH=arm64 ./scripts/run_ffi_validation.sh
 
 ### GitHub Actions
 
-Add to your workflow:
+Add to your workflow (the shell scripts above are BLOCKED as committed —
+use the CLI entry point until T6 repairs them):
 
 ```yaml
-- name: Run FFI Validation
-  run: |
-    source prebuilt/setup_env.sh
-    ./scripts/run_ffi_validation.sh
+- name: FFI Validation
+  # --skip-llm is accepted but NOT wired (audited 2026-09-22); LLM layers
+  # run regardless, so Ollama must be reachable for a green run
+  run: ./target/debug/frozen-duckdb-cli validate-ffi --skip-llm
 ```
 
 ### Local Development
 
 ```bash
-# Run before committing
-source prebuilt/setup_env.sh
-./scripts/test_ffi_simple.sh
-
-# Run comprehensive validation
-./scripts/run_ffi_validation.sh
+# Run before committing (no environment sourcing needed)
+cargo build --workspace
+./target/debug/frozen-duckdb-cli validate-ffi   # --skip-llm accepted, not wired (2026-09-22)
 ```
 
 ## Troubleshooting
@@ -203,10 +212,10 @@ export CGO_LDFLAGS="-L$DUCKDB_LIB_DIR -lduckdb"
 
 #### Library Not Found
 ```bash
-# Verify environment setup
-source prebuilt/setup_env.sh
-echo $DUCKDB_LIB_DIR
-ls -la $DUCKDB_LIB_DIR/libduckdb*
+# The builder caches binaries here (no DUCKDB_LIB_DIR involved)
+ls -la ~/.frozen-duckdb/cache/v1.5.5-*/
+# For the legacy CGO/Go path only, prebuilt/setup_env.sh can still be sourced
+# manually — it is not part of the cargo build path
 ```
 
 #### Flock Extension Issues
@@ -266,7 +275,10 @@ export RUST_LOG=debug
 
 ## Related Documentation
 
-- [Architecture Detection](architecture-detection.md)
-- [Flock LLM Integration](flock-integration.md)
-- [Performance Tuning](performance-tuning.md)
-- [Troubleshooting Guide](troubleshooting.md)
+(The first two links below used to point at `architecture-detection.md` and
+`flock-integration.md`, which do not exist in this tree — dead paths recorded
+by G3. Current homes:)
+- Architecture overview: [../architecture/overview.md](../architecture/overview.md)
+- Binary management: [../architecture/binary-management.md](../architecture/binary-management.md)
+- Performance Tuning: [../guides/performance-tuning.md](../guides/performance-tuning.md)
+- Troubleshooting: [../../TROUBLESHOOTING.md](../../TROUBLESHOOTING.md)
