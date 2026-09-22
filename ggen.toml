@@ -3,6 +3,22 @@
 #   → ontology.ttl → templates/ → gates/ → THIS projection.
 # Generated files are consequences: edit the owning pack/ontology, never the
 # projection. Hand-edits to frozen artifacts are detected by freeze_policy.
+#
+# Wave 4 / C3 (2026-09-21): repo-reconciliation-pack composition.
+# DECLARATION NOTE (failed edge, recorded in C3.md History): the ticket named
+# "[[ontology.pack]]" as the declaration table — ggen 26.8.18 has no such
+# field (FM-CONFIG-003: unknown field `pack` under [ontology], empirically
+# probed). The real mechanisms of this declarative-rules manifest are:
+#   [[packs]]            — typed pack-dependency declarations (name/version/path)
+#   [ontology].imports   — pack ontologies unioned into the SPARQL graph
+#   [validation].gates   — pack gate/*.rq files executed as sync-refusing law
+#   [[generation.rules]] — render consequences from the pack's queries/templates
+# The reconciliation pack's own ontology.ttl is deliberately NOT imported: its
+# example instances occupy the canonical ret: subjects and would co-render
+# placeholders into the real v1.5.5 artifacts (probed 2026-09-21). The five
+# dependency packs are imported — verified collision-free with every
+# reconciliation query target (grep over their ontology.ttl, 2026-09-21).
+
 [project]
 name = "frozen-duckdb"
 version = "1.5.5"
@@ -13,18 +29,141 @@ license = "MIT"
 [ontology]
 source = "schema/domain.ttl"
 standard_only = true
+imports = [
+  "schema/reconciliation-vocab.ttl",
+  "/Users/sac/ggen-marketplace/packs/repo-as-found-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/repo-load-path-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/repo-intervention-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/temporary-works-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/mermaid-pack/ontology.ttl",
+]
 
 [generation]
 output_dir = "."
-# Capability waves append [[generation.rules]] entries: each renders one
-# consequence (gate/template output) from the pack ontologies. See
-# docs/sjira/v26.9.21/ wave tickets for the owning ticket per rule.
-rules = []
+# One consequence per pack template: the pack's frontmatter SPARQL queries run
+# verbatim as rule queries; the inline Tera bodies mirror the pack template
+# bodies (frontmatter `rows`/`states`/`edges`/`deltas`/`obligations` become the
+# declarative schema's `results` context or in-template sparql() calls).
+# Outputs land under docs/sjira/v26.9.21/reconciliation/ (this ticket's
+# rendered-docs scope) instead of the pack's canonical docs/retrofit paths.
 
-# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) are declared as
-# [[ontology.pack]] entries: name/version must exist in ~/ggen-marketplace/packs/.
-# Capability waves append their pack entries here; each pack's facts render
-# this repo's gates/templates as consequences.
+# Pack dependencies (REUSE → COMPOSE → EXTEND before INVENT) declared with
+# name/version/path; each resolves against ~/ggen-marketplace/packs/.
+[[packs]]
+name = "repo-reconciliation-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack"
+
+[[packs]]
+name = "repo-as-found-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-as-found-pack"
+
+[[packs]]
+name = "repo-load-path-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-load-path-pack"
+
+[[packs]]
+name = "repo-intervention-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/repo-intervention-pack"
+
+[[packs]]
+name = "temporary-works-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/temporary-works-pack"
+
+[[packs]]
+name = "mermaid-pack"
+version = "26.7.20"
+path = "/Users/sac/ggen-marketplace/packs/mermaid-pack"
+
+# Pack gates as law: executed by ggen sync against the post-inference union
+# graph in listed order; any returned row refuses the sync (FM-LAW-018).
+# SELECT-rows-are-violations semantics: green = empty result.
+[validation]
+gates = [
+  "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack/gates/010_delta_classification_required.rq",
+  "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack/gates/020_unknown_delta_must_be_quarantined.rq",
+  "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack/gates/030_deletion_requires_refusal_or_explicit_admission.rq",
+  "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack/gates/040_blocking_obligation_prevents_promotion.rq",
+  "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack/gates/050_receipt_chain_required.rq",
+  "/Users/sac/ggen-marketplace/packs/repo-reconciliation-pack/gates/060_red_never_promotes.rq",
+]
+
+[[generation.rules]]
+name = "c3-reconciliation-ledger"
+query = { inline = '''
+PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?id ?classLabel ?surface ?before ?after ?decisionLabel ?reason ?blocking WHERE {
+  ?d a ret:Delta ; ret:deltaId ?id ; ret:deltaClass ?class ; ret:targetSurface ?surface ; ret:beforeValue ?before ; ret:afterValue ?after ; ret:admissionDecision ?decision ; ret:decisionReason ?reason ; ret:blocking ?blocking .
+  ?class skos:prefLabel ?classLabel . ?decision skos:prefLabel ?decisionLabel .
+} ORDER BY ?id
+''' }
+template = { inline = '''
+# 差異受領台帳
+
+| 差異 | 分類 | 面 | 前 | 後 | 判定 | 理由 | 停止性 |
+|---|---|---|---|---|---|---|---|
+{% for d in results %}| `{{ d.id }}` | {{ d.classLabel }} | `{{ d.surface }}` | `{{ d.before }}` | `{{ d.after }}` | {{ d.decisionLabel }} | {{ d.reason }} | {{ d.blocking }} |
+{% endfor %}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/差異受領台帳.md"
+skip_empty = false
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "c3-state-reconciliation-mmd"
+query = { inline = '''
+PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?index ?id ?label ?hash WHERE { ?s a ret:RepositoryState ; ret:generationIndex ?index ; ret:stateId ?id ; ret:stateKind ?kind ; ret:graphHash ?hash . ?kind skos:prefLabel ?label . } ORDER BY ?index
+''' }
+template = { inline = '''
+flowchart LR
+{% for s in results %}  g{{ s.index }}["{{ s.label }}\n{{ s.id }}\n{{ s.hash }}"]
+{% endfor %}{% set edges = sparql(query="PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#> SELECT ?fromIndex ?toIndex WHERE { ?from a ret:RepositoryState ; ret:generationIndex ?fromIndex ; ret:nextState ?to . ?to ret:generationIndex ?toIndex . } ORDER BY ?fromIndex") %}{% for e in edges %}  g{{ e.fromIndex }} --> g{{ e.toIndex }}
+{% endfor %}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/状態照合.mmd"
+skip_empty = false
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "c3-promotion-judgment"
+query = { inline = '''
+PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+SELECT ?andon ?ceiling ?allowed WHERE { ?r a ret:Reconciliation ; ret:andon ?andon ; ret:standingCeiling ?ceiling ; ret:promotionAllowed ?allowed . } ORDER BY ?andon ?ceiling ?allowed
+''' }
+template = { inline = '''
+# 再認証判定
+
+{% for r in results %}- アンドン: `{{ r.andon }}`
+- standing上限: `{{ r.ceiling }}`
+- 昇格許可: `{{ r.allowed }}`
+{% endfor %}
+
+## 未解決義務
+
+| 義務 | 状態 | 停止性 |
+|---|---|---|
+{% set obligations = sparql(query="PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#> PREFIX dct: <http://purl.org/dc/terms/> SELECT ?title ?status ?blocking WHERE { ?o a ret:Obligation ; dct:title ?title ; ret:obligationStatus ?status ; ret:blocking ?blocking . } ORDER BY ?title") %}{% for o in obligations %}| {{ o.title }} | {{ o.status }} | {{ o.blocking }} |
+{% endfor %}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/再認証判定.md"
+skip_empty = false
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "c3-recertification-receipt"
+query = { inline = '''
+PREFIX ret: <https://seanchatmangpt.github.io/ontology/retrofit#>
+SELECT ?previous ?current ?andon ?ceiling ?allowed WHERE { ?r a ret:RecertificationReceipt ; ret:previousReceiptHash ?previous ; ret:receiptHash ?current ; ret:andon ?andon ; ret:standingCeiling ?ceiling ; ret:promotionAllowed ?allowed . } ORDER BY ?current
+''' }
+template = { inline = '''
+{"schema":"tcps-recertification-v1","receipts":[{% for r in results %}{"previous":"{{ r.previous }}","current":"{{ r.current }}","andon":"{{ r.andon }}","standingCeiling":"{{ r.ceiling }}","promotionAllowed":{{ r.allowed }}}{% if not loop.last %},{% endif %}{% endfor %}]}''' }
+output_file = "docs/sjira/v26.9.21/reconciliation/recertification-receipt.json"
+skip_empty = false
+mode = "Overwrite"
 
 [sync]
 enabled = true
