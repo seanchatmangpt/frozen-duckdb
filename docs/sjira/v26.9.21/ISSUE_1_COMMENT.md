@@ -4,6 +4,15 @@
 > "Thanks a lot for your package... Curious is you plan a DuckDB 1.5 support ?
 > Does this need a lot of effort ?"
 
+> **FENCE (dry-run-publish-pack overclaim law — binding):** post ONLY after
+> PUBLISH_RUNBOOK steps 4–8 are complete (all three crates live on crates.io;
+> step 3 has already gated the release assets before that). The present-tense
+> claims below — "it shipped", "v1.5.5 is out" — are true **only at post
+> time**; posting earlier is exactly the release overclaim the fence forbids
+> (gate-green ≠ release shipped). `#{PR_NUMBER}` substitutes to **#3**
+> (merged, a3a69e4) per runbook step 10. This fence and the meta header above
+> are repo-side law — step 10 posts only the body below the `---` separator.
+
 ---
 
 Thanks for the kind words, @dfeyer — and sorry for the wait! Good news: it
