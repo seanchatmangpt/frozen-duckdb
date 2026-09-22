@@ -1,503 +1,183 @@
-# ---------------------------------------------------------------------------
-# C3 reconciliation — v1.5.5 milestone, wave 4 (2026-09-21)
-# Evidence standard: every graphHash/decisionReason below is an observed,
-# reproducible command or artifact, not an assertion. Standing ceiling is the
-# weakest observed state (as-operated is pre-publish), so andon=Yellow and
-# promotionAllowed=false while the blocking operator-cuts obligation is open.
-# ---------------------------------------------------------------------------
-
-# -- States (canonical generation frame G0..G3, real content hashes) --------
+# frozen-duckdb project domain ontology (consumer-side facts)
+# Standard vocabularies only (dcterms, prov, skos) per marketplace law.
+# C2 note: the rdx: facts below are projected by packs/readme-diataxis-pack
+# into the Diataxis docs tree (docs/tutorials/, docs/how-to/, docs/reference/,
+# docs/explanation/, docs/index.md, docs/meta.md). Every fact is seeded
+# honestly from README.md at v1.5.5. Deliberately NOT seeded (failed edges,
+# ledgered in docs/sjira/v26.9.21/C2.md):
+#   rdx:ApiEndpoint / rdx:ApiParameter — the pack models an HTTP API; this
+#     repo's API surface is the duckdb-rs-mirror Rust API, not HTTP.
+#   rdx:ContactChannel — pack admits only email|slack; this repo's support
+#     channel is GitHub (contributing docs linked as rdx:RelatedLink).
+#   rdx:CodeExample / rdx:ExampleFile / rdx:PlaygroundFile — would fan out
+#     files under examples/ and playground/, outside this ticket's scope
+#     (docs/**); real examples live in crates/frozen-duckdb/examples/.
 
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix prov:   <http://www.w3.org/ns/prov#> .
 @prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
-@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ret:    <https://seanchatmangpt.github.io/ontology/retrofit#> .
-@prefix rp:     <http://seanchatmangpt.github.io/packs/receipt-provenance#> .
+@prefix rdx:    <https://seanchatmangpt.github.io/ggen-marketplace/readme-diataxis#> .
 @prefix fd:     <https://seanchatmangpt.github.io/frozen-duckdb/ns#> .
 
-fd:asFound a ret:RepositoryState ;
-    ret:stateId "G0-as-found" ;
-    ret:stateKind ret:AsFound ;
-    ret:graphHash "sha256:5624a1091b2cfa3cc2d7c89a6e8c2670ea4e281f1a72baf27c1ec0996bee2d79" ;
-    ret:generationIndex 0 ;
-    ret:nextState fd:asDesired ;
-    dcterms:description "master@1c84384 (2026-08-23): workspace version 1.4.0, never compiled against DuckDB 1.5.x, release pipeline shipped fictional libfrozen_mega_{arch} assets. Tree hash: git archive 1c84384 | shasum -a 256." .
-
-fd:asDesired a ret:RepositoryState ;
-    ret:stateId "G1-as-desired" ;
-    ret:stateKind ret:AsDesired ;
-    ret:graphHash "sha256:43765fb2431e1145800f97788ebec585d344b3b406b7d5cb3f800d478f83ecd5" ;
-    ret:generationIndex 1 ;
-    ret:nextState fd:asBuilt ;
-    dcterms:description "Issue #1 answered by PR #3 (feat: DuckDB 1.5.5 support - pin bump, release asset fix, API layer restoration; base master, head feat/duckdb-1.5.5; 8/8 CI checks SUCCESS observed 2026-09-21 via gh). Design-record hash: sha256 over PR_BODY.md + ISSUE_1_COMMENT.md + MILESTONE.md." .
-
-fd:asBuilt a ret:RepositoryState ;
-    ret:stateId "G2-as-built" ;
-    ret:stateKind ret:AsBuilt ;
-    ret:graphHash "sha256:8451d477a9dfe5ddaf095050c8f973342370e5caad78d6ccf20a7ffb831e9863" ;
-    ret:generationIndex 2 ;
-    ret:nextState fd:asOperated ;
-    dcterms:description "feat/duckdb-1.5.5@1b41188: 301 tests green (T2A/T2B History), cargo fmt --check = 0 findings, clippy --workspace --all-targets --all-features -D warnings exit 0 (T5 History), cargo build --workspace exit 0. Tree hash: git archive 1b41188 | shasum -a 256." .
-
-fd:asOperated a ret:RepositoryState ;
-    ret:stateId "G3-as-operated" ;
-    ret:stateKind ret:AsOperated ;
-    ret:graphHash "sha256:bd6480b0a00decdcab5770f51d90e96b893b0e27307d664ef74a4b5fcf0bb755" ;
-    ret:generationIndex 3 ;
-    dcterms:description "Pre-publish: no tag, no release, no crates.io publication. Operator cut sequence pending per docs/sjira/v26.9.21/PUBLISH_RUNBOOK.md. Hash: sha256 over PUBLISH_RUNBOOK.md (the record of the pending operation)." .
-
-# -- Deltas as-found -> as-built (all classified; none blocking) -------------
-# Every delta carries deltaClass + admissionDecision + decisionReason + blocking
-# (gate 010_delta_classification_required). The one Admitted Deletion carries an
-# explicit decisionReason (gate 030_deletion_requires_refusal_or_explicit_admission).
-# Evidence for the span: git diff 1c84384..1b41188 = 173 files,
-# sha256(diffstat) = 5a812d16804514f576817b70bf2f326b0a0fc48c588abe31161c4afe4a360caa.
-
-fd:delta-pins a ret:Delta ;
-    ret:deltaId "pins-1.4.0-to-1.5.5" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Modification ;
-    ret:targetSurface "workspace+builder+scripts+CI version pins" ;
-    ret:beforeValue "1.4.0 (Cargo.toml workspace version, builder pins, script clones)" ;
-    ret:afterValue "1.5.5 everywhere; scripts pin --branch v1.10505.0; zero live v1.4 pins (T6 grep gate)" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "Crate version mirrors bundled DuckDB 1.5.5 (fd:duckdbVersionLaw); closes issue #1" ;
-    ret:blocking false .
-
-fd:delta-release-assets a ret:Delta ;
-    ret:deltaId "release-asset-naming-fix" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Modification ;
-    ret:targetSurface "github_workflow build-binaries.yml asset naming" ;
-    ret:beforeValue "libfrozen_mega_{arch} uploaded at 1c84384; ensure_binary() downloads libduckdb_{arch}.dylib that never existed upstream (fictional release pipeline)" ;
-    ret:afterValue "assets published as libduckdb_{arch}.dylib matching ensure_binary() (T5 re-verification; CI green on PR #3)" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "Repairs the only download path consumers have; CI check evidence on PR #3" ;
-    ret:blocking false .
-
-fd:delta-builder a ret:Delta ;
-    ret:deltaId "builder-vendored-headers" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Addition ;
-    ret:targetSurface "frozen-duckdb-builder" ;
-    ret:beforeValue "absent: no vendored headers, no cache normalization guarantee" ;
-    ret:afterValue "vendored duckdb/{duckdb.h,duckdb.hpp} for 1.5.5; cache normalization on every acquisition path (T7 probes P1-P4 PASS)" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "Offline builds + cache repair by execution evidence (T7 History)" ;
-    ret:blocking false .
-
-fd:delta-sys-bindgen a ret:Delta ;
-    ret:deltaId "sys-bindgen-links" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Modification ;
-    ret:targetSurface "frozen-duckdb-sys bindgen + links" ;
-    ret:beforeValue "double-include rot; no links=duckdb metadata" ;
-    ret:afterValue "double-include fixed; links=duckdb emits DEP_DUCKDB_* for @rpath propagation; C API 1.4->1.5 diff: 0 removals / 0 renames / 459 referenced symbols present (bindgen SAFE)" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "MILESTONE.md observed diff + T5/T7 gate evidence" ;
-    ret:blocking false .
-
-fd:delta-api-layer a ret:Delta ;
-    ret:deltaId "api-layer-restoration" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Addition ;
-    ret:targetSurface "vendored duckdb-rs API layer (frozen-duckdb crate)" ;
-    ret:beforeValue "non-compiling 1.4.0-era sources (crate:: wiring broken, stale deps)" ;
-    ret:afterValue "compiles against 1.5.5: arrow 56 / hashlink 0.10 / strum 0.27 / fallible-* / rust_decimal / cast; cargo build --workspace exit 0" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "Compilation is the MILESTONE Done gate; observed exit 0 this wave" ;
-    ret:blocking false .
-
-fd:delta-scripts a ret:Delta ;
-    ret:deltaId "scripts-fiction-removal" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Modification ;
-    ret:targetSurface "scripts/create_frozen_setup.sh + scripts/build_frozen_duckdb.sh" ;
-    ret:beforeValue "fetch scheme targeted upstream assets that never existed; duckdb-rs clone unpinned; v1.4.1/v1.4.x pins" ;
-    ret:afterValue "fetches this repo's GitHub Releases; --branch v1.10505.0; bash -n clean (T6 ALIVE)" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "Removes fictional capability; real scheme verified against ensure_binary() contract" ;
-    ret:blocking false .
-
-fd:delta-test-suites a ret:Delta ;
-    ret:deltaId "test-suites-1.5.5" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Modification ;
-    ret:targetSurface "tests/ + examples import surface" ;
-    ret:beforeValue "'use duckdb::' rot; todo!() match fallthrough on unknown 1.5.5 columns (GEOMETRY); polars/flock/tpch ungated" ;
-    ret:afterValue "frozen_duckdb:: everywhere; 301 tests green across core+extension suites; runtime-gated skips documented (T2A/T2B ALIVE)" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "Test execution against the real 1.5.5 dylib is the ALIVE standard; preserved in T2A/T2B History" ;
-    ret:blocking false .
-
-fd:delta-hygiene a ret:Delta ;
-    ret:deltaId "root-rot-removal" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Deletion ;
-    ret:targetSurface "repo root: demo_ffi_validation.sh, test_ffi_validation.rs, test_datasets/, orphan scratch" ;
-    ret:beforeValue "present (echo-theater demo that fabricated success evidence; committed generated datasets)" ;
-    ret:afterValue "removed" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "Explicit admission: files fabricated success evidence (dcaecf3) or were orphan/generated rot (37f94c1); no behavior lost -- removal verified by full build+test green after deletion" ;
-    ret:blocking false .
-
-fd:delta-reconciliation a ret:Delta ;
-    ret:deltaId "reconciliation-capability" ;
-    ret:fromState fd:asFound ; ret:toState fd:asBuilt ;
-    ret:deltaClass ret:Addition ;
-    ret:targetSurface "ggen.toml; schema/; gates/; docs/sjira/v26.9.21/reconciliation/" ;
-    ret:beforeValue "absent: no marketplace projection, no reconciliation law" ;
-    ret:afterValue "repo-reconciliation-pack family declared; pack gates execute as sync law; artifacts rendered from facts" ;
-    ret:admissionDecision ret:Admitted ;
-    ret:decisionReason "C3 wave-4 capability composition (this delta)" ;
-    ret:blocking false .
-
-# -- Obligation, reconciliation judgment, receipt chain ----------------------
-
-fd:obligation-operator-cuts a ret:Obligation ;
-    dcterms:title "Operator cuts: merge PR #3, tag v1.5.5, verify release assets, cargo publish, post issue #1 comment" ;
-    ret:obligationStatus "open" ;
-    ret:blocking true .
-
-fd:reconciliation-001 a ret:Reconciliation ;
-    ret:fromState fd:asBuilt ;
-    ret:toState fd:asOperated ;
-    ret:obligation fd:obligation-operator-cuts ;
-    ret:andon ret:Yellow ;
-    ret:standingCeiling ret:R4 ;
-    ret:promotionAllowed false .
-
-fd:receipt-001 a ret:RecertificationReceipt ;
-    ret:previousReceiptHash "GENESIS" ;
-    ret:receiptHash "sha256:5a812d16804514f576817b70bf2f326b0a0fc48c588abe31161c4afe4a360caa" ;
-    ret:andon ret:Yellow ;
-    ret:standingCeiling ret:R4 ;
-    ret:promotionAllowed false .
-
-# --- v26.9.21 C4: dry-run-publish-pack composition --------------------------
-
-# Consumer-side binding of the 6-phase dry-run publish gate domain
-
-# (packs/dry-run-publish-pack v26.7.13, loaded via ggen.toml [ontology]
-
-# imports) onto the v26.9.21 PUBLISH_RUNBOOK cut sequence. Join key to the
-
-# pack's phase scheme: skos:notation (DRY-RUN-*), the pack's documented
-
-# cross-file join discipline. Everything under gates/ is a rendered
-
-# consequence of these facts + the pack ontology: edit THIS file (or the
-
-# pack), never the projection.
-
-#
-
-# DRY-RUN-OVERCLAIM FENCE: every modeled step below is LOCAL and REVERSIBLE.
-
-# The live operator cuts (merge, tag push, `cargo publish` WITHOUT --dry-run)
-
-# stay outside the modeled domain — operator authority (権) only. The modeled
-
-# cycle's terminal atom is dry-run-verified; no atom anywhere in this binding
-
-# or the pack domain asserts an external mutation.
-
-
-fd:publishGateBindings a skos:ConceptScheme ;
-
-    skos:prefLabel "frozen-duckdb v1.5.5 dry-run publish gate bindings" ;
-
-    skos:notation "FD-DRY-RUN-BINDINGS" ;
-
-    dcterms:description "Binds each dry-run-publish-pack gate phase (DRY-RUN-*) to the PUBLISH_RUNBOOK steps it gates, the evidence command that proves it (exit 0 required), and the PDDL8 atom/action chain it renders into gates/dry-run-publish/dry-run-publish-domain.ttl."@en .
-
-
-# The PDDL object every gate action applies to: this workspace's v1.5.5
-
-# release candidate (mirrors the pack's fictional kestrel object, bound to
-
-# the REAL release candidate here — as RC evidence facts, never as upload
-
-# claims).
-
-fd:gateObject a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "RC-FROZEN-DUCKDB-V155" ;
-
-    skos:prefLabel "frozen-duckdb v1.5.5 release candidate" ;
-
-    dcterms:description "The release candidate under dry-run gate: frozen-duckdb workspace at 1.5.5 (crate version mirrors bundled DuckDB v1.5.5 per fd:duckdbVersionLaw)."@en ;
-
-    fd:pddlObject "frozen_duckdb_v155" .
-
-
-# Publish-set members in dependency order (Phase 4 coverage set). Real crates
-
-# of this workspace; sizes/order facts from the TPUB pre-flight evidence.
-
-fd:publishMemberBuilder a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "PKG-FROZEN-DUCKDB-BUILDER" ;
-
-    skos:prefLabel "frozen-duckdb-builder (publish-set member 1)" ;
-
-    dcterms:description "Headers/build-script crate; dependency-first in the release sequence; TPUB-observed .crate 426.9 KiB (437,096 B), unpacked 2.3 MiB; vendored-headers gate green."@en .
-
-fd:publishMemberSys a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "PKG-FROZEN-DUCKDB-SYS" ;
-
-    skos:prefLabel "frozen-duckdb-sys (publish-set member 2)" ;
-
-    dcterms:description "Bindings crate; depends on builder; .crate not producible pre-publication (index-blocked) — pre-cut evidence is the TPUB replica compensation (exact cargo package --list file sets, all three compile together, exit 0)."@en .
-
-fd:publishMemberMain a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "PKG-FROZEN-DUCKDB" ;
-
-    skos:prefLabel "frozen-duckdb (publish-set member 3)" ;
-
-    dcterms:description "Main crate; depends on sys; same replica-compensated pre-cut evidence as sys; name-check GO (exists at 0.1.0, sole owner seanchatmangpt, legal version jump to 1.5.5)."@en .
-
-
-# --- Phase bindings (join key skos:notation = pack phase notations) --------
-
-# Atom vocabulary follows the pack's uniform convention:
-
-# {phase}-engaged (phase 1 entry) / {phase}-step1-done / {phase}-step2-done /
-
-# {phase}-complete, with the pack's ONE disclosed deviation: phase 6's
-
-# terminal atom is dry-run-verified (the merged problem's sole GOAL atom).
-
-
-fd:bindScope a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "DRY-RUN-SCOPE" ;
-
-    skos:prefLabel "Gate 1 — Release Scope & Identity" ;
-
-    dcterms:description "Publish set frozen to the 3 PKG-FROZEN-DUCKDB-* members at 1.5.5; TPUB name/ownership check GO/GO/GO (token identity must be seanchatmangpt); RELEASE_CONTROL docs synced (PUBLISH_RUNBOOK, MILESTONE); git SHA bound via tag v1.5.5 on a clean worktree."@en ;
-
-    fd:phaseOrder 1 ;
-
-    fd:runbookSteps "TPUB pre-flight name/ownership check; runbook steps 1-2 (merge PR #3; tag v1.5.5)" ;
-
-    fd:evidenceCommand "gh pr view 3 --repo seanchatmangpt/frozen-duckdb (OPEN); git tag --list v1.5.5 (bound); git status --porcelain (empty)" ;
-
-    fd:entryAtom "scope-engaged" ;
-
-    fd:step1Atom "scope-step1-done" ; fd:step1Action "define-publish-set-and-version" ;
-
-    fd:step2Atom "scope-step2-done" ; fd:step2Action "sync-release-control-docs" ;
-
-    fd:exitAtom "scope-complete" ; fd:exitAction "bind-git-sha-on-clean-worktree" .
-
-
-fd:bindGenerate a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "DRY-RUN-GENERATE" ;
-
-    skos:prefLabel "Gate 2 — Deterministic Generation" ;
-
-    dcterms:description "Pre-cut repo law (no runbook step): ggen sync run exit 0 with the pack ontology imported; second sync pass byte-identical (idempotence); Cargo.lock correctness via cargo build --workspace green."@en ;
-
-    fd:phaseOrder 2 ;
-
-    fd:runbookSteps "pre-cut repo law: ggen sync two-pass idempotence + cargo build --workspace (this wave: C4 gates/ render)" ;
-
-    fd:evidenceCommand "ggen sync run (exit 0, second pass reports unchanged: content identical); cargo build --workspace (exit 0)" ;
-
-    fd:entryAtom "scope-complete" ;
-
-    fd:step1Atom "generate-step1-done" ; fd:step1Action "pin-ggen-version" ;
-
-    fd:step2Atom "generate-step2-done" ; fd:step2Action "verify-sync-idempotence" ;
-
-    fd:exitAtom "generate-complete" ; fd:exitAction "verify-lock-correctness" .
-
-
-fd:bindVerify a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "DRY-RUN-VERIFY" ;
-
-    skos:prefLabel "Gate 3 — Verification Ladder" ;
-
-    dcterms:description "CI release assets green on the tag (build-binaries.yml, exactly libduckdb_arm64.dylib + libduckdb_x86_64.dylib); HOLD the publish while assets are missing — the one wrongly-orderable irreversible step."@en ;
-
-    fd:phaseOrder 3 ;
-
-    fd:runbookSteps "runbook step 3 (verify CI release assets — do not publish until green)" ;
-
-    fd:evidenceCommand "gh run watch <run-id> --repo seanchatmangpt/frozen-duckdb; gh api repos/seanchatmangpt/frozen-duckdb/releases/tags/v1.5.5 --jq '.assets[].name' (exactly two expected names)" ;
-
-    fd:entryAtom "generate-complete" ;
-
-    fd:step1Atom "verify-step1-done" ; fd:step1Action "run-verify-all-gate" ;
-
-    fd:step2Atom "verify-step2-done" ; fd:step2Action "run-standing-refresh" ;
-
-    fd:exitAtom "verify-complete" ; fd:exitAction "confirm-no-silently-ignored-tests" .
-
-
-fd:bindManufacture a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "DRY-RUN-MANUFACTURE" ;
-
-    skos:prefLabel "Gate 4 — Package Manufacture" ;
-
-    dcterms:description "Per publish-set member: cargo package --locked and cargo publish --dry-run --locked (LOCAL, REVERSIBLE — packages and validates WITHOUT uploading). TPUB battery: builder exit 0; sys/main ordering artifacts compensated by the replica build (exit 0). Runbook steps 4-8 are the LIVE cuts this gate rehearses."@en ;
-
-    fd:phaseOrder 4 ;
-
-    fd:runbookSteps "TPUB dry-run battery per member; runbook steps 4-8 (operator cuts builder -> index wait -> sys -> index wait -> main, packaging validation at each)" ;
-
-    fd:evidenceCommand "cargo publish --dry-run --allow-dirty -p frozen-duckdb-builder (exit 0); cargo package --list -p frozen-duckdb-sys; cargo package --list -p frozen-duckdb (file-set audits)" ;
-
-    fd:entryAtom "verify-complete" ;
-
-    fd:step1Atom "manufacture-step1-done" ; fd:step1Action "cargo-package-locked" ;
-
-    fd:step2Atom "manufacture-step2-done" ; fd:step2Action "cargo-publish-dry-run-locked" ;
-
-    fd:exitAtom "manufacture-complete" ; fd:exitAction "confirm-publish-set-coverage" .
-
-
-fd:bindCleanroom a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "DRY-RUN-CLEANROOM" ;
-
-    skos:prefLabel "Gate 5 — Clean-Room Verification" ;
-
-    dcterms:description "Manufactured package verified in isolation: TPUB full verification build from unpacked target/package/frozen-duckdb-builder-1.5.5; docs.rs rehearsal (DOCS_RS=1, isolated HOME, bindings from vendored headers, no library linked, exit 0); runbook step 11 clean-machine smoke."@en ;
-
-    fd:phaseOrder 5 ;
-
-    fd:runbookSteps "TPUB unpack-build + docs.rs rehearsal; runbook step 11 clean-machine smoke (cargo new + cargo add frozen-duckdb@1.5.5 + Connection::open)" ;
-
-    fd:evidenceCommand "HOME=/tmp/fd-docs-home-tpub DOCS_RS=1 cargo build -p frozen-duckdb-sys (exit 0); cargo new /tmp/smoke + cargo add frozen-duckdb@1.5.5 (query exit 0)" ;
-
-    fd:entryAtom "manufacture-complete" ;
-
-    fd:step1Atom "cleanroom-step1-done" ; fd:step1Action "unpack-in-fresh-directory" ;
-
-    fd:step2Atom "cleanroom-step2-done" ; fd:step2Action "build-in-cleanroom" ;
-
-    fd:exitAtom "cleanroom-complete" ; fd:exitAction "test-in-cleanroom" .
-
-
-fd:bindReceipt a skos:Concept ;
-
-    skos:inScheme fd:publishGateBindings ;
-
-    skos:notation "DRY-RUN-RECEIPT" ;
-
-    skos:prefLabel "Gate 6 — Receipt & Replay (terminal: dry-run-verified)" ;
-
-    dcterms:description "Receipts and replay: docs.rs observed (never gated on), issue #1 reply posted, post-publish verification polled, History + MILESTONE receipt rows appended, byte-identical replay of the modeled gate (two-pass sync). Terminal atom is dry-run-verified — an evidence bundle for the human go/no-go decision, never a release claim and never an assertion that a live cargo publish ran."@en ;
-
-    fd:phaseOrder 6 ;
-
-    fd:runbookSteps "runbook steps 9-11 (docs.rs builds — observe; post the issue #1 reply; post-publish verification) + History/MILESTONE receipt appends" ;
-
-    fd:evidenceCommand "curl -s https://crates.io/api/v1/crates/frozen-duckdb (max_version 1.5.5); sparse index 200 x3; grep -c dry-run-verified gates/dry-run-publish/dry-run-publish-domain.ttl (>=1)" ;
-
-    fd:entryAtom "cleanroom-complete" ;
-
-    fd:step1Atom "receipt-step1-done" ; fd:step1Action "emit-final-receipt" ;
-
-    fd:step2Atom "receipt-step2-done" ; fd:step2Action "attach-ocel-evidence" ;
-
-    fd:exitAtom "dry-run-verified" ; fd:exitAction "confirm-byte-identical-replay-no-mutation" .
-
-# frozen-duckdb project domain ontology (consumer-side facts)
-# Standard vocabularies only (dcterms, prov, skos) per marketplace law.
-# rp: terms come from the declared pack receipt-provenance-unification-pack
-# (see ggen.toml [[ontology.pack]]); consumers mint individuals, never the
-# vocabulary itself.
-# Wave-4 dry-run note: this fd:project block is the natural key the C4
-# dry-run-publish rules query (dcterms:version + fd:gateObject notation);
-# the integration union dropped it and sync failed FM-GEN-008 — restored
-# byte-identical to feat/155-c4@f1387f4 (v1.5.5 dry run, 2026-09-21).
-fd:project a prov:Entity ;
+fd:project a prov:Entity, rdx:Project ;
     dcterms:title "frozen-duckdb" ;
     dcterms:description "Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement" ;
     dcterms:version "1.5.5" ;
-    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v1.5.5> .
+    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v1.5.5> ;
+    rdx:license "MIT" ;
+    rdx:repositoryUrl "https://github.com/seanchatmangpt/frozen-duckdb" .
 
 # DuckDB version law: crate version mirrors the bundled upstream release
 fd:duckdbVersionLaw a skos:Concept ;
     skos:prefLabel "crate version mirrors bundled DuckDB release" ;
     skos:notation "1.5.5" .
-#################################################################
-# C5 — receipt + supply-chain evidence (v26.9.21 wave 4)
-#
-# The ggen sync receipt contract, declared with the pack's rp: vocabulary.
-# Subject: the JSON verdict emitted by `ggen receipt verify --format json`
-# over .ggen-v2/receipt.json (the BLAKE3-hashed provenance log that every
-# `ggen sync run` appends). Field paths/values transcribed from the observed
-# verdict; every fact carries its source citation per the pack's
-# evidence-forcing rule.
-#
-# Failed edge vs the pack's absolute-path convention: rp:sourceFile cites
-# repo-relative paths here — the pack's absolute convention does not survive
-# multi-worktree consumers (coordinator merge order); recorded in
-# docs/sjira/v26.9.21/C5.md History.
-#################################################################
 
-rp:vf_blake3_256 a rp:ValueForm ;
-    skos:prefLabel "blake3-256-hex" ;
-    rp:jsonType "string" ;
-    rp:pattern "^[0-9a-f]{64}$" ;
-    rp:sourceFile ".ggen-v2/receipt.json" ;
-    rdfs:comment "BLAKE3-256 digest, lowercase hex (ggen receipt chains are BLAKE3 per `ggen receipt --help`; lexically the 64-hex primitive)." .
+# ---- Tutorial quadrant: one guided learning path (clone/install/start) ----
 
-rp:c_ggen_sync_receipt a rp:ReceiptContract ;
-    dcterms:title "ggen sync receipt verify verdict" ;
-    rp:contractKey "ggen_sync_receipt" ;
-    rp:schemaUri "ggen-receipt/v2" ;
-    rp:reasonDelimiter "none" ;
-    rp:sourceFile ".ggen-v2/receipt.json" ;
-    rdfs:comment "Verdict document projected by `ggen receipt verify --format json` over the sync receipt log .ggen-v2/receipt-log.jsonl; release gate consumes this shape." .
+fd:run:000 a rdx:RunStep ; rdx:position 0 ; rdx:kind "clone" ;
+    rdx:label "Clone the repository" ;
+    rdx:command "git clone https://github.com/seanchatmangpt/frozen-duckdb.git" .
+fd:run:001 a rdx:RunStep ; rdx:position 1 ; rdx:kind "install" ;
+    rdx:label "Change to the project directory" ;
+    rdx:command "cd frozen-duckdb" .
+fd:run:002 a rdx:RunStep ; rdx:position 2 ; rdx:kind "install" ;
+    rdx:label "Build the workspace (downloads the prebuilt binary on first run)" ;
+    rdx:command "cargo build --workspace" .
+fd:run:003 a rdx:RunStep ; rdx:position 3 ; rdx:kind "start" ;
+    rdx:label "Run the drop-in replacement example" ;
+    rdx:command "cargo run --example dropin_replacement" .
 
-rp:f_gsr_valid a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
-    rp:dottedPath "valid" ; rp:valueForm rp:vf_bool ; rp:mandatory true ;
-    rp:sourceFile ".ggen-v2/receipt.json" .
-rp:f_gsr_chain a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
-    rp:dottedPath "chain_hash" ; rp:valueForm rp:vf_blake3_256 ; rp:mandatory true ;
-    rp:sourceFile ".ggen-v2/receipt.json" .
-rp:f_gsr_payload a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
-    rp:dottedPath "payload_hash" ; rp:valueForm rp:vf_blake3_256 ; rp:mandatory true ;
-    rp:sourceFile ".ggen-v2/receipt.json" .
-rp:f_gsr_graph a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
-    rp:dottedPath "graph_hash" ; rp:valueForm rp:vf_blake3_256 ; rp:mandatory true ;
-    rp:sourceFile ".ggen-v2/receipt.json" .
-rp:f_gsr_outputs a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
-    rp:dottedPath "outputs" ; rp:valueForm rp:vf_int ; rp:mandatory true ;
-    rp:sourceFile ".ggen-v2/receipt.json" .
-rp:f_gsr_signed a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
-    rp:dottedPath "signed" ; rp:valueForm rp:vf_bool ; rp:mandatory true ;
-    rp:sourceFile ".ggen-v2/receipt.json" .
-rp:f_gsr_sigvalid a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
-    rp:dottedPath "signature_valid" ; rp:valueForm rp:vf_bool ; rp:mandatory true ;
-    rp:sourceFile ".ggen-v2/receipt.json" .
+# ---- How-to quadrant: deploy and test are task recipes, not learning ----
 
+fd:run:010 a rdx:RunStep ; rdx:position 10 ; rdx:kind "deploy" ;
+    rdx:label "Tag the release" ;
+    rdx:command "git tag v1.5.5" .
+fd:run:011 a rdx:RunStep ; rdx:position 11 ; rdx:kind "deploy" ;
+    rdx:label "Push the tag to trigger the release build" ;
+    rdx:command "git push origin v1.5.5" .
+
+fd:run:020 a rdx:RunStep ; rdx:position 20 ; rdx:kind "test" ;
+    rdx:label "Run the test suite" ;
+    rdx:command "cargo test --workspace" .
+fd:run:021 a rdx:RunStep ; rdx:position 21 ; rdx:kind "test" ;
+    rdx:label "Run the test suite in release mode" ;
+    rdx:command "cargo test --workspace --release" .
+
+# ---- Reference quadrant -------------------------------------------------
+
+# rdx:FunctionRef: the README's canonical usage surface. frozen-duckdb is a
+# drop-in duckdb-rs replacement (same API), so these signatures describe the
+# mirrored duckdb-rs API as demonstrated in README.md's usage block.
+fd:fn:000 a rdx:FunctionRef ; rdx:position 0 ;
+    rdx:signature "Connection::open_in_memory()" ;
+    dcterms:description "Open an in-memory DuckDB connection." .
+fd:fn:001 a rdx:FunctionRef ; rdx:position 1 ;
+    rdx:signature "Connection::execute_batch(sql)" ;
+    dcterms:description "Execute a batch of SQL statements (CREATE TABLE, INSERT, ...)." .
+fd:fn:002 a rdx:FunctionRef ; rdx:position 2 ;
+    rdx:signature "Connection::prepare(sql)" ;
+    dcterms:description "Prepare a SQL statement for repeated parameterized execution." .
+fd:fn:003 a rdx:FunctionRef ; rdx:position 3 ;
+    rdx:signature "Statement::query_row(params, row_mapper)" ;
+    dcterms:description "Execute a prepared query and map the first result row." .
+
+fd:env:arch a rdx:EnvVar ;
+    rdx:varName "ARCH" ; rdx:required false ;
+    dcterms:description "Selects the architecture for prebuilt/setup_env.sh and the architecture helper module only; the builder's download path is unaffected because each v1.5.5 release asset is a universal binary (arm64 + x86_64)." .
+fd:env:rustlog a rdx:EnvVar ;
+    rdx:varName "RUST_LOG" ; rdx:required false ;
+    dcterms:description "Set to debug for verbose build output." .
+
+fd:tech:rust a rdx:TechStackItem ; rdx:layer "client" ; rdx:techName "Rust (three-crate workspace)" .
+fd:tech:cargo a rdx:TechStackItem ; rdx:layer "client" ; rdx:techName "Cargo" .
+fd:tech:duckdb a rdx:TechStackItem ; rdx:layer "server" ; rdx:techName "DuckDB 1.5.5 (embedded engine, all extensions enabled)" .
+fd:tech:releases a rdx:TechStackItem ; rdx:layer "server" ; rdx:techName "GitHub Releases (prebuilt universal dylibs, cached under ~/.frozen-duckdb/)" .
+
+# ---- How-to quadrant: usage examples (task recipes) ----------------------
+
+fd:usage:000 a rdx:UsageExample ; rdx:position 0 ; rdx:language "toml" ;
+    dcterms:description "Swap the dependency — no code changes needed; same API as duckdb-rs, 99% faster builds." ;
+    rdx:code """# Before (slow builds)
+duckdb = "1.10505.0"   # upstream duckdb-rs crate bundling DuckDB 1.5.5
+
+# After (99% faster builds)
+frozen-duckdb = "1.5.5"
+""" .
+fd:usage:001 a rdx:UsageExample ; rdx:position 1 ; rdx:language "rust" ;
+    dcterms:description "Open a connection, create a table, insert rows, and query — the drop-in replacement in action." ;
+    rdx:code """use frozen_duckdb::{Connection, Result};
+
+fn main() -> Result<()> {
+    // Same API as duckdb-rs, but 99% faster builds!
+    let conn = Connection::open_in_memory()?;
+
+    conn.execute_batch(
+        "CREATE TABLE users (id INTEGER, name TEXT);
+         INSERT INTO users VALUES (1, 'Alice'), (2, 'Bob');"
+    )?;
+
+    let mut stmt = conn.prepare("SELECT name FROM users WHERE id = ?")?;
+    let name: String = stmt.query_row([1], |row| row.get(0))?;
+
+    println!("User: {}", name); // Prints: User: Alice
+    Ok(())
+}
+""" .
+fd:usage:002 a rdx:UsageExample ; rdx:position 2 ; rdx:language "bash" ;
+    dcterms:description "Install and drive the CLI tool: TPC-H data generation, format conversion, and Flock LLM integration." ;
+    rdx:code """cargo install frozen-duckdb
+frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./data
+frozen-duckdb-cli convert --input data.csv --output data.parquet
+frozen-duckdb-cli flock-setup --text-model llama3.2 --embedding-model nomic-embed-text
+""" .
+
+# ---- Explanation quadrant -------------------------------------------------
+
+fd:faq:000 a rdx:FaqEntry ; rdx:position 0 ;
+    rdx:question "Is frozen-duckdb really a drop-in replacement for duckdb-rs?" ;
+    rdx:answer "Yes — same API, same functionality, no code changes needed; builds are 99% faster." .
+fd:faq:001 a rdx:FaqEntry ; rdx:position 1 ;
+    rdx:question "What does \"Failed to get frozen DuckDB binary\" mean?" ;
+    rdx:answer "The builder is compiling locally. This is normal for first-time use; subsequent builds use the cached binary." .
+fd:faq:002 a rdx:FaqEntry ; rdx:position 2 ;
+    rdx:question "What if no cached binary is found?" ;
+    rdx:answer "Check ~/.frozen-duckdb/cache/ and try cargo clean followed by a rebuild." .
+fd:faq:003 a rdx:FaqEntry ; rdx:position 3 ;
+    rdx:question "What does the ARCH environment variable do?" ;
+    rdx:answer "The builder auto-detects the architecture via uname -m, and each v1.5.5 release asset is a universal binary (arm64 + x86_64) that runs on any supported Mac. ARCH only affects prebuilt/setup_env.sh and the architecture helper module, not the builder's download path." .
+fd:faq:004 a rdx:FaqEntry ; rdx:position 4 ;
+    rdx:question "Why is it called frozen?" ;
+    rdx:answer "The DuckDB mega-library is compiled once, then frozen into prebuilt binaries downloaded from GitHub Releases and cached under ~/.frozen-duckdb/ — builds take seconds instead of minutes." .
+
+fd:lesson:000 a rdx:LessonLearned ; rdx:position 0 ;
+    rdx:text "The Builder Sub-Crate Pattern — an ultra-thin main crate over an FFI sys crate over a builder sub-crate — resolves the fundamental tension between feature richness and build performance." .
+
+fd:opt:000 a rdx:Optimization ; rdx:position 0 ;
+    rdx:text "First builds drop from 10–15 minutes (duckdb-rs source builds) to 2–5 seconds using prebuilt universal binaries." .
+fd:opt:001 a rdx:Optimization ; rdx:position 1 ;
+    rdx:text "Subsequent builds take about 0.1 seconds from the global cache under ~/.frozen-duckdb/." .
+fd:opt:002 a rdx:Optimization ; rdx:position 2 ;
+    rdx:text "No DYLD_* environment variables are needed: the frozen dylib carries the neutral install name @rpath/libduckdb.dylib and the frozen-duckdb build script emits the matching runtime rpath for binaries, tests, and examples." .
+fd:opt:003 a rdx:Optimization ; rdx:position 3 ;
+    rdx:text "Download size is about 117MB for the universal binary (arm64 + x86_64), roughly 40% smaller than the ~200MB it replaces." .
+
+fd:related:000 a rdx:RelatedLink ; rdx:position 0 ;
+    dcterms:title "DuckDB" ; rdx:url "https://duckdb.org" .
+fd:related:001 a rdx:RelatedLink ; rdx:position 1 ;
+    dcterms:title "duckdb-rs (upstream Rust bindings)" ; rdx:url "https://github.com/duckdb/duckdb-rs" .
+fd:related:002 a rdx:RelatedLink ; rdx:position 2 ;
+    dcterms:title "DuckDB v1.5.5 release (bundled upstream)" ; rdx:url "https://github.com/duckdb/duckdb/releases/tag/v1.5.5" .
+fd:related:003 a rdx:RelatedLink ; rdx:position 3 ;
+    dcterms:title "Contributing guide: coding standards" ; rdx:url "https://github.com/seanchatmangpt/frozen-duckdb/blob/master/docs/contributing/coding-standards.md" .
+
+# ---- Meta (outside the four quadrants) ------------------------------------
+
+fd:feature:000 a rdx:Feature ; rdx:position 0 ; rdx:text "Drop-in duckdb-rs replacement — same API, no code changes" .
+fd:feature:001 a rdx:Feature ; rdx:position 1 ; rdx:text "DuckDB 1.5.5 bundled with all extensions enabled: JSON, Parquet, Arrow, ICU, HTTPFS, Visualizer, TPC-H/TPC-DS, FTS, INET, Excel, SQLSmith, TPC-E, Jemalloc, Autoload" .
+fd:feature:002 a rdx:Feature ; rdx:position 2 ; rdx:text "Integration features: Apache Arrow, Polars, R2D2 connection pooling, Serde, Chrono" .
+fd:feature:003 a rdx:Feature ; rdx:position 3 ; rdx:text "Prebuilt macOS universal binaries (arm64 + x86_64) downloaded automatically on first build and cached under ~/.frozen-duckdb/cache/" .
+fd:feature:004 a rdx:Feature ; rdx:position 4 ; rdx:text "Offline-capable builds via vendored DuckDB headers (duckdb.h, duckdb.hpp) in crates/frozen-duckdb-builder/vendored-headers/" .
+fd:feature:005 a rdx:Feature ; rdx:position 5 ; rdx:text "No DYLD_* environment variables needed — neutral @rpath/libduckdb.dylib install name with matching runtime rpath" .
+
+fd:roadmap:000 a rdx:RoadmapItem ; rdx:position 0 ;
+    rdx:text "Prebuilt Linux .so release assets (Linux currently builds via the pinned local-compile fallback of DuckDB v1.5.5 source)" .
