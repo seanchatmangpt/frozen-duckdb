@@ -1,9 +1,13 @@
 # HANDWRITTEN.md — 帳 ledger (hand-authored lines on 産面)
 
-This repo has **no ggen pack projection**: nothing here is rendered from a marketplace pack, so
-every hand-written repair line is admitted through this ledger instead. Per the 帳 law the ledger
-must **shrink monotonically** per milestone: a row leaves only when the semantic element becomes
-expressible by an admitted pack/generator (or the code it describes is removed). Growing the
+The repo's rendered surface is enumerated in `docs/GENESIS.md`: since wave-4,
+`Makefile`, `scripts/verify-gates.sh`, `gates/dry-run-publish*`,
+`generated/receipt_contract_matrix.json`, `CHANGELOG.md`, and the C3
+reconciliation renders are marketplace-pack projections via `ggen sync run` —
+never hand-edit them. Everything else on 産面 that is hand-written is admitted
+through this ledger. Per the 帳 law the ledger must **shrink monotonically** per
+milestone: a row leaves only when the semantic element becomes expressible by an
+admitted pack/generator (or the code it describes is removed). Growing the
 ledger requires a paydown plan in the same change.
 
 `path | semantic element | missing capability | intended owner pack | date`
@@ -18,13 +22,17 @@ ledger requires a paydown plan in the same change.
 | scripts/build_frozen_duckdb.sh, scripts/build_static_duckdb.sh | source-build pin: unpinned duckdb-rs clones -> `--branch v1.10505.0` (DuckDB 1.5.5 era); static twin pinned to the same family float | no pack expresses source-build dependency pinning | scripts-fetch-scheme pack (unadmitted) | 2026-09-21 (T6) |
 | test-dependency/Cargo.toml | standalone workspace table (isolation from the parent workspace) + real crates.io pin `duckdb = "1.10505"` matching DuckDB 1.5.5 | consumer-crate workspace isolation and era-matched pinning not expressible by any pack | consumer-validation pack (unadmitted) | 2026-09-21 (T7 P5 coordinator fix; commit 80f5902) |
 | scripts/test_ffi_simple.sh, scripts/run_ffi_validation.sh, scripts/smoke_go.go, scripts/smoke_go_simple.go, scripts/validate_prod_build.sh, scripts/validate_frozen_approach.sh, scripts/lib/config.sh | TR6 triage STATUS headers: kept-uncertain markers documenting central-cache drift (repo-local prebuilt dylib no longer provided), stale `CRATE_VERSION="0.1.0"` pin, crates.io-vs-tree validation scope, and the scan_fakes*/lib/ coupling that blocks lib/ removal | repo has no script-metadata/annotation mechanism; uncertainty markers are hand-authored prose | repo-hygiene pack (unadmitted) | 2026-09-21 (TR6) |
+| schema/domain.ttl | cross-branch union: reconciliation (C3) + dry-run-publish bindings (C4) + receipt contracts (C5) facts merged by hand; rp:/ret: prefixes restored; c5 region restored verbatim after line-dedup broke Turtle | TTL has no standard 3-way merge; wave-4 branch domain.ttl writes were hand-appended per branch | future: one domain.ttl per concern or pack-owned fact files (castle-changelog-release-pack's zero-individuals contract is the working pattern — see PACK_FEEDBACK.md G4 #5) | 2026-09-21 |
+| ggen.toml | canonical union config (tomllib-structured; 11 rules, 13 imports) — [[ontology.pack]] absent in ggen 26.8.18 (FM-CONFIG-003); [[ontology]].imports operative | declarative schema has no pack-declaration field; C2's frontmatter approach incompatible in same file | future: ggen schema convergence; C2 Diataxis re-render under unified schema (lineage-pinned gap rows in docs/GENESIS.md) | 2026-09-21 |
 
 ## Known drift this ledger does not yet cover
 
 - `scripts/scan_fakes.sh`, `scripts/scan_fakes_core_team.sh`, `scripts/kcura-config.yaml`,
   `scripts/kcura-config.example.yaml`: kcura-era files outside the TR6 scope table — not edited;
   recorded BLOCKED in `docs/sjira/v26.9.21/TR6.md` History. They are the remaining consumers of
-  `scripts/lib/` and the natural next paydown rows.
+  `scripts/lib/` and the natural next paydown rows (GENESIS carries them as gap rows, so
+  `make genesis-check` keeps the debt non-silent).
 
-| schema/domain.ttl | cross-branch union: reconciliation (C3) + dry-run-publish bindings (C4) + receipt contracts (C5) facts merged by hand; rp:/ret: prefixes restored; c5 region restored verbatim after line-dedup broke Turtle | TTL has no standard 3-way merge; wave-4 branch domain.ttl writes were hand-appended per branch | future: one domain.ttl per concern or pack-owned fact files | 2026-09-21 |
-| ggen.toml | canonical union config (tomllib-structured; 11 rules, 13 imports) — [[ontology.pack]] absent in ggen 26.8.18 (FM-CONFIG-003); [[ontology]].imports operative | declarative schema has no pack-declaration field; C2's frontmatter approach incompatible in same file | future: ggen schema convergence; C2 Diataxis re-render under unified schema | 2026-09-21 |
+(The former cross-branch-union rows for `schema/domain.ttl` and `ggen.toml` were moved into the
+main ledger table above by wave-5 G4 — they are admitted hand-writes, not uncovered drift; the
+Makefile multi-rule-union row they once accompanied was paid down by the wave-4 dry run.)
