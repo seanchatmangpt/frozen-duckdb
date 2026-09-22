@@ -15,3 +15,10 @@ To run the test suite in release mode, run the following command:
 cargo test --workspace --release
 ```
 
+The repository's full gate battery (rendered gates, `ggen sync run`, receipt
+chain check) runs as a single command:
+
+```bash
+make verify
+```
+
