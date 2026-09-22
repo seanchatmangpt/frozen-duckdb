@@ -27,8 +27,8 @@ imports = [
   "/Users/sac/ggen-marketplace/packs/castle-changelog-release-pack/ontology.ttl",
   "schema/changelog.ttl",
   "schema/verify.ttl",
-  "../../ggen-marketplace/packs/ggen-verify-pack/ontology.ttl",
-  "../../ggen-marketplace/packs/evidence-standing-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/ggen-verify-pack/ontology.ttl",
+  "/Users/sac/ggen-marketplace/packs/evidence-standing-pack/ontology.ttl",
 ]
 standard_only = true
 

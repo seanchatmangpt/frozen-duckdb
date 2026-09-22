@@ -13,6 +13,7 @@
 @prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
 @prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix ret:    <https://seanchatmangpt.github.io/ontology/retrofit#> .
+@prefix rp:     <http://seanchatmangpt.github.io/packs/receipt-provenance#> .
 @prefix fd:     <https://seanchatmangpt.github.io/frozen-duckdb/ns#> .
 
 fd:asFound a ret:RepositoryState ;
@@ -439,41 +440,54 @@ fd:duckdbVersionLaw a skos:Concept ;
     skos:notation "1.5.5" .
 #################################################################
 # C5 — receipt + supply-chain evidence (v26.9.21 wave 4)
+#
 # The ggen sync receipt contract, declared with the pack's rp: vocabulary.
 # Subject: the JSON verdict emitted by `ggen receipt verify --format json`
 # over .ggen-v2/receipt.json (the BLAKE3-hashed provenance log that every
 # `ggen sync run` appends). Field paths/values transcribed from the observed
 # verdict; every fact carries its source citation per the pack's
 # evidence-forcing rule.
+#
 # Failed edge vs the pack's absolute-path convention: rp:sourceFile cites
 # repo-relative paths here — the pack's absolute convention does not survive
 # multi-worktree consumers (coordinator merge order); recorded in
 # docs/sjira/v26.9.21/C5.md History.
 #################################################################
+
 rp:vf_blake3_256 a rp:ValueForm ;
     skos:prefLabel "blake3-256-hex" ;
     rp:jsonType "string" ;
     rp:pattern "^[0-9a-f]{64}$" ;
     rp:sourceFile ".ggen-v2/receipt.json" ;
     rdfs:comment "BLAKE3-256 digest, lowercase hex (ggen receipt chains are BLAKE3 per `ggen receipt --help`; lexically the 64-hex primitive)." .
+
 rp:c_ggen_sync_receipt a rp:ReceiptContract ;
     dcterms:title "ggen sync receipt verify verdict" ;
     rp:contractKey "ggen_sync_receipt" ;
     rp:schemaUri "ggen-receipt/v2" ;
     rp:reasonDelimiter "none" ;
+    rp:sourceFile ".ggen-v2/receipt.json" ;
     rdfs:comment "Verdict document projected by `ggen receipt verify --format json` over the sync receipt log .ggen-v2/receipt-log.jsonl; release gate consumes this shape." .
+
 rp:f_gsr_valid a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
     rp:dottedPath "valid" ; rp:valueForm rp:vf_bool ; rp:mandatory true ;
     rp:sourceFile ".ggen-v2/receipt.json" .
 rp:f_gsr_chain a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
     rp:dottedPath "chain_hash" ; rp:valueForm rp:vf_blake3_256 ; rp:mandatory true ;
+    rp:sourceFile ".ggen-v2/receipt.json" .
 rp:f_gsr_payload a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
     rp:dottedPath "payload_hash" ; rp:valueForm rp:vf_blake3_256 ; rp:mandatory true ;
+    rp:sourceFile ".ggen-v2/receipt.json" .
 rp:f_gsr_graph a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
     rp:dottedPath "graph_hash" ; rp:valueForm rp:vf_blake3_256 ; rp:mandatory true ;
+    rp:sourceFile ".ggen-v2/receipt.json" .
 rp:f_gsr_outputs a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
     rp:dottedPath "outputs" ; rp:valueForm rp:vf_int ; rp:mandatory true ;
+    rp:sourceFile ".ggen-v2/receipt.json" .
 rp:f_gsr_signed a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
     rp:dottedPath "signed" ; rp:valueForm rp:vf_bool ; rp:mandatory true ;
+    rp:sourceFile ".ggen-v2/receipt.json" .
 rp:f_gsr_sigvalid a rp:FieldBinding ; rp:contract rp:c_ggen_sync_receipt ;
     rp:dottedPath "signature_valid" ; rp:valueForm rp:vf_bool ; rp:mandatory true ;
+    rp:sourceFile ".ggen-v2/receipt.json" .
+
