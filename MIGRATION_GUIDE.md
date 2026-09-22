@@ -41,7 +41,7 @@ cargo build  # Now 99% faster!
 
 ### 🚀 What Gets Better
 - **Build time**: 99% faster (0.11s vs 2+ minutes)
-- **Binary acquisition**: prebuilt universal dylib (~117MB, arm64 + x86_64) downloaded from GitHub Releases instead of compiling DuckDB from source
+- **Binary acquisition**: prebuilt macOS dylib (`libduckdb_{arch}.dylib`, one asset per architecture) downloaded from GitHub Releases instead of compiling DuckDB from source
 - **Setup time**: Zero configuration needed
 - **CI/CD**: Consistent, fast builds across environments
 
@@ -131,7 +131,7 @@ fn process_data() -> Result<()> {
 | **First Build** | 1-2 minutes | 7-10 seconds | **85% faster** |
 | **Incremental Build** | 30 seconds | 0.11 seconds | **99% faster** |
 | **Release Build** | 1-2 minutes | 0.11 seconds | **99% faster** |
-| **Binary Size** | Source compile (~200MB of build I/O) | ~117MB universal dylib | **No compilation** |
+| **Binary Size** | Source compile (~200MB of build I/O) | ~117MB dylib (macOS) | **No compilation** |
 | **Setup Time** | Manual setup | Zero config | **100% faster** |
 
 ## Troubleshooting
@@ -227,7 +227,7 @@ cargo add duckdb
 ✅ **Zero configuration** - Works out of the box (no `DYLD_*` env vars either)  
 ✅ **Same API** - No code changes needed  
 ✅ **Better CI/CD** - Consistent, fast builds  
-✅ **Universal binaries** - One ~117MB asset serves arm64 and x86_64  
+✅ **Per-architecture assets** - `libduckdb_arm64.dylib` / `libduckdb_x86_64.dylib`, matched to your Mac automatically  
 ✅ **Production ready** - Tested, optimized binaries  
 
 ## Support

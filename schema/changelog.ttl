@@ -62,6 +62,22 @@ fd:changelog-a4 a rel:ChangeEntry ;
     rel:entryOrder 4 ;
     rel:description "Runtime `@rpath` entry emitted by the `frozen-duckdb` build script (consuming `DEP_DUCKDB_DUCKDB_LIB_DIR` metadata exposed by `frozen-duckdb-sys`), so executables and tests link and run without `DYLD_LIBRARY_PATH` setup." .
 
+# Wave-4 marketplace-capability surface (ggen composition, verify chain,
+# receipts) and the GENESIS reconciliation manifest — judged changelog-worthy
+# by the G2 crawl (2026-09-21); rendered via `ggen sync run`, never hand-edited.
+
+fd:changelog-a5 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 5 ;
+    rel:description """A manufactured verification chain: `make verify` runs the rendered gate battery (`scripts/verify-gates.sh`: fmt check, clippy with warnings denied, workspace build, workspace tests, and the `test-validation` binary gate), then `ggen sync run` (re-render + receipt) and `ggen receipt verify` (receipt-chain check); the Makefile verify targets, gate runner, dry-run-publish gates, and receipt-contract matrix are rendered consequences of marketplace pack facts declared in `ggen.toml`, not hand-maintained files.""" .
+
+fd:changelog-a6 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 6 ;
+    rel:description """Reconciliation governance for generated artifacts: `docs/GENESIS.md` — a manifest mapping every generated/consequence file to its owning source — checked by `make genesis-check` (source existence, consequence existence, upstream pin match, and ledger-row cross-check), so upstream changes name exactly which projections must re-render and orphans surface as defects.""" .
+
 #################################################################
 # Changed
 #################################################################
@@ -123,7 +139,7 @@ fd:changelog-f6 a rel:ChangeEntry ;
     rel:inRelease fd:release-v1.5.5 ;
     rel:category rel:catFixed ;
     rel:entryOrder 6 ;
-    rel:description """**Linux / multi-arch builder support**: platform-aware release-asset naming (`.dylib` on macOS, `.so` on Linux), `CMAKE_OSX_ARCHITECTURES` override honored in the local-compile fallback, and a real Linux branch in `setup_env.sh`. Prebuilt `.so` assets are planned for a later tag; the `v1.5.5` tag ships macOS-only universal binaries (arm64 + x86_64 slices); Linux and Windows builds use the pinned local-compile fallback.""" .
+    rel:description """**Linux / multi-arch builder support**: platform-aware release-asset naming (`.dylib` on macOS, `.so` on Linux), `CMAKE_OSX_ARCHITECTURES` override honored in the local-compile fallback, and a real Linux branch in `setup_env.sh`. Prebuilt `.so` assets are planned for a later tag; the `v1.5.5` tag ships macOS-only release assets, one per architecture (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`); Linux and Windows builds use the pinned local-compile fallback.""" .
 
 fd:changelog-f7 a rel:ChangeEntry ;
     rel:inRelease fd:release-v1.5.5 ;

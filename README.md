@@ -11,14 +11,14 @@ Frozen DuckDB revolutionizes Rust database development with a groundbreaking **B
 **DuckDB v1.5.5 is now supported as of this release** (closes [#1](https://github.com/seanchatmangpt/frozen-duckdb/issues/1)). The crate version mirrors the bundled DuckDB version: frozen-duckdb 1.5.5 contains DuckDB 1.5.5. This is a drop-in upgrade — no code changes are needed for existing users.
 
 - **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`.
-- **Universal macOS binaries**: each released dylib is a universal binary containing both arm64 and x86_64 slices, so one asset serves both Apple Silicon and Intel Macs.
+- **Per-architecture macOS assets**: the release workflow publishes one dylib per architecture (arm64 and x86_64); the builder detects your architecture and downloads the matching asset. (The development cache currently carries universal arm64 + x86_64 binaries; asset contents at the first tag are set by `build-binaries.yml`.)
 - **Offline-capable builds**: the DuckDB 1.5.5 headers (`duckdb.h`, `duckdb.hpp`) are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works even when a release download carries only the dylib.
 - **No `DYLD_*` environment variables needed**: the frozen dylib carries the neutral install name `@rpath/libduckdb.dylib`, and the `frozen-duckdb` build script emits the matching runtime rpath for binaries, tests, and examples — `cargo build && cargo run` just works.
 - **Self-healing cache layout**: on every acquisition path (cache hit, download, or local-compile fallback pinned at upstream tag `v1.5.5`), the builder normalizes the cache with headers under `duckdb/` and a plain `libduckdb.dylib` link name.
 
 ## 🖥️ Platform Support (as of v1.5.5)
 
-- **macOS**: prebuilt release assets — universal binaries containing both arm64 and x86_64 slices — downloaded automatically on first build. No local compilation, no `DYLD_*` setup.
+- **macOS**: prebuilt per-architecture release assets (arm64, x86_64) downloaded automatically on first build. No local compilation, no `DYLD_*` setup.
 - **Linux**: builds via the pinned local-compile fallback (DuckDB `v1.5.5` source). Prebuilt `.so` release assets are planned.
 - **Windows**: builds via the pinned local-compile fallback.
 
@@ -34,10 +34,10 @@ Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Ru
 
 | Build Type | Before (duckdb-rs) | After (frozen-duckdb) | Improvement |
 |------------|-------------------|----------------------|-------------|
-| **First Build** | 10-15 minutes | 2-5 seconds | **99% faster** |
+| **First Build** | 10-15 minutes | 7-10 seconds | **99% faster** |
 | **Subsequent Builds** | 10-15 minutes | 0.1 seconds | **99.9% faster** |
-| **CI/CD Builds** | 10-15 minutes | 2-5 seconds | **99% faster** |
-| **Download Size** | ~200MB | ~117MB (universal: arm64 + x86_64) | **~40% smaller** |
+| **CI/CD Builds** | 10-15 minutes | 7-10 seconds | **99% faster** |
+| **Download Size** | ~200MB | ~117MB dylib | **~40% smaller** |
 
 ## 🎯 How It Works
 
@@ -265,7 +265,7 @@ ls -lh ~/.frozen-duckdb/cache/*/
 
 3. **Architecture mismatch**
    - The builder auto-detects the architecture via `uname -m`
-   - Each v1.5.5 release asset is a universal binary (arm64 + x86_64), so either asset runs on any supported Mac
+   - Release assets are published per architecture (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`), and the builder downloads the matching one
    - The `ARCH` environment variable only affects `prebuilt/setup_env.sh` and the `architecture` helper module, not the builder's download path
 
 ### Debug Information
@@ -317,7 +317,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 Frozen DuckDB has transformed the Rust database ecosystem:
 
 - **99% faster builds** for thousands of developers
-- **No compilation** — universal prebuilt dylibs downloaded from GitHub Releases
+- **No compilation** — prebuilt dylibs downloaded from GitHub Releases
 - **Zero configuration** eliminating setup friction
 - **Production-ready** with comprehensive testing
 
