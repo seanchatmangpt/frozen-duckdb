@@ -1,0 +1,50 @@
+# repo-reconciliation-pack 26.7.20 — vocabulary slice (consumer-side).
+#
+# Source of truth: /Users/sac/ggen-marketplace/packs/repo-reconciliation-pack/ontology.ttl
+# (vocabulary block: classes, StateKind/DeltaClass/AdmissionDecision
+# individuals, skos:prefLabels, andon concepts — copied verbatim, 2026-09-21,
+# C3 wave 4).
+#
+# Why this slice exists (帳 row in docs/sjira/v26.9.21/C3.md): the pack's
+# ontology.ttl carries its example INSTANCE facts on the same file (ret:StateFound
+# "blake3:UNKNOWN-*" placeholders, ret:DeltaRuleset github demo, Reconciliation_001,
+# Receipt_001). Importing the whole file union-merges those placeholders into the
+# consumer graph, where the pack's own templates/gates would co-render them into
+# the real v1.5.5 reconciliation artifacts (empirically probed 2026-09-21). The
+# reconciliation GATES nonetheless require the vocabulary axioms to be present
+# (gate 010 checks `?class a ret:DeltaClass`; the ledger/mmd queries join on
+# skos:prefLabel). This file carries exactly those axioms and deliberately
+# EXCLUDES every example instance. Paydown: drop this slice and import the pack
+# ontology directly when ggen gains per-graph source selection or a
+# vocabulary/instance split for pack ontologies.
+
+@prefix ret:  <https://seanchatmangpt.github.io/ontology/retrofit#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+ret:RepositoryState a rdfs:Class .
+ret:StateKind a rdfs:Class .
+ret:Reconciliation a rdfs:Class .
+ret:Delta a rdfs:Class .
+ret:DeltaClass a rdfs:Class .
+ret:AdmissionDecision a rdfs:Class .
+ret:StandingComponent a rdfs:Class .
+ret:RecertificationReceipt a rdfs:Class .
+ret:PromotionDecision a rdfs:Class .
+ret:Obligation a rdfs:Class .
+
+ret:AsFound a ret:StateKind ; skos:prefLabel "現況"@ja .
+ret:AsDesired a ret:StateKind ; skos:prefLabel "設計"@ja .
+ret:AsBuilt a ret:StateKind ; skos:prefLabel "製造済み"@ja .
+ret:AsOperated a ret:StateKind ; skos:prefLabel "運用中"@ja .
+ret:Addition a ret:DeltaClass ; skos:prefLabel "追加"@ja .
+ret:Modification a ret:DeltaClass ; skos:prefLabel "変更"@ja .
+ret:Deletion a ret:DeltaClass ; skos:prefLabel "削除"@ja .
+ret:UnknownDelta a ret:DeltaClass ; skos:prefLabel "不明"@ja .
+ret:Admitted a ret:AdmissionDecision ; skos:prefLabel "受入れ"@ja .
+ret:Quarantined a ret:AdmissionDecision ; skos:prefLabel "隔離"@ja .
+ret:Refused a ret:AdmissionDecision ; skos:prefLabel "拒否"@ja .
+ret:Green a skos:Concept ; skos:prefLabel "緑"@ja .
+ret:Yellow a skos:Concept ; skos:prefLabel "黄"@ja .
+ret:Red a skos:Concept ; skos:prefLabel "赤"@ja .
