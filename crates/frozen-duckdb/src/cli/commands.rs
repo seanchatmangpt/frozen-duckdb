@@ -115,13 +115,16 @@ pub enum Commands {
         /// Input file format
         ///
         /// Supported input formats: csv, parquet, json
-        #[arg(short, long, default_value = "csv")]
+        // Long-only: `-i`/`-o` belong to `input`/`output`; duplicate shorts
+        // trip clap's debug assert and abort every `convert` invocation
+        // (G1 crawl, 2026-09-21: documented recipe panicked before this fix).
+        #[arg(long, default_value = "csv")]
         input_format: String,
 
         /// Output file format
         ///
         /// Supported output formats: csv, parquet, json, arrow
-        #[arg(short, long, default_value = "parquet")]
+        #[arg(long, default_value = "parquet")]
         output_format: String,
     },
 
@@ -496,7 +499,9 @@ pub enum Commands {
         /// Maximum summary length in words
         ///
         /// Controls the length of the generated summary.
-        #[arg(short, long, default_value = "150")]
+        // Long-only: `-m` belongs to `model`; duplicate shorts trip clap's
+        // debug assert and abort every `summarize` invocation (G1 crawl).
+        #[arg(long, default_value = "150")]
         max_length: usize,
 
         /// Model to use for summarization
