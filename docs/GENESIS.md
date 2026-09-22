@@ -66,7 +66,6 @@ vanished is an orphan (a defect, not a leftover).
 | `scripts/smoke_go_simple.go` | `HANDWRITTEN.md` | active | Same TR6 STATUS-header family. | HANDWRITTEN row 8 (TR6) |
 | `scripts/validate_prod_build.sh` | `HANDWRITTEN.md` | active | Same TR6 STATUS-header family. | HANDWRITTEN row 8 (TR6) |
 | `scripts/validate_frozen_approach.sh` | `HANDWRITTEN.md` | active | Same TR6 STATUS-header family. | HANDWRITTEN row 8 (TR6) |
-| `scripts/lib/config.sh` | `HANDWRITTEN.md` | active | Same TR6 STATUS-header family (lib/ coupling noted in ledger). | HANDWRITTEN row 8 (TR6) |
 | `docs/GENESIS.md` | `hand:` | active | This manifest; SOURCE (authored under C10). genesis-check parses the table above — keep first-cell discipline (backticked path only in manifest data rows). | C10 |
 | `Makefile` | `ggen.toml` | active | Rendered consequence of rule `render-makefile-verify`: C8 verify targets from schema/verify.ttl facts + C10 sync/genesis-check/gates block (C10 bytes moved into the owning rule template during the wave-4 dry run; the HANDWRITTEN.md multi-rule-union row was paid down, and the merge's truncated block head restored). Re-render: `ggen sync run`. | C8+C10; union repaired by wave-4 dry run |
 | `docs/sjira/v26.9.21/TPUB.md` | `hand:` | active | Hand-authored dry-run publish ticket (commit 7a271c7; no renderer covers it — a failed edge for the wave-4 renderer, recorded there). | TPUB wave |
@@ -76,13 +75,14 @@ vanished is an orphan (a defect, not a leftover).
 | `docs/sjira/v26.9.21/MILESTONE.md` | `hand:` | active | T8 deliverable: DoD ticks + operator cuts. | T8 |
 | `docs/sjira/v26.9.21/_RUNBOOK.md` | `hand:` | active | Dispatch contract (canonical dispatch prompt form); edited only by the coordinator. | coordinator |
 | `scripts/duckdb_ffi.h` | `hand:` | gap | Pre-wave Go-smoketest FFI header, authored by hand with NO HANDWRITTEN row. Reconciliation debt: pay down by adding a ledger row or a generator. | C10 gap record |
-| `scripts/lib/intelligent_cache.sh` | `unknown:` | gap | Provenance not established (pre-wave); referenced by TR6 lib/ coupling note. | C10 gap record |
-| `scripts/lib/logging.sh` | `unknown:` | gap | Provenance not established (pre-wave). | C10 gap record |
-| `scripts/lib/self_healing.sh` | `unknown:` | gap | Provenance not established (pre-wave). | C10 gap record |
-| `scripts/scan_fakes.sh` | `hand:` | gap | kcura-era file outside TR6 scope table; recorded BLOCKED in TR6 History; remaining lib/ consumer. | HANDWRITTEN drift note |
-| `scripts/scan_fakes_core_team.sh` | `hand:` | gap | Same kcura-era triage debt as scan_fakes.sh. | HANDWRITTEN drift note |
-| `scripts/kcura-config.yaml` | `hand:` | gap | kcura-era config, triage pending (TR6 BLOCKED). | HANDWRITTEN drift note |
-| `scripts/kcura-config.example.yaml` | `hand:` | gap | kcura-era config template, triage pending (TR6 BLOCKED). | HANDWRITTEN drift note |
+
+Note (G5 2026-09-21): the former gap rows for `scripts/scan_fakes.sh`,
+`scripts/scan_fakes_core_team.sh`, `scripts/lib/{config,intelligent_cache,logging,self_healing}.sh`,
+and `scripts/kcura-config{,.example}.yaml` were removed when the kcura-era tooling cluster was
+deleted (every file dead on the primary platform: `declare -A` under bash 3.2, an unbuildable
+`scripts/Cargo.toml`, orphaned `redteam_probe.rs`, and a `docs_check.sh` that fails `bash -n` —
+evidence in `docs/sjira/v26.9.21/G5.md` History). `scripts/lib/config.sh`'s active row was
+removed together with the file; HANDWRITTEN.md row 8 no longer names it.
 
 ## Known edge — C2 Diataxis renders (dual-schema, wave-4 dry-run record)
 

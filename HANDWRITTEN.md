@@ -17,14 +17,20 @@ ledger requires a paydown plan in the same change.
 | scripts/create_frozen_setup.sh | fetch-scheme repair: real v1.5.5 release-asset URLs (seanchatmangpt/frozen-duckdb) replacing a fictional v1.4.1 `libduckdb_{arch}.dylib` scheme; Option-2 clone pinned `--depth 1 --branch v1.5.5` | no pack expresses the release-asset URL scheme; script prose is hand-maintained | scripts-fetch-scheme pack (unadmitted) | 2026-09-21 (T6) |
 | scripts/build_frozen_duckdb.sh, scripts/build_static_duckdb.sh | source-build pin: unpinned duckdb-rs clones -> `--branch v1.10505.0` (DuckDB 1.5.5 era); static twin pinned to the same family float | no pack expresses source-build dependency pinning | scripts-fetch-scheme pack (unadmitted) | 2026-09-21 (T6) |
 | test-dependency/Cargo.toml | standalone workspace table (isolation from the parent workspace) + real crates.io pin `duckdb = "1.10505"` matching DuckDB 1.5.5 | consumer-crate workspace isolation and era-matched pinning not expressible by any pack | consumer-validation pack (unadmitted) | 2026-09-21 (T7 P5 coordinator fix; commit 80f5902) |
-| scripts/test_ffi_simple.sh, scripts/run_ffi_validation.sh, scripts/smoke_go.go, scripts/smoke_go_simple.go, scripts/validate_prod_build.sh, scripts/validate_frozen_approach.sh, scripts/lib/config.sh | TR6 triage STATUS headers: kept-uncertain markers documenting central-cache drift (repo-local prebuilt dylib no longer provided), stale `CRATE_VERSION="0.1.0"` pin, crates.io-vs-tree validation scope, and the scan_fakes*/lib/ coupling that blocks lib/ removal | repo has no script-metadata/annotation mechanism; uncertainty markers are hand-authored prose | repo-hygiene pack (unadmitted) | 2026-09-21 (TR6) |
+| scripts/test_ffi_simple.sh, scripts/run_ffi_validation.sh, scripts/smoke_go.go, scripts/smoke_go_simple.go, scripts/validate_prod_build.sh, scripts/validate_frozen_approach.sh | TR6 triage STATUS headers: kept-uncertain markers documenting central-cache drift (repo-local prebuilt dylib no longer provided) and the stale `CRATE_VERSION="0.1.0"` pin; claims re-verified live by G5 (2026-09-21): test_ffi_simple.sh exit 1 "DuckDB library not found" (setup_env.sh `$0` resolution bug), run_ffi_validation.sh exit 1 at its Go leg — repairs remain in the T6 lane | repo has no script-metadata/annotation mechanism; uncertainty markers are hand-authored prose | repo-hygiene pack (unadmitted) | 2026-09-21 (TR6; `scripts/lib/config.sh` dropped from this row when G5 removed the file) |
 
-## Known drift this ledger does not yet cover
+## Resolved drift (paydown record)
 
 - `scripts/scan_fakes.sh`, `scripts/scan_fakes_core_team.sh`, `scripts/kcura-config.yaml`,
-  `scripts/kcura-config.example.yaml`: kcura-era files outside the TR6 scope table — not edited;
-  recorded BLOCKED in `docs/sjira/v26.9.21/TR6.md` History. They are the remaining consumers of
-  `scripts/lib/` and the natural next paydown rows.
+  `scripts/kcura-config.example.yaml`, `scripts/lib/{config,intelligent_cache,logging,self_healing}.sh`,
+  `scripts/redteam_probe.rs`, `scripts/Cargo.toml`, `scripts/docs_check.sh`: the kcura-era tooling
+  cluster was REMOVED by G5 (2026-09-21) instead of being ledgered. Every file was falsified dead
+  on the primary platform before removal — `declare -A` under stock macOS bash 3.2 (scan_fakes.sh
+  live exit 2; core_team line 29), an unbuildable `scripts/Cargo.toml` (no targets, exit 101),
+  orphaned `redteam_probe.rs` (not a manifest target; mock probes), `docs_check.sh` failing
+  `bash -n` and requiring a kcura MkDocs tree that does not exist. Evidence preserved in
+  `docs/sjira/v26.9.21/G5.md` History and the GENESIS.md G5 note. This is ledger shrink: row 8
+  lost its `scripts/lib/config.sh` path and seven GENESIS gap rows left with their files.
 
 | schema/domain.ttl | cross-branch union: reconciliation (C3) + dry-run-publish bindings (C4) + receipt contracts (C5) facts merged by hand; rp:/ret: prefixes restored; c5 region restored verbatim after line-dedup broke Turtle | TTL has no standard 3-way merge; wave-4 branch domain.ttl writes were hand-appended per branch | future: one domain.ttl per concern or pack-owned fact files | 2026-09-21 |
 | ggen.toml | canonical union config (tomllib-structured; 11 rules, 13 imports) — [[ontology.pack]] absent in ggen 26.8.18 (FM-CONFIG-003); [[ontology]].imports operative | declarative schema has no pack-declaration field; C2's frontmatter approach incompatible in same file | future: ggen schema convergence; C2 Diataxis re-render under unified schema | 2026-09-21 |
