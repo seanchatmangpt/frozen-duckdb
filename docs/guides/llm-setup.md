@@ -696,6 +696,6 @@ Setting up LLM capabilities with Frozen DuckDB and Ollama provides **powerful AI
 
 **Next Steps:**
 1. Complete the [Integration Guide](./integration.md) for project setup
-2. Explore the [LLM Operations Guide](./llm-operations.md) for usage examples
+2. Explore the [LLM Operations Guide](../cli/llm-operations.md) for usage examples
 3. Set up [Performance Monitoring](./performance-tuning.md) for optimization
-4. Consider [RAG Pipelines](./rag-pipelines.md) for advanced use cases
+4. Consider [RAG Pipelines](../llm/rag-pipelines.md) for advanced use cases

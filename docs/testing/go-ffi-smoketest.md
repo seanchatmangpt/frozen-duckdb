@@ -266,7 +266,7 @@ export RUST_LOG=debug
 
 ## Related Documentation
 
-- [Architecture Detection](architecture-detection.md)
-- [Flock LLM Integration](flock-integration.md)
-- [Performance Tuning](performance-tuning.md)
-- [Troubleshooting Guide](troubleshooting.md)
+- [Binary architecture handling](../architecture/binary-management.md)
+- [Flock LLM overview](../llm/flock-overview.md)
+- [Performance Tuning](../guides/performance-tuning.md)
+- [Troubleshooting](#troubleshooting) (in this document)
