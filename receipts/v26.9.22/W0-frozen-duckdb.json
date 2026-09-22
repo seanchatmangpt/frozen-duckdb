@@ -1,0 +1,43 @@
+{
+  "repo": "frozen-duckdb",
+  "path": "/Users/sac/frozen-duckdb",
+  "wave": "v26.9.22",
+  "lane": "L10-consumers-w0",
+  "base_sha_before": {
+    "found_branch": "feat/duckdb-1.5.5",
+    "found_head": "632d3f5a1eeda382a256d7eaac078df215a6bcda",
+    "tree_state": "clean at W0 start; one stash (see stashes_preserved)"
+  },
+  "preserve_branches": [
+    {"branch": "preserve/v26.9.22/stash-0", "sha": "7d3b4c0c1fe42a376ad424dd2d9782abec4d408f", "covers": "stash@{0} 'WIP on feat/duckdb-1.5.5: 85e288c docs(sjira): wave-5 ticket History appends' — scripts/verify-evidence.ttl +6/-6, parented at the stash's base 85e288c"}
+  ],
+  "stashes_preserved": {
+    "count": 1,
+    "disposition": "stash entry KEPT in stash list AND committed to preserve/v26.9.22/stash-0 (dropping is FDDB-26922-06 with user approval, later wave)"
+  },
+  "merge": {
+    "target": "master",
+    "merged": "origin/master a3a69e43fadb3f683d402936415af7d2ff9f7384",
+    "merge_sha": "a3a69e43fadb3f683d402936415af7d2ff9f7384",
+    "mode": "fast-forward 1c84384 -> a3a69e4 (113 commits, the PR #3 merge) via 'git fetch origin master:master'",
+    "conflicts": "none (fast-forward)",
+    "deviation_note": "The wave order stated 'frozen-duckdb has NO origin remote — skip fetch/merge'. Live evidence contradicts the premise: origin (https://github.com/seanchatmangpt/frozen-duckdb.git) is configured and reachable (ls-remote OK), and the earlier same-wave pass had already fetched it (its release branch is based on origin/master). The standard W0 fetch+ff law was applied and this deviation is recorded here. The 48 feat-branch commits remain unlanded on master by design: landing them via PR is FDDB-26922-01 (later wave)."
+  },
+  "integration_worktree": {
+    "path": "/Users/sac/wt/v26922/frozen-duckdb/int",
+    "branch": "release/v26.9.22",
+    "head": "b2d4cfaed3a6a999b6e8699cc3bb5cf6e628cf0b",
+    "note": "created by earlier same-wave pass: origin/master a3a69e4 + merge of feat/duckdb-1.5.5 (632d3f5). This is a SUPERSET of the post-merge local master (a3a69e4); ancestry verified (origin/master is ancestor of release and of feat HEAD). Kept as-is; pre-landing the 48 commits on master itself remains FDDB-26922-01's job."
+  },
+  "baseline_gate": {
+    "command": "cargo fmt --check; cargo clippy -- -D warnings; cargo test  (bounded 600s; cargo 1.97.0; prebuilt DuckDB v1.5.5 arm64 binary cache)",
+    "exits": {"cargo_fmt_check": 0, "cargo_clippy_d_warnings": 0, "cargo_test": 0},
+    "excerpt": "clippy: Finished `dev` profile in 50.41s, no warnings. cargo test: full suite green (frozen_duckdb 140 tests ok incl. architecture/cache/validation; bindgen layout tests 89 ok; test-validation harness green: builder-resolved binary 117005184 bytes, dylib duckdb_library_version() = v1.5.5).",
+    "verdict": "ALIVE on release/v26.9.22 @ b2d4cfa. Note: literal 'cargo clippy -D warnings' is rejected by cargo 1.97 (unexpected argument '-D'); run as 'cargo clippy -- -D warnings'. Cargo.lock is generated in the worktree and is not tracked on any branch (repo choice, unchanged)."
+  },
+  "standing": "ALIVE (scoped: fmt + clippy -D warnings + cargo test on the integration branch)",
+  "notes": [
+    "Earlier partial W0 pass (same wave) verified and completed by this run; its g1-g5 cargo logs (no exit codes recorded) superseded by this receipted run.",
+    "No push performed; tag/publish decisions are FDDB-26922-05 (operator authority, later wave)."
+  ]
+}
