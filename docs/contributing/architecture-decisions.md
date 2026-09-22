@@ -141,7 +141,8 @@ Integrate the **Flock extension** for **LLM-in-database capabilities** using **O
 
 **Disadvantages**:
 - Dependency on external extension ecosystem
-- Current implementation limitations (27% test success rate)
+- LLM operations depend on a running Ollama server with models pulled
+  (test suite itself is green: 301/301 incl. flock_tests 11/11, measured 2026-09-21)
 - Additional setup complexity for users
 - Maintenance overhead for extension compatibility
 
@@ -191,7 +192,8 @@ SELECT llm_embedding(
 - ✅ Integration with Frozen DuckDB CLI
 
 **Known Limitations**:
-- ⚠️ 27% Flock test success rate (4/11 tests passing)
+- ✅ Flock tests passing 11/11 (measured 2026-09-21; the earlier 4/11
+  figure predated the wave-3..5 test repairs)
 - ⚠️ Model resolution issues in some configurations
 - ⚠️ Prompt management complexity
 - ⚠️ Limited error handling for network issues
@@ -206,7 +208,15 @@ SELECT llm_embedding(
 
 ## ADR 004: Pre-compiled Binary Distribution
 
-### Decision
+> **SUPERSEDED (wave-2, 2026-09-21):** the adopted distribution strategy is
+> **GitHub Release assets** — universal (arm64 + x86_64) macOS dylibs
+> downloaded automatically by `frozen-duckdb-builder::ensure_binary()` and
+> cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`. No `.dylib` is
+> committed to the repository (`prebuilt/` carries only the vendored headers
+> and `setup_env.sh`), so the LFS decision below is historical. See
+> `docs/architecture/binary-management.md` for the current mechanism.
+
+### Decision (historical)
 
 Use **Git LFS** for distributing **large binary files** (>100MB) to handle GitHub's file size limitations while maintaining repository performance.
 
@@ -256,15 +266,16 @@ git add .gitattributes
 git add prebuilt/*.dylib
 ```
 
-**Repository Structure:**
+**Repository Structure (actual, 2026-09-21):**
 ```
 prebuilt/
-├── libduckdb_x86_64.dylib    # Tracked with LFS (55MB)
-├── libduckdb_arm64.dylib     # Tracked with LFS (50MB)
-├── duckdb.h                  # Regular file (186KB)
-├── duckdb.hpp                # Regular file (1.8MB)
-└── setup_env.sh              # Regular file (script)
+├── README.md                 # Regular file
+├── duckdb.h                  # Regular file (244KB)
+├── duckdb.hpp                # Regular file (2.0MB)
+└── setup_env.sh              # Regular file (script; legacy workflow)
 ```
+(no `.dylib` files — binaries ship as GitHub Release assets on tag pushes
+via the `build-binaries.yml` workflow)
 
 ### Future Considerations
 
