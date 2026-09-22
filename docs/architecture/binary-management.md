@@ -177,15 +177,16 @@ chmod 755 $DUCKDB_LIB_DIR/libduckdb*.dylib
 ### Debug Information
 
 ```bash
-# Show system information
-frozen-duckdb-cli info
+# Show system information (output only with -v)
+frozen-duckdb-cli -v info
 
 # Show cached binary details
 ls -lah ~/.frozen-duckdb/cache/v*/
 lipo -info ~/.frozen-duckdb/cache/v1.5.5-*/libduckdb_*.dylib
 
-# Test with verbose output
-RUST_LOG=debug cargo build
+# Verbose build output (cargo's own flag — RUST_LOG is not read by the
+# builder or the CLI)
+cargo build -v
 ```
 
 ## Binary Security

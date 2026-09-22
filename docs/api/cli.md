@@ -128,14 +128,18 @@ Options:
 - **Architecture**: Current system architecture
 - **Available Extensions**: DuckDB extensions loaded
 
-**Example Output:**
+**Example Output** (requires `-v` — every field is a tracing INFO event,
+suppressed at the default WARN verbosity; witnessed 2026-09-22 the default
+invocation prints nothing and exits 0):
 ```bash
-🦆 Frozen DuckDB Information
-  Version: 1.5.5
-  Build Type: Pre-compiled binary
-  Architecture: arm64
-  Target: macos
-  Available Extensions: parquet, tpch, flock
+$ frozen-duckdb-cli -v info
+INFO frozen_duckdb::cli::dataset_manager: 🦆 Frozen DuckDB Information
+INFO ... Version: 1.5.5
+INFO ... Build Type: Pre-compiled binary
+INFO ... Architecture: aarch64        # std::env::consts::ARCH ("aarch64", not "arm64")
+INFO ... Target: macos
+INFO ... Available Extensions: autocomplete, avro, aws, ... (the full
+       duckdb_extensions() list — 31 entries on the v1.5.5 dylib, incl. flock)
 ```
 
 ## LLM Integration Commands
@@ -218,6 +222,14 @@ echo "Write a haiku about databases" | frozen-duckdb-cli complete
 
 Generates embeddings for semantic search and similarity operations.
 
+> **STATUS (audited 2026-09-22):** not implemented. After the Flock
+> readiness check, `FlockManager::generate_embeddings()` always returns
+> `Err` (vector extraction from DuckDB's array type is a TODO — see the
+> method doc in `crates/frozen-duckdb/src/cli/flock_manager.rs`), so the
+> CLI's `.expect()` panics and the process aborts with **exit code 101**.
+> Witnessed: `frozen-duckdb-cli embed --text "hello"` → panic
+> "Embedding generation not implemented yet", exit 101.
+
 ```bash
 frozen-duckdb-cli embed [OPTIONS]
 
@@ -261,6 +273,12 @@ frozen-duckdb-cli embed --text "artificial intelligence" --normalize
 ### `search` - Semantic Search
 
 Performs semantic search using embeddings and similarity matching.
+
+> **STATUS (audited 2026-09-22):** not implemented. `FlockManager::
+> semantic_search()` always returns `Err("Semantic search not implemented
+> ...")` (see `crates/frozen-duckdb/src/cli/flock_manager.rs`), so the
+> CLI's `.expect()` panics with **exit code 101**. The options below are
+> the accepted surface; the operation itself is a TODO.
 
 ```bash
 frozen-duckdb-cli search [OPTIONS]
@@ -338,7 +356,9 @@ Options:
     -i, --input <FILE>       Input file or directory
     -o, --output <FILE>      Output file for summary
     -s, --strategy <STRATEGY> Summarization strategy [default: reduce]
-                             (possible values: reduce, map, extractive)
+                             (implemented values: reduce, map — any other
+                             value, including "extractive", falls back to a
+                             single combined-summary path)
         --max-length <INT>   Maximum summary length in words [default: 150] (long flag only)
     -m, --model <MODEL>      Model alias to use [default: text_generator]
     -h, --help              Print help
@@ -352,7 +372,9 @@ Options:
 **Summarization Strategies:**
 - **`reduce`**: Hierarchical summarization via the LLM reduce function (default)
 - **`map`**: Individual summaries, then combined
-- **`extractive`**: Key sentences extracted without generation
+- **anything else** (including `extractive`): falls back to one combined
+  LLM summary over all texts — there is no distinct extractive path
+  (`crates/frozen-duckdb/src/cli/flock_manager.rs`, `summarize_texts`)
 
 **Examples:**
 ```bash
@@ -362,7 +384,8 @@ frozen-duckdb-cli summarize --input article.txt
 # Summarize multiple documents in directory
 frozen-duckdb-cli summarize --input papers/ --output summary.txt --strategy map
 
-# Extractive summary with custom length
+# Extractive-style summary with custom length (falls back to the
+# combined-summary path — no distinct extractive implementation)
 frozen-duckdb-cli summarize --input notes.txt --strategy extractive --max-length 100
 ```
 
@@ -375,7 +398,9 @@ Shows information about running the test suite.
 ```bash
 frozen-duckdb-cli test
 
-# Output:
+# Output (only with -v or higher — the lines are tracing INFO events,
+# suppressed at the default WARN verbosity; witnessed 2026-09-22:
+# default invocation prints nothing and exits 0):
 🧪 Tests have been moved to the test suite
    Run tests with: cargo test
    Run specific tests with: cargo test <test_name>
@@ -385,6 +410,12 @@ frozen-duckdb-cli test
 ### `benchmark` - Performance Benchmarking
 
 Runs performance benchmarks on DuckDB operations.
+
+> **STATUS (audited 2026-09-22):** stub. The handler only logs
+> "Benchmarking ... operation" and "📊 Performance benchmarking feature
+> coming soon!" at INFO level and exits 0 — no benchmark is executed
+> (`crates/frozen-duckdb/src/main.rs`, `Commands::Benchmark`). At default
+> verbosity it prints nothing.
 
 ```bash
 frozen-duckdb-cli benchmark [OPTIONS]
@@ -415,6 +446,13 @@ Options:
     -h, --help       Print help
 ```
 
+> **STATUS (audited 2026-09-22):** `--skip-llm` and `--verbose` are
+> accepted but **not wired** — `main.rs` destructures them as
+> `_skip_llm` / `_verbose` ("wired to FlockManager knobs in a later
+> milestone; unused today") and calls `validate_ffi()` with no
+> arguments, so LLM validation layers always run. Only `--format json`
+> changes behavior.
+
 **Examples:**
 ```bash
 # Full validation
@@ -433,17 +471,19 @@ The CLI provides **clear error messages** and **consistent exit codes**:
 
 ### Exit Codes
 
-| Code | Description | Example |
-|------|-------------|---------|
+| Code | Description | Example Usage |
+|------|-------------|---------------|
 | **0** | Success | Operation completed successfully |
 | **1** | General error | Invalid input, file not found, operation failed |
 | **2** | CLI usage error | Unknown flag / missing argument (clap parse error) |
 | **4** | Flock extension | Extension not available |
+| **101** | Unimplemented-feature panic | `embed` / `search` abort via `.expect()` (Rust panic exit code) |
 
-(Codes 2 and 4 are the only nonzero exits `src/main.rs` emits besides 1.
-There is no dedicated environment/binary-validation exit code: binary
-acquisition happens inside `cargo build` via `frozen-duckdb-builder`, not in
-the CLI process.)
+(Explicit `std::process::exit` calls in `src/main.rs` emit only 0, 1, and
+4; code 2 comes from clap's own parse-error exit, and 101 from the
+`embed`/`search` panics. There is no dedicated environment/binary-
+validation exit code: binary acquisition happens inside `cargo build` via
+`frozen-duckdb-builder`, not in the CLI process.)
 
 ### Error Messages
 
@@ -508,10 +548,10 @@ frozen-duckdb-cli info
 frozen-duckdb-cli -v info
 
 # Debug level (-vv)
-frozen-duckdb -vv download --dataset chinook
+frozen-duckdb-cli -vv download --dataset chinook
 
 # Trace level (-vvv)
-frozen-duckdb -vvv complete --prompt "test"
+frozen-duckdb-cli -vvv complete --prompt "test"
 ```
 
 **Log Levels:**
@@ -619,7 +659,7 @@ frozen-duckdb-cli info
 frozen-duckdb-cli -v info
 
 # Test with maximum verbosity
-frozen-duckdb -vvv complete --prompt "test"
+frozen-duckdb-cli -vvv complete --prompt "test"
 ```
 
 ## Performance Tuning

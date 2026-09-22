@@ -221,6 +221,11 @@ echo "Write a haiku" | frozen-duckdb-cli complete
 
 ### Embedding Generation
 
+> **STATUS (audited 2026-09-22):** the `embed` CLI command is not
+> implemented — it panics with exit code 101 (see
+> `docs/api/cli.md`). The SQL-level `llm_embedding` function is what
+> `validate-ffi` exercises.
+
 ```bash
 # Generate embedding for text
 frozen-duckdb-cli embed --text "machine learning"
@@ -233,6 +238,9 @@ frozen-duckdb-cli embed --text "data science" --normalize
 ```
 
 ### Semantic Search
+
+> **STATUS (audited 2026-09-22):** the `search` CLI command is not
+> implemented — it panics with exit code 101 (see `docs/api/cli.md`).
 
 ```bash
 # Search in corpus
@@ -410,6 +418,11 @@ let result: String = conn.query_row(
 
 ### CLI Pipeline
 
+> **STATUS (audited 2026-09-22):** the `embed` and `search` steps of this
+> pipeline are not implemented in the CLI (exit 101, see
+> `docs/api/cli.md`); only the `complete` step currently works end to
+> end. The SQL-level functions remain available.
+
 ```bash
 #!/bin/bash
 # rag_pipeline.sh
@@ -514,7 +527,8 @@ SELECT * FROM pragma_memory_usage();
 - **Flock extension tests**: 11/11 passing (`cargo test --test flock_tests`)
 - **Known issues**: LLM operations require a running Ollama server with the
   configured models pulled; without one, LLM-dependent validation layers fail
-  at runtime (use `frozen-duckdb-cli validate-ffi --skip-llm` for core-only)
+  at runtime (`frozen-duckdb-cli validate-ffi` accepts `--skip-llm`, but
+  audited 2026-09-22 the flag is not yet wired — LLM layers run regardless)
 
 #### Unsupported Operations
 

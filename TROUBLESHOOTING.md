@@ -1,5 +1,16 @@
 # Frozen DuckDB Troubleshooting Report
 
+> **STATUS (audited 2026-09-22):** this report is a point-in-time record
+> from the v1.4.0-era bring-up, kept for its debugging steps. Several
+> claims are superseded: (1) "3/11 tests passing (27%)" predates the G3
+> falsification pass (2026-09-21: flock tests 11/11, workspace 301/301 —
+> see `docs/api/flock.md`); (2) `src/ext/` does not exist in this tree
+> (the references below are dead paths); (3) the current CLI reality —
+> `embed`/`search` panic with exit 101, `benchmark` is a stub,
+> `info`/`test` print nothing without `-v` — is documented in
+> `docs/api/cli.md`. Treat the Ollama/Flock SQL debugging steps below as
+> still-useful guidance.
+
 ## Executive Summary
 
 **Status:** ✅ **84% Production Ready** | ⚠️ **16% Conditional (LLM Features)**
@@ -161,7 +172,7 @@ SELECT llm_complete({'model_name': 'test_coder'}, {'prompt_name': 'hello'});
 ### **Option 2: Alternative Approaches**
 
 **If Flock Issues Persist:**
-1. **Custom Implementation:** Use the previously created custom Flock implementation in `src/ext/`
+1. **Custom Implementation:** Use a custom Flock implementation (no such directory exists in this tree — see STATUS above)
 2. **HTTP Client Approach:** Implement direct Ollama API calls instead of Flock extension
 3. **Different Extension:** Consider other LLM extensions if available
 
@@ -218,11 +229,10 @@ SELECT llm_complete({'model_name': 'test_coder'}, {'prompt_name': 'hello'});
 **Models:** qwen3-coder:30b, qwen3-embedding:8b
 
 **Key Files:**
-- `tests/flock_tests.rs` - Flock extension tests
-- `src/ext/` - Custom Flock implementation (if needed)
+- `tests/flock_tests.rs` - Flock extension tests (i.e. `crates/frozen-duckdb/tests/flock_tests.rs`)
 - `README.md` - Project documentation
 
-**Report Generated:** $(date)
+**Report Generated:** 2026-09-21 (v1.5.5 support-block pass, commit 1b41188; audited 2026-09-22)
 **Health Score:** 84% ✅
 
 ---

@@ -148,11 +148,13 @@ frozen-duckdb-cli flock-setup --skip-verification
 # Test basic LLM functionality
 frozen-duckdb-cli complete --prompt "Hello, how are you?"
 
-# Generate embeddings
+# Generate embeddings — NOT implemented as of 2026-09-22: this panics
+# with exit code 101 (see docs/api/cli.md); use SQL llm_embedding or
+# validate-ffi to exercise embeddings instead
 frozen-duckdb-cli embed --text "machine learning"
 
-# Verify system info includes Flock
-frozen-duckdb-cli info
+# Verify system info includes Flock (output only appears with -v)
+frozen-duckdb-cli -v info
 ```
 
 ## Testing the Setup

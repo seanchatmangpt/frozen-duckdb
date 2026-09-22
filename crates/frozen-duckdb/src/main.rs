@@ -46,14 +46,16 @@
 //!
 //! ## Environment Setup
 //!
-//! Before using the CLI, ensure the frozen DuckDB environment is configured:
+//! No environment setup is required: `frozen-duckdb-builder::ensure_binary()`
+//! acquires the dylib during `cargo build` and the emitted runtime `@rpath`
+//! loads it. (`prebuilt/setup_env.sh` exists only for the legacy manual
+//! prebuilt workflow; `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR` are read solely
+//! by that path.)
 //!
 //! ```bash
-//! # Set up environment (required)
-//! source prebuilt/setup_env.sh
-//!
-//! # Verify configuration
-//! frozen-duckdb info
+//! # Verify the installation (add -v — every info field is a tracing INFO
+//! # event, suppressed at the default WARN verbosity)
+//! frozen-duckdb-cli -v info
 //! ```
 //!
 //! ## Performance Targets

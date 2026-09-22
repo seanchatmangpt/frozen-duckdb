@@ -152,3 +152,9 @@ fd:changelog-f8 a rel:ChangeEntry ;
     rel:category rel:catFixed ;
     rel:entryOrder 8 ;
     rel:description """**Repo hygiene**: kcura-era debris removed (dead smoke/CI-gate scripts, stray root test files, empty dataset directories); `HANDWRITTEN.md` ledger seeded.""" .
+
+fd:changelog-f9 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 9 ;
+    rel:description """**CLI parse panic fixed — `convert` and `summarize` runnable again**: duplicate clap short flags (`-i`/`-o` on `convert --input-format`/`--output-format`, `-m` on `summarize --max-length`) tripped clap's debug asserts and aborted parsing with exit 101, making both commands unusable. The three options are now long-only (hand-repair ledgered in `HANDWRITTEN.md`, guarded by `tests/cli_surface_tests.rs`, which also renders every subcommand's `--help`).""" .

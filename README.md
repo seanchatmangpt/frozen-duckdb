@@ -271,11 +271,13 @@ ls -lh ~/.frozen-duckdb/cache/*/
 ### Debug Information
 
 ```bash
-# Show system information
-cargo run -- info
+# Show system information (output only appears with -v — every field is
+# a tracing INFO event, suppressed at the default WARN verbosity)
+cargo run -- -v info
 
-# Test with verbose output
-RUST_LOG=debug cargo build
+# Verbose build output: use cargo's own flag (RUST_LOG has no effect on
+# the CLI or the builder — verbosity is the -v flag, not env-based)
+cargo build -v
 
 # Check cache directory
 ls -la ~/.frozen-duckdb/cache/

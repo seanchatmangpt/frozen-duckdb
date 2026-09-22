@@ -8,7 +8,9 @@
 > `~/.frozen-duckdb/cache/v{VER}-{arch}/`, so as committed they would fail at
 > the library-resolution step. Repair belongs to the T6 (scripts-fix) lane.
 > The maintained FFI validation path is `frozen-duckdb-cli validate-ffi`
-> (or `frozen-duckdb-cli validate-ffi --skip-llm` without Ollama).
+> (audited 2026-09-22: the `--skip-llm` flag is accepted but **not yet
+> wired** — LLM validation layers run regardless, so Ollama is always
+> needed for a fully green run; see `docs/api/cli.md`).
 
 ## Overview
 
@@ -32,8 +34,8 @@ The Go FFI smoke test validates that the frozen-duckdb library properly exposes 
 
 ```bash
 # Maintained FFI validation (validates the same surface through the CLI)
-frozen-duckdb-cli validate-ffi            # full, needs Ollama
-frozen-duckdb-cli validate-ffi --skip-llm # core-only, no Ollama
+frozen-duckdb-cli validate-ffi # full; needs Ollama — --skip-llm is
+                               # accepted but NOT wired (audited 2026-09-22)
 
 # Kept-with-header scripts (KEPT-UNCERTAIN — see STATUS above; they assume a
 # repo-local prebuilt/ dylib that the builder no longer provides, and are NOT
@@ -175,6 +177,8 @@ use the CLI entry point until T6 repairs them):
 
 ```yaml
 - name: FFI Validation
+  # --skip-llm is accepted but NOT wired (audited 2026-09-22); LLM layers
+  # run regardless, so Ollama must be reachable for a green run
   run: ./target/debug/frozen-duckdb-cli validate-ffi --skip-llm
 ```
 
@@ -183,7 +187,7 @@ use the CLI entry point until T6 repairs them):
 ```bash
 # Run before committing (no environment sourcing needed)
 cargo build --workspace
-./target/debug/frozen-duckdb-cli validate-ffi --skip-llm
+./target/debug/frozen-duckdb-cli validate-ffi   # --skip-llm accepted, not wired (2026-09-22)
 ```
 
 ## Troubleshooting

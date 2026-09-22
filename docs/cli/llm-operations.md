@@ -124,6 +124,12 @@ frozen-duckdb-cli complete --input buggy_code.txt --prompt "Fix the compilation 
 
 ## Embedding Operations
 
+> **STATUS (audited 2026-09-22):** the `embed` CLI command is not
+> implemented — after the Flock readiness check it panics with exit code
+> 101 ("Embedding generation not implemented yet"; vector extraction is a
+> TODO in `crates/frozen-duckdb/src/cli/flock_manager.rs`). The examples
+> below document the intended surface only.
+
 ### Single Text Embedding
 
 **Basic embedding:**
@@ -189,6 +195,10 @@ frozen-duckdb-cli embed --input ./documents/ --output all_embeddings.json
 ```
 
 ## Semantic Search Operations
+
+> **STATUS (audited 2026-09-22):** the `search` CLI command is not
+> implemented — it panics with exit code 101 ("Semantic search not
+> implemented"). The examples below document the intended surface only.
 
 ### Basic Semantic Search
 

@@ -1,5 +1,12 @@
 # RAG Pipelines Guide
 
+> **STATUS (audited 2026-09-22):** the retrieval half of the CLI
+> pipelines on this page (`embed`, `search`) is **not implemented** —
+> both commands panic with exit code 101; only `complete` works end to
+> end. This page was authored for the v1.4.0 release (commit b41574b)
+> and was not part of the v1.5.5 doc reconciliation; treat pipeline
+> examples as intended surface, not verified behavior.
+
 ## Overview
 
 **Retrieval-Augmented Generation (RAG)** combines **information retrieval** with **text generation** to create **context-aware AI responses**. Frozen DuckDB enables **complete RAG pipelines** directly within database workflows using **embeddings**, **semantic search**, and **LLM completion**.

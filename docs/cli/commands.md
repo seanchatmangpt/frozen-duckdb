@@ -204,28 +204,28 @@ Options:
 - **Architecture Details**: System architecture and target OS
 - **Extension Status**: Available DuckDB extensions
 
-**Example Output:**
+**Example Output** (requires `-v` — every field is a tracing INFO event,
+suppressed at the default WARN verbosity; witnessed 2026-09-22 the default
+invocation prints nothing and exits 0):
 ```bash
-🦆 Frozen DuckDB Information
-  Version: 1.5.5
-  Build Type: Pre-compiled binary
-  Architecture: arm64
-  Target: macos
-  Available Extensions: parquet, tpch, flock
+$ frozen-duckdb-cli -v info
+INFO ... 🦆 Frozen DuckDB Information
+INFO ...   Version: 1.5.5
+INFO ...   Build Type: Pre-compiled binary
+INFO ...   Architecture: aarch64        # std::env::consts::ARCH ("aarch64", not "arm64")
+INFO ...   Target: macos
+INFO ...   Available Extensions: autocomplete, avro, aws, ... (full
+            duckdb_extensions() list — 31 entries on the v1.5.5 dylib)
 ```
 
 **Verbose Output:**
 ```bash
-# With -v flag, tracing emits DEBUG-level detail alongside the same fields
+# The -v flag is what makes ANY of this visible; it does not add fields
 frozen-duckdb-cli -v info
-
-🦆 Frozen DuckDB Information
-  Version: 1.5.5
-  Build Type: Pre-compiled binary
-  Architecture: arm64
-  Target: macos
-  Available Extensions: parquet, tpch, flock, arrow, json
 ```
+
+(There is no separate extension list between default and verbose — the
+same fields print either way, via tracing, or not at all without `-v`.)
 
 The prebuilt dylib behind this command is cached at
 `~/.frozen-duckdb/cache/v1.5.5-{arch}/` (universal binary, arm64 + x86_64).
@@ -237,7 +237,9 @@ Shows guidance for running the comprehensive test suite.
 ```bash
 frozen-duckdb-cli test
 
-# Output:
+# Output (only with -v or higher — tracing INFO events, suppressed at
+# default WARN verbosity; witnessed 2026-09-22: default invocation
+# prints nothing and exits 0):
 🧪 Tests have been moved to the test suite
    Run tests with: cargo test
    Run specific tests with: cargo test <test_name>
@@ -269,6 +271,13 @@ cargo test --all && cargo test --all && cargo test --all
 ### `benchmark` Command
 
 Performance benchmarking for various DuckDB operations.
+
+> **STATUS (audited 2026-09-22):** stub — no benchmark is executed. The
+> handler only logs "Benchmarking ... operation" and "📊 Performance
+> benchmarking feature coming soon!" at INFO level and exits 0
+> (`crates/frozen-duckdb/src/main.rs`, `Commands::Benchmark`); at default
+> verbosity it prints nothing. Witnessed: `benchmark -i 2` → no output,
+> exit 0.
 
 ```bash
 frozen-duckdb-cli benchmark [OPTIONS]
@@ -392,6 +401,13 @@ fn fibonacci(n: u32) -> u32 {
 
 Generates embeddings for semantic search and similarity operations.
 
+> **STATUS (audited 2026-09-22):** not implemented. After the Flock
+> readiness check, `generate_embeddings()` always returns `Err` (vector
+> extraction from DuckDB's array type is a TODO — see
+> `crates/frozen-duckdb/src/cli/flock_manager.rs`), so the CLI's
+> `.expect()` panics and exits **101**. Witnessed: `embed --text "hello"`
+> → panic "Embedding generation not implemented yet", exit 101.
+
 ```bash
 frozen-duckdb-cli embed [OPTIONS]
 
@@ -439,6 +455,12 @@ frozen-duckdb-cli embed --input texts.txt --output vectors.json --normalize
 ### `search` Command
 
 Performs semantic search using embeddings and similarity matching.
+
+> **STATUS (audited 2026-09-22):** not implemented.
+> `FlockManager::semantic_search()` always returns `Err("Semantic search
+> not implemented ...")`, so the CLI's `.expect()` panics with **exit
+> code 101**. The options below document the accepted surface; the
+> operation itself is a TODO.
 
 ```bash
 frozen-duckdb-cli search [OPTIONS]
@@ -565,7 +587,9 @@ Options:
     -i, --input <FILE>       Input file or directory
     -o, --output <FILE>      Output file for summary
     -s, --strategy <STRATEGY> Summarization strategy [default: reduce]
-                             (possible values: reduce, map, extractive)
+                             (implemented values: reduce, map — any other
+                             value, including "extractive", falls back to a
+                             single combined-summary path)
         --max-length <INT>   Maximum summary length in words [default: 150] (long flag only)
     -m, --model <MODEL>      Model alias to use [default: text_generator]
     -h, --help              Print help
@@ -579,7 +603,9 @@ Options:
 **Summarization Strategies:**
 - **`reduce`**: Hierarchical summarization via the LLM reduce function (default)
 - **`map`**: Individual summaries, then combined
-- **`extractive`**: Key sentences extracted without generation
+- **anything else** (including `extractive`): falls back to one combined
+  LLM summary over all texts — there is no distinct extractive
+  implementation (`flock_manager.rs`, `summarize_texts`)
 
 **Usage Examples:**
 ```bash
@@ -589,59 +615,21 @@ frozen-duckdb-cli summarize --input article.txt
 # Summarize multiple documents in directory
 frozen-duckdb-cli summarize --input research_papers/ --output summary.txt --strategy map
 
-# Extractive summary with custom length
+# Extractive-style summary with custom length (falls back to the
+# combined-summary path — no distinct extractive implementation)
 frozen-duckdb-cli summarize --input meeting_notes.txt --strategy extractive --max-length 100
 
 # Save summary to file
 frozen-duckdb-cli summarize --input documents.txt --output summary.md --strategy map --max-length 300
 ```
 
-**Output Examples:**
-
-**Concise Strategy:**
+**Output Example:**
 ```text
-# summary.txt
-The research examines machine learning applications in healthcare, focusing on diagnostic accuracy improvements through neural networks. Key findings show 95% accuracy in medical image analysis, with recommendations for clinical implementation including data privacy considerations and model validation protocols.
-```
-
-**Bullet Strategy:**
-```text
-# summary.txt
-- Machine learning shows 95% accuracy in medical diagnostics
-- Neural networks excel at medical image analysis
-- Key challenges: data privacy and model validation
-- Recommendations: clinical trials and regulatory approval
-- Future directions: real-time diagnostics and personalized medicine
-```
-
-**Detailed Strategy:**
-```text
-# summary.txt
-## Machine Learning in Healthcare: A Comprehensive Analysis
-
-### Diagnostic Accuracy
-The study demonstrates significant improvements in diagnostic accuracy using machine learning algorithms, particularly neural networks for medical image analysis. The research reports a 95% accuracy rate across multiple medical imaging modalities.
-
-### Technical Implementation
-- **Model Architecture**: Convolutional neural networks with transfer learning
-- **Training Data**: 10,000+ annotated medical images across 5 specialties
-- **Validation**: 5-fold cross-validation with external test set
-
-### Clinical Applications
-- **Radiology**: Chest X-ray analysis for pneumonia detection
-- **Pathology**: Tissue sample classification for cancer diagnosis
-- **Dermatology**: Skin lesion analysis for melanoma screening
-
-### Challenges and Recommendations
-- **Data Privacy**: HIPAA compliance and patient data protection
-- **Model Validation**: Prospective clinical trials required
-- **Regulatory Approval**: FDA clearance for clinical use
-- **Implementation**: Integration with existing healthcare systems
-
-### Future Directions
-- **Real-time Diagnostics**: Point-of-care AI systems
-- **Personalized Medicine**: Patient-specific treatment recommendations
-- **Multi-modal Analysis**: Combining imaging with genomic data
+# summary.txt — output shape is the same for every strategy (a single
+# LLM-written summary); only reduce vs map changes how inputs are
+# combined, and max_length bounds the target length in words
+The research examines machine learning applications in healthcare, focusing
+on diagnostic accuracy improvements through neural networks...
 ```
 
 ## Error Handling and Exit Codes
@@ -654,8 +642,11 @@ The study demonstrates significant improvements in diagnostic accuracy using mac
 | **1** | General error | Invalid input, file not found, operation failed |
 | **2** | CLI usage error | Unknown flag / missing argument (clap parse error) |
 | **4** | Flock extension | Extension not available |
+| **101** | Unimplemented-feature panic | `embed` / `search` abort via `.expect()` |
 
-(src/main.rs emits only 0/1/2/4; there is no dedicated environment or
+(Explicit `std::process::exit` calls in `src/main.rs` emit only 0, 1, and
+4; code 2 comes from clap's own parse-error exit, and 101 from the
+`embed`/`search` panics. There is no dedicated environment or
 binary-validation exit code — binary acquisition happens inside
 `cargo build` via `frozen-duckdb-builder`.)
 
@@ -772,10 +763,11 @@ search_results = run_llm_command(
 results = json.loads(search_results)
 print(f"Found {len(results)} relevant documents")
 
-# Generate summary
+# Generate summary (strategies: reduce, map; any other value falls back
+# to the combined-summary path)
 print("Generating summary...")
 summary = run_llm_command(
-    "frozen-duckdb-cli summarize --input documents.txt --strategy concise"
+    "frozen-duckdb-cli summarize --input documents.txt --strategy map"
 )
 print("Summary:", summary)
 ```

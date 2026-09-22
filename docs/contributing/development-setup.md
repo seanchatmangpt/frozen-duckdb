@@ -200,7 +200,8 @@ export DUCKDB_INCLUDE_DIR="$(pwd)/prebuilt"
 # Rust development tools
 export PATH="$HOME/.cargo/bin:$PATH"
 export RUST_BACKTRACE=1
-export RUST_LOG=debug
+# (No RUST_LOG export: the CLI and builder do not read it — CLI
+# verbosity is the -v/-vv/-vvv flag, audited 2026-09-22)
 
 # Ollama configuration
 export OLLAMA_HOST=127.0.0.1:11434
@@ -331,10 +332,8 @@ CREATE MODEL('test_coder', 'qwen3-coder:30b', 'ollama');
 
 **Verbose Build Output:**
 ```bash
-# Debug build issues
-RUST_LOG=debug cargo build
-
-# Show compilation commands
+# Debug build issues (cargo's own flag — RUST_LOG is not read by the
+# builder or the CLI; audited 2026-09-22)
 cargo build -v
 
 # Check dependencies
@@ -360,11 +359,9 @@ cargo clean && cargo build
 # Debug with backtrace
 RUST_BACKTRACE=1 cargo run -- complete --prompt "test"
 
-# Debug with logging
-RUST_LOG=debug cargo run -- info
-
-# Profile memory usage
-cargo profdata --bin frozen-duckdb
+# Debug with logging (the -v flag before the subcommand; RUST_LOG has no
+# effect — without -v, info prints nothing and exits 0)
+cargo run -- -v info
 ```
 
 **LLM Debugging:**
@@ -787,8 +784,8 @@ for i in {1..5}; do
 done
 
 # Run with different configurations
-RUST_LOG=debug cargo test specific_test
 cargo test --release specific_test
+ARCH=x86_64 cargo test --workspace   # affects architecture-module tests
 ```
 
 ### 3. LLM Development Issues

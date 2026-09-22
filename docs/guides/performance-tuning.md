@@ -574,8 +574,9 @@ fn run_performance_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
 # Check the builder-managed cache (the build log names it on first use)
 ls -lah ~/.frozen-duckdb/cache/
 
-# Confirm the build linked the cached prebuilt binary
-RUST_LOG=debug cargo build 2>&1 | grep -i duckdb
+# Confirm the build linked the cached prebuilt binary (RUST_LOG is not
+# read — use cargo's -v and grep the build log)
+cargo build -v 2>&1 | grep -i duckdb
 # A local DuckDB compile (pinned at upstream tag v1.5.5) only happens when
 # no release asset is reachable — on macOS that means a network problem
 ```

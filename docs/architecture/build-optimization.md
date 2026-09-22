@@ -326,8 +326,9 @@ cargo build -v 2>&1 | grep -i duckdb
 ### Performance Debug Information
 
 ```bash
-# Show detailed build information
-RUST_LOG=debug cargo build
+# Show detailed build information (cargo's own flag — RUST_LOG is not
+# read by the builder or the CLI)
+cargo build -v
 
 # Time individual operations
 time cargo build --release
