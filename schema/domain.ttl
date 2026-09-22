@@ -434,6 +434,16 @@ fd:bindReceipt a skos:Concept ;
 # rp: terms come from the declared pack receipt-provenance-unification-pack
 # (see ggen.toml [[ontology.pack]]); consumers mint individuals, never the
 # vocabulary itself.
+# Wave-4 dry-run note: this fd:project block is the natural key the C4
+# dry-run-publish rules query (dcterms:version + fd:gateObject notation);
+# the integration union dropped it and sync failed FM-GEN-008 — restored
+# byte-identical to feat/155-c4@f1387f4 (v1.5.5 dry run, 2026-09-21).
+fd:project a prov:Entity ;
+    dcterms:title "frozen-duckdb" ;
+    dcterms:description "Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement" ;
+    dcterms:version "1.5.5" ;
+    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v1.5.5> .
+
 # DuckDB version law: crate version mirrors the bundled upstream release
 fd:duckdbVersionLaw a skos:Concept ;
     skos:prefLabel "crate version mirrors bundled DuckDB release" ;

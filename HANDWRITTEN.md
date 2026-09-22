@@ -26,6 +26,5 @@ ledger requires a paydown plan in the same change.
   recorded BLOCKED in `docs/sjira/v26.9.21/TR6.md` History. They are the remaining consumers of
   `scripts/lib/` and the natural next paydown rows.
 
-| Makefile | sync/genesis-check/gates targets (C10) unioned onto C8's generated verify Makefile | no pack expresses multi-rule Makefile union; owning rule render-makefile-verify covers verify targets only | future: extend schema/verify.ttl facts so render-makefile-verify renders all targets | 2026-09-21 |
 | schema/domain.ttl | cross-branch union: reconciliation (C3) + dry-run-publish bindings (C4) + receipt contracts (C5) facts merged by hand; rp:/ret: prefixes restored; c5 region restored verbatim after line-dedup broke Turtle | TTL has no standard 3-way merge; wave-4 branch domain.ttl writes were hand-appended per branch | future: one domain.ttl per concern or pack-owned fact files | 2026-09-21 |
 | ggen.toml | canonical union config (tomllib-structured; 11 rules, 13 imports) — [[ontology.pack]] absent in ggen 26.8.18 (FM-CONFIG-003); [[ontology]].imports operative | declarative schema has no pack-declaration field; C2's frontmatter approach incompatible in same file | future: ggen schema convergence; C2 Diataxis re-render under unified schema | 2026-09-21 |

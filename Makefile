@@ -41,8 +41,35 @@ verify-test-validation:
 verify-test-workspace:
 	bash -c 'cargo test --workspace'
 
-# --- C10 reconciliation targets (hand-unioned; ledgered UNSUPPORTED in HANDWRITTEN.md;
-# paydown: move these into schema/verify.ttl facts so the owning rule renders them) ---
+# --- C10 reconciliation targets (rule-owned since the wave-4 dry run: these
+# bytes live in THIS owning template, not in a hand-unioned Makefile — the
+# HANDWRITTEN.md multi-rule-union row is paid down. Failure modes this cures:
+# every `ggen sync run` overwrote the hand-unioned block away (this rule owns
+# Makefile in Overwrite mode), and the wave-4 integration merge had truncated
+# the block's head: no GENESIS := / .PHONY / sync: / genesis-check: lines
+# survived the union) ---
+GENESIS := docs/GENESIS.md
+
+.PHONY: sync genesis-check gates
+
+sync:
+	ggen sync run
+
+# Proposed CI check-mode step (documented in GENESIS.md, NOT enabled):
+#   ggen sync run --dry-run --format quiet && make genesis-check
+genesis-check:
+	@set -euo pipefail; \
+	fail=0; checked=0; deferred=0; gaps=0; \
+	while IFS=$$'\t' read -r cons src status; do \
+	  [ -n "$$cons" ] || continue; \
+	  label="[$$status] $$cons <- $$src"; \
+	  case "$$status" in \
+	    pending) \
+	      if [ -e "$$src" ]; then \
+	        echo "FAIL $$label (source landed — flip row to active in $(GENESIS))"; fail=$$((fail+1)); \
+	      else \
+	        echo "DEFERRED $$label (source not in this tree yet)"; deferred=$$((deferred+1)); \
+	      fi ;; \
 	    gap) \
 	      if [ -e "$$cons" ]; then \
 	        echo "GAP-OK $$label"; gaps=$$((gaps+1)); \
