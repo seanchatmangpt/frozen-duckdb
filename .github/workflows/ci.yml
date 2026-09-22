@@ -39,7 +39,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        # v4: actionlint flags v3 as "runner too old to run on GitHub
+        # Actions" (same finding class TR2 fixed for action-gh-release v1->v2).
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -51,11 +53,13 @@ jobs:
 
       # frozen_duckdb_builder::ensure_binary() looks FIRST in
       # ~/.frozen-duckdb/cache/v<version>-<arch>/libduckdb_<arch>.<dylib|so>.
-      # Its own fallbacks are unusable on CI: prebuilt/ ships no binaries, the
-      # project release download 404s pre-publish, and the source-compile
-      # fallback ignores cmake/make failures. Pre-seeding the cache here makes
-      # every platform deterministic. Keep DUCKDB_VERSION in sync with
-      # crates/frozen-duckdb-builder/src/lib.rs (const VERSION).
+      # Its fallbacks are unusable on CI: prebuilt/ ships no binaries, the
+      # project release download 404s until the operator cuts the v1.5.5
+      # release (no releases/tags exist as of 2026-09-21), and the post-TR7
+      # source-compile fallback — while loud now (cmake/make exits are
+      # checked) — is a full ~30-90 min DuckDB build. Pre-seeding the cache
+      # here makes every platform deterministic. Keep DUCKDB_VERSION in sync
+      # with crates/frozen-duckdb-builder/src/lib.rs (const VERSION).
       - name: Provision DuckDB library (pre-seed builder cache)
         run: |
           set -euo pipefail
@@ -87,8 +91,9 @@ jobs:
             -o "$TMP/libduckdb.zip"
           unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
           cp "$TMP/libduckdb.${LIB_EXT}" "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
-          # -lduckdb resolves the plain name; the builder only symlinks
-          # libduckdb.dylib, which the linux linker never searches for.
+          # -lduckdb resolves the plain name; seed it here so the cache is
+          # complete before the builder runs (post-TR7 ensure_link_name links
+          # the platform-correct plain name itself; this is belt-and-braces).
           ln -sf "libduckdb_${ARCH_TAG}.${LIB_EXT}" "$CACHE_DIR/libduckdb.${LIB_EXT}"
           test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
           echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
