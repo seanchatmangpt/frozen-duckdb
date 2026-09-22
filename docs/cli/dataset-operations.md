@@ -62,13 +62,13 @@ CREATE TABLE media_types (
 
 ```bash
 # CSV format (human-readable)
-frozen-duckdb download --dataset chinook --format csv
+frozen-duckdb-cli download --dataset chinook --format csv
 
 # Parquet format (analytics-optimized)
-frozen-duckdb download --dataset chinook --format parquet --output-dir ./analytics
+frozen-duckdb-cli download --dataset chinook --format parquet --output-dir ./analytics
 
 # DuckDB native format (maximum performance)
-frozen-duckdb download --dataset chinook --format duckdb
+frozen-duckdb-cli download --dataset chinook --format parquet  # (duckdb not supported for chinook)
 ```
 
 **Generated File Structure:**
@@ -180,13 +180,13 @@ CREATE TABLE region (r_regionkey INTEGER PRIMARY KEY, r_name TEXT, r_comment TEX
 
 ```bash
 # Tiny dataset for testing (recommended)
-frozen-duckdb download --dataset tpch --format parquet
+frozen-duckdb-cli download --dataset tpch --format parquet
 
 # Small dataset for development
-frozen-duckdb download --dataset tpch --format parquet --output-dir ./dev_data
+frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./dev_data
 
 # Native DuckDB format for maximum performance
-frozen-duckdb download --dataset tpch --format duckdb
+frozen-duckdb-cli download --dataset tpch --format duckdb
 ```
 
 #### TPC-H Query Examples
@@ -266,10 +266,10 @@ WHERE l_shipdate >= DATE '1994-01-01'
 
 ```bash
 # Convert single file
-frozen-duckdb convert --input customer_data.csv --output customer_data.parquet
+frozen-duckdb-cli convert --input customer_data.csv --output customer_data.parquet
 
 # Convert with explicit format specification
-frozen-duckdb convert \
+frozen-duckdb-cli convert \
   --input sales_data.csv \
   --output sales_data.parquet \
   --input-format csv \
@@ -277,7 +277,7 @@ frozen-duckdb convert \
 
 # Batch conversion
 for file in *.csv; do
-    frozen-duckdb convert --input "$file" --output "${file%.csv}.parquet"
+    frozen-duckdb-cli convert --input "$file" --output "${file%.csv}.parquet"
 done
 ```
 
@@ -285,7 +285,9 @@ done
 
 ```bash
 # Convert for maximum query performance
-frozen-duckdb convert --input analytics.parquet --output analytics.duckdb
+# NOTE: convert implements CSV<->Parquet only; loading Parquet into a
+# DuckDB database is done with SQL, e.g.:
+duckdb analytics.duckdb -c "CREATE TABLE analytics AS SELECT * FROM 'analytics.parquet';
 
 # Use in DuckDB for best performance
 duckdb analytics.duckdb -c "
@@ -305,7 +307,7 @@ for file in datasets/*.csv; do
     parquet_file="${file%.csv}.parquet"
     echo "Converting $file → $parquet_file"
 
-    frozen-duckdb convert --input "$file" --output "$parquet_file"
+    frozen-duckdb-cli convert --input "$file" --output "$parquet_file"
 
     # Verify conversion
     if [[ -f "$parquet_file" ]]; then
@@ -493,11 +495,11 @@ echo "🚀 Starting ETL workflow..."
 
 # 1. Extract: Generate source data
 echo "📥 Extracting data..."
-frozen-duckdb download --dataset tpch --format csv --output-dir ./extracted
+frozen-duckdb-cli download --dataset tpch --format csv --output-dir ./extracted
 
 # 2. Transform: Clean and convert data
 echo "🔄 Transforming data..."
-frozen-duckdb convert --input ./extracted/customer.csv --output ./transformed/customer.parquet
+frozen-duckdb-cli convert --input ./extracted/customer.csv --output ./transformed/customer.parquet
 
 # 3. Load: Import into target system
 echo "📤 Loading data..."
@@ -523,19 +525,19 @@ echo "🎉 ETL workflow complete!"
 **For Development and Testing:**
 ```bash
 # Use CSV for easy inspection and editing
-frozen-duckdb download --dataset chinook --format csv
+frozen-duckdb-cli download --dataset chinook --format csv
 ```
 
 **For Analytics Workloads:**
 ```bash
 # Use Parquet for columnar storage and compression
-frozen-duckdb download --dataset tpch --format parquet
+frozen-duckdb-cli download --dataset tpch --format parquet
 ```
 
 **For Production Queries:**
 ```bash
 # Use DuckDB native format for maximum performance
-frozen-duckdb download --dataset tpch --format duckdb
+frozen-duckdb-cli download --dataset tpch --format duckdb
 ```
 
 ### Batch Processing Optimization
@@ -659,7 +661,7 @@ df -h
 ls -la datasets/
 
 # Try different output format
-frozen-duckdb download --dataset chinook --format csv
+frozen-duckdb-cli download --dataset chinook --format csv
 
 # Check DuckDB installation
 duckdb -c "SELECT version();"
@@ -678,7 +680,7 @@ ls -la input_file.csv
 mkdir -p output_dir && touch output_dir/test
 
 # Try explicit format specification
-frozen-duckdb convert --input file.csv --output file.parquet --input-format csv --output-format parquet
+frozen-duckdb-cli convert --input file.csv --output file.parquet --input-format csv --output-format parquet
 
 # Check for special characters
 ls -la "file with spaces.csv"
@@ -698,7 +700,7 @@ CREATE INDEX idx_condition ON large_table(condition);
 
 -- Use more efficient formats
 # Convert to Parquet for better performance
-frozen-duckdb convert --input large_table.csv --output large_table.parquet
+frozen-duckdb-cli convert --input large_table.csv --output large_table.parquet
 ```
 
 ## Best Practices
