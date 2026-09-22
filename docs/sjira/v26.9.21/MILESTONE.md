@@ -54,3 +54,83 @@ aps:standing: https://w3id.org/chatman/aps#OPEN
 - [ ] Verify release assets + clean-machine download path — checklist rendered in docs/sjira/v26.9.21/PR_BODY.md (Release-asset verification checklist)
 - [ ] cargo publish — STRICT order with index wait: `cargo publish -p frozen-duckdb-builder` → wait for crates.io index to reflect 1.5.5 (usually <1 min) → `-p frozen-duckdb-sys` → `-p frozen-duckdb`. T8 pre-flight (2026-09-21): builder dry-run green; sys/frozen-duckdb dry-runs cannot pass until builder/sys are live on the index (cargo resolves their path+version deps from crates.io) — a `no matching package named frozen-duckdb-{builder,sys} found` error there means the index has not caught up, not a broken manifest. Version keys verified: `version = "1.5.5"` present on all internal path deps. Sizes verified ≤ 2.3 MiB, well under the 10 MiB crates.io cap.
 - [ ] Post ISSUE_1_COMMENT.md on issue #1 after publish (substitute #{PR_NUMBER} with the merged PR number first)
+
+## Wave 4 dry run (integration-finisher, 2026-09-21, head 30b14fc)
+
+Full dry-run battery of the composed wave-4 capability surface, executed on
+`feat/duckdb-1.5.5` after the coordinator's merge. **Standing: ALIVE — every gate
+green by execution** (not inspection).
+
+### Battery (command | exit)
+
+| command | exit | evidence |
+|---|---|---|
+| `ggen sync run` (1st pass after fix) | 0 | 11/11 outputs; all pack renders `unchanged: content identical` vs committed C4/C3/C5/C8/C10 renders |
+| `ggen sync run` (2nd pass) | 0 | `"written": []` — deterministic (cap03/04 pattern) |
+| `ggen receipt verify` | 0 | `valid: true`, `signed: true`, `signature_valid: true`, outputs 11 |
+| `make verify` | 0 | verify-gates 5/5 green (`STANDING: ALIVE`) + sync + receipt chain; evidence in `scripts/verify-evidence.ttl` |
+| `make genesis-check` | 0 | checked=37 deferred=0 gaps=8 failed=0 (first run exit 2 — see fix 3) |
+| `make gates` | 0 | sync exit 0 + genesis-check exit 0 |
+| `cargo fmt --all -- --check` | 0 | no findings |
+| `cargo clippy --workspace --all-targets --all-features -- -D warnings` | 0 | no findings |
+| `cargo test --workspace` | 0 | 301 passed / 0 failed |
+| `cargo run -p test-validation` | 0 | dylib `duckdb_library_version()` = v1.5.5; builder path/cache/header assertions held |
+| `cargo run --example basic_usage` | 0 | executed against frozen 1.5.5 dylib (1000 queries, ~9.7k q/s) |
+| C4 fence tripwire (banned-atom grep) | 0 | no `published`/`crates-io-uploaded`/`release-complete` atom; `dry-run-verified` present |
+
+### Fix 1 — `dry-run-publish-shapes` [FM-GEN-008] (root cause ≠ over-selection)
+
+The rule's query selects on concrete IRIs (`fd:project dcterms:version ?v`,
+`fd:gateObject skos:notation ?rc`) and its template bound **bare** `{{ v }}`/`{{ rc }}`;
+ggen flattens a **single-row** result into the template context. The wave-4 union of
+`schema/domain.ttl` **dropped C4's `fd:project` fact block** (its comment header
+survived, the facts did not — block present at `feat/155-c4@f1387f4` line 9, absent at
+30b14fc). Query returned **zero rows** → no flattened variables →
+`TEMPLATE_VARIABLE_MISSING variable 'v'`. Fix, both parts:
+1. Restored `fd:project` byte-identical to f1387f4 (the natural key of every C4
+   dry-run rule — without it no query/template form can recover the values).
+2. Hardened the template to bind via `{% for r in results %}` (`r.v`/`r.rc`) — the
+   form all 10 other rules use — removing the undocumented single-row-flattening
+   dependency; render re-verified byte-identical to the committed C4 render.
+
+### Fix 2 — Makefile union clobber + truncation (same scope, work order #4)
+
+The hand-unioned C10 targets were (a) **clobbered by every successful sync**
+(`render-makefile-verify` owns `Makefile` in Overwrite mode; the C10 block was not in
+the rule) and (b) **truncated by the merge** (no `GENESIS :=`/`.PHONY`/`sync:`/
+`genesis-check:` target lines survived — `make genesis-check` was unrunnable at
+30b14fc). Fix: moved the full C10 block (recovered verbatim from
+`feat/155-c10@faf969a`) into the owning rule's template in `ggen.toml`.
+**HANDWRITTEN.md multi-rule-union row paid down** (帳 ledger shrinks); GENESIS.md
+`Makefile` row re-pointed from `hand:` SOURCE to the owning rule.
+
+### Fix 3 — GENESIS.md reconciliation (manifest tripwire worked as designed)
+
+First `make genesis-check` exit 2: the `C[0-9]*.md` row was still `pending` while its
+source `scripts/gen_sjira_tickets_wave4.sh` landed with the wave-4 merge (400fba1) —
+the flip cannot be forgotten by design. Flipped pending → active per the manifest's
+own procedure; 37 checked / 0 failed after.
+
+### C2 dual-schema edge (cross-check: FAILED honestly, recorded)
+
+C2's 15 Diataxis renders (`docs/tutorials/getting-started.md`, `docs/how-to/*`,
+`docs/reference/*`, `docs/explanation/*`, `docs/index.md`, `docs/meta.md`) + 97
+`rdx:` fact lines exist only at `feat/155-c2@7f604e5` (frontmatter schema); the
+canonical declarative schema cannot express the pack's multi-SELECT templates, so the
+wave-4 union dropped them. Recorded as a known edge in `docs/GENESIS.md`
+("Known edge — C2 Diataxis renders") with lineage pin 7f604e5; re-render deferred to
+ggen schema convergence (HANDWRITTEN.md `ggen.toml` row). Not silently pruned.
+
+### Remaining failed edges / debt (pre-existing, unchanged)
+
+- C2 Diataxis re-render blocked on schema convergence (above).
+- `genesis-check` gaps=8: the C10 gap records (`scripts/duckdb_ffi.h`,
+  `scripts/lib/{intelligent_cache,logging,self_healing}.sh`, `scripts/scan_fakes*.sh`,
+  `scripts/kcura-config*.yaml`) — reconciliation debt, documented, not new.
+- TPUB sys/main `cargo publish --dry-run` exit 101 ordering artifact (T8): needs the
+  live index; compensated evidence per T8.
+- Operator cuts (merge PR #3, tag v1.5.5, verify assets, `cargo publish`, issue #1
+  comment) remain pending — outside dry-run scope; no release action taken.
+
+Operator did NOT write: this entire dry run, both fixes, the re-renders, and every
+battery execution were agent-manufactured.
