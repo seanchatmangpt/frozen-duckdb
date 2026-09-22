@@ -170,11 +170,15 @@ CREATE TABLE region (r_regionkey INTEGER PRIMARY KEY, r_name TEXT, r_comment TEX
 
 #### Scale Factors
 
-| Scale Factor | Tables | Rows | Storage | Generation Time |
-|-------------|--------|------|---------|-----------------|
-| **SF 0.01** | 8 | ~19,000 | 1-5MB | <10 seconds |
-| **SF 0.1** | 8 | ~190,000 | 10-50MB | <30 seconds |
-| **SF 1.0** | 8 | ~1.9M | 100-500MB | 1-2 minutes |
+The CLI generates **SF 0.01 only** (fixed `CALL dbgen(sf = 0.01)`; no
+scale-factor flag). Larger factors require calling `dbgen` directly in a
+DuckDB session with the TPC-H extension loaded.
+
+| Scale Factor | CLI support | Tables | Rows |
+|-------------|-------------|--------|------|
+| **SF 0.01** | ✅ via `download` | 8 | ~19,000 |
+| **SF 0.1** | ❌ (manual dbgen) | 8 | ~190,000 |
+| **SF 1.0** | ❌ (manual dbgen) | 8 | ~1.9M |
 
 #### Generation Commands
 
