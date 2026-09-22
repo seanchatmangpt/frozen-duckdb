@@ -1,5 +1,5 @@
 # Rust
-/target/
+target/
 **/*.rs.bk
 *.pdb
 Cargo.lock
@@ -52,5 +52,8 @@ cobertura.xml
 *.backup
 .lh/
 
-frozen-test-project/.ggen/
+# ggen runtime state (secrets law: signing keypair + receipt log never enter
+# version control; `ggen sync run` regenerates them — see docs/GENESIS.md and
+# PACK_FEEDBACK.md G4 #2 for the pack-side remedy)
+.ggen/
 .ggen-v2/
