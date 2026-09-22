@@ -10,8 +10,12 @@
 //! **Replace `duckdb-rs` with `frozen-duckdb` for instant 99% faster builds:**
 //!
 //! ```toml
-//! # Before (slow builds)
-//! duckdb = "1.4.0"
+//! # Before (slow builds): the duckdb-rs crate version matching this DuckDB
+//! # release. duckdb-rs encodes the bundled DuckDB version as
+//! # 1.MAJOR*10000 + MINOR*100 + PATCH, so DuckDB 1.5.5 = duckdb "1.10505.0".
+//! # (The legacy plain series — e.g. duckdb "1.4.0" = the DuckDB 1.4.x era —
+//! # predates this encoding and does not cover 1.5.x.)
+//! duckdb = "1.10505.0"
 //!
 //! # After (99% faster builds)
 //! frozen-duckdb = "1.5.5"
@@ -54,9 +58,11 @@
 //! The crate automatically detects your system architecture and selects the
 //! appropriate binary:
 //!
-//! - **x86_64**: Uses `libduckdb_x86_64.dylib` (55MB)
-//! - **arm64/aarch64**: Uses `libduckdb_arm64.dylib` (50MB)
-//! - **Manual override**: Set `ARCH` environment variable to force selection
+//! - **x86_64**: Uses `libduckdb_x86_64.dylib` (~112MB measured)
+//! - **arm64/aarch64**: Uses `libduckdb_arm64.dylib` (~112MB measured)
+//! - **Manual override**: Set `ARCH` to steer the `architecture` module's
+//!   runtime helpers (`detect`, `get_binary_name`). Build-time binary
+//!   selection does not read `ARCH` — frozen-duckdb-builder follows `uname -m`.
 //!
 //! ## Performance Benchmarks
 //!
@@ -65,7 +71,7 @@
 //! | First Build | 1-2 minutes | 7-10 seconds | 85% faster |
 //! | Incremental | 30 seconds | 0.11 seconds | 99% faster |
 //! | Release | 1-2 minutes | 0.11 seconds | 99% faster |
-//! | Download Size | ~200MB | 50-55MB | 75% smaller |
+//! | Download Size | ~200MB | ~112MB (measured, v1.5.5 dylib) | ~45% smaller |
 //!
 //! ## Integration Examples
 //!
@@ -123,8 +129,9 @@
 //! ### Debug Information
 //!
 //! ```bash
-//! # Show system information
-//! cargo run -- info
+//! # Show system information (INFO-level output requires -v; plain `info`
+//! # is silent at the default WARN verbosity)
+//! cargo run -- -v info
 //!
 //! # Test with verbose output
 //! RUST_LOG=debug cargo test
