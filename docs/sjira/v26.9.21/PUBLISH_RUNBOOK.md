@@ -56,6 +56,49 @@ only `.rs/.h/.hpp/.md/.toml/.lock`, examples, and tests in the lists.
 
 ---
 
+## Modeled dry-run gate (dry-run-publish-pack — 6 phases, C4)
+
+The cut sequence above is a repeatable modeled gate: marketplace pack
+`dry-run-publish-pack` v26.7.13 models this release's DoD as a 6-phase PDDL8
+STRIPS domain (scope, generate, verify, manufacture, cleanroom, receipt).
+`ggen sync run` (declared in `ggen.toml` `[ontology] imports` + bound in
+`schema/domain.ttl`) renders the repo-side evidence templates:
+
+| gate artifact | content |
+|---------------|---------|
+| `gates/dry-run-publish-gates.md` | phase × runbook-step alignment matrix + fence + per-phase evidence commands |
+| `gates/dry-run-publish/dry-run-publish-domain.ttl` | merged 6-fragment PDDL8 domain + cycle problem (sole goal atom `dry-run-verified`) |
+| `gates/dry-run-publish/dry-run-publish-shapes.ttl` | SHACL shapes for a filled dry-run evidence graph |
+
+**DRY-RUN-OVERCLAIM FENCE** (pack law, binding for all release language in
+this repo): the modeled gate covers LOCAL, REVERSIBLE dry-run verification
+only. No atom anywhere in the modeled domain is named `published`,
+`crates-io-uploaded`, or `release-complete`; the only terminal goal atom is
+`dry-run-verified`. Gate-green means "evidence bundle complete for a human
+go/no-go decision", never "release shipped" — the live cuts (steps 4–8) are
+operator authority (権), outside the model.
+
+Phase mapping (authoritative matrix with evidence commands:
+`gates/dry-run-publish-gates.md`; re-render with `ggen sync run`):
+
+| pack phase | gates these runbook steps |
+|------------|---------------------------|
+| 1 `DRY-RUN-SCOPE` | pre-flight name/ownership check; steps 1–2 (merge, tag) |
+| 2 `DRY-RUN-GENERATE` | pre-cut repo law: `ggen sync run` exit 0 two-pass byte-identical; `cargo build --workspace` green |
+| 3 `DRY-RUN-VERIFY` | step 3 (CI release assets green — hold the publish while missing) |
+| 4 `DRY-RUN-MANUFACTURE` | TPUB dry-run battery; steps 4–8 packaging validation per member |
+| 5 `DRY-RUN-CLEANROOM` | TPUB unpack-build + docs.rs rehearsal; step 11 clean-machine smoke |
+| 6 `DRY-RUN-RECEIPT` | steps 9–11 (observe, reply, post-verify) + History/MILESTONE receipts; terminal: `dry-run-verified` |
+
+Fence tripwire (must exit 0; the modeled domain carries the terminal atom and
+none of the banned ones):
+
+```
+! grep -qE '\b(published|crates-io-uploaded|release-complete)\b' gates/dry-run-publish/dry-run-publish-domain.ttl && grep -q 'dry-run-verified' gates/dry-run-publish/dry-run-publish-domain.ttl
+```
+
+---
+
 ## The cut sequence
 
 Repo: `seanchatmangpt/frozen-duckdb`. Run all `cargo`/`git` commands from the
