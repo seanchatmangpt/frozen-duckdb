@@ -8,6 +8,13 @@
 
 # -- States (canonical generation frame G0..G3, real content hashes) --------
 
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ret:    <https://seanchatmangpt.github.io/ontology/retrofit#> .
+@prefix fd:     <https://seanchatmangpt.github.io/frozen-duckdb/ns#> .
+
 fd:asFound a ret:RepositoryState ;
     ret:stateId "G0-as-found" ;
     ret:stateKind ret:AsFound ;

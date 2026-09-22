@@ -1,0 +1,51 @@
+{#- Consumer adapter for packs/castle-changelog-release-pack
+    templates/CHANGELOG.md.tmpl (marketplace v0.1.0).
+
+    Why this file exists (failed edge, ledgered in docs/sjira/v26.9.21/C7.md):
+    the pack's template speaks ggen's frontmatter dialect (to: + named
+    sparql: queries), but ggen 26.8.18's declarative [[generation.rules]]
+    pipeline — the schema this repo's consumer bootstrap landed on — renders
+    rule templates as plain Tera with the rule query bound to `results`, and
+    does not parse template frontmatter ("frontmatter template lint are not
+    implemented for the declarative-rules schema yet", ggen-engine). Pack
+    resolution ([[packs]] -> TemplateSource::Pack) is likewise typed against
+    the other schema only.
+
+    Adaptation is therefore minimal and mechanical: the two set lines below
+    bind the pack template's named result sets (`releases`, `entries`) from
+    the rule's UNION query, and the ENTIRE body that follows is the pack
+    template verbatim (header, closed six-category grouping, [YANKED] and
+    Unreleased handling). The marketplace is the owning source; when ggen
+    implements pack resolution or frontmatter parsing for declarative rules,
+    delete this adapter and point template.file back at the pack template.
+    Consumers must not edit the body below; edit schema/changelog.ttl facts
+    and re-run `ggen sync run`. -#}
+{%- set releases = results | filter(attribute="version") -%}
+{%- set entries = results | filter(attribute="description") -%}
+{% raw %}# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+{% endraw %}
+{%- set categories = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"] -%}
+{% for release in releases %}
+{%- if release.version == "Unreleased" -%}
+## [Unreleased]
+{%- else -%}
+## [{{ release.version }}]{% if release.date %} - {{ release.date }}{% endif %}{% if release.yanked %} [YANKED]{% endif %}
+{%- endif %}
+{% set release_entries = entries | filter(attribute="rel", value=release.rel) %}
+{%- for cat in categories %}
+{%- set cat_entries = release_entries | filter(attribute="category", value=cat) %}
+{%- if cat_entries | length > 0 %}
+
+### {{ cat }}
+
+{% for entry in cat_entries %}- {{ entry.description }}
+{% endfor -%}
+{%- endif %}
+{%- endfor %}
+{% endfor -%}
