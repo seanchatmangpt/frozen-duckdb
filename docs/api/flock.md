@@ -197,49 +197,57 @@ SELECT llm_complete(
 
 ```bash
 # Setup Ollama integration
-frozen-duckdb flock-setup
+frozen-duckdb-cli flock-setup
 
 # Setup with custom URL
-frozen-duckdb flock-setup --ollama-url http://192.168.1.100:11434
+frozen-duckdb-cli flock-setup --ollama-url http://192.168.1.100:11434
 
 # Setup without verification
-frozen-duckdb flock-setup --skip-verification
+frozen-duckdb-cli flock-setup --skip-verification
 ```
 
 ### Text Completion
 
 ```bash
 # Generate completion
-frozen-duckdb complete --prompt "Explain recursion in programming"
+frozen-duckdb-cli complete --prompt "Explain recursion in programming"
 
 # Read from file
-frozen-duckdb complete --input prompt.txt --output response.txt
+frozen-duckdb-cli complete --input prompt.txt --output response.txt
 
 # Interactive mode
-echo "Write a haiku" | frozen-duckdb complete
+echo "Write a haiku" | frozen-duckdb-cli complete
 ```
 
 ### Embedding Generation
 
+> **STATUS (audited 2026-09-22):** the `embed` CLI command is not
+> implemented — it panics with exit code 101 (see
+> `docs/api/cli.md`). The SQL-level `llm_embedding` function is what
+> `validate-ffi` exercises.
+
 ```bash
 # Generate embedding for text
-frozen-duckdb embed --text "machine learning"
+frozen-duckdb-cli embed --text "machine learning"
 
 # Process multiple texts
-frozen-duckdb embed --input texts.txt --output embeddings.json
+frozen-duckdb-cli embed --input texts.txt --output embeddings.json
 
 # Generate normalized embeddings
-frozen-duckdb embed --text "data science" --normalize
+frozen-duckdb-cli embed --text "data science" --normalize
 ```
 
 ### Semantic Search
 
+> **STATUS (audited 2026-09-22):** the `search` CLI command is not
+> implemented — it panics with exit code 101 (see `docs/api/cli.md`).
+
 ```bash
 # Search in corpus
-frozen-duckdb search --query "database optimization" --corpus documents.txt
+frozen-duckdb-cli search --query "database optimization" --corpus documents.txt
 
 # Search with custom threshold
-frozen-duckdb search --query "rust programming" --corpus code.txt --threshold 0.8
+frozen-duckdb-cli search --query "rust programming" --corpus code.txt --threshold 0.8
 ```
 
 ## Performance Characteristics
@@ -410,22 +418,27 @@ let result: String = conn.query_row(
 
 ### CLI Pipeline
 
+> **STATUS (audited 2026-09-22):** the `embed` and `search` steps of this
+> pipeline are not implemented in the CLI (exit 101, see
+> `docs/api/cli.md`); only the `complete` step currently works end to
+> end. The SQL-level functions remain available.
+
 ```bash
 #!/bin/bash
 # rag_pipeline.sh
 
-# Setup environment
-source ../prebuilt/setup_env.sh
+# (No environment setup needed — the builder acquires the dylib and the
+# emitted @rpath loads it)
 
 # Generate embeddings for knowledge base
-frozen-duckdb embed --input knowledge.txt --output embeddings.json
+frozen-duckdb-cli embed --input knowledge.txt --output embeddings.json
 
 # Search for relevant information
 QUERY="Explain neural networks"
-frozen-duckdb search --query "$QUERY" --corpus knowledge.txt --format json
+frozen-duckdb-cli search --query "$QUERY" --corpus knowledge.txt --format json
 
 # Generate comprehensive answer
-echo "Based on the context, $QUERY" | frozen-duckdb complete
+echo "Based on the context, $QUERY" | frozen-duckdb-cli complete
 ```
 
 ## Troubleshooting
@@ -509,9 +522,13 @@ SELECT * FROM pragma_memory_usage();
 ### Current Limitations
 
 #### Test Success Rate
-- **Core functionality**: 100% test pass rate (30/30 tests)
-- **Flock extension**: 36% test pass rate (4/11 tests)
-- **Known issues**: Model resolution, prompt management
+- **Workspace test suite**: 301/301 passing (measured 2026-09-21, G3
+  falsification pass: `cargo test --workspace`, 17 suites, exit 0)
+- **Flock extension tests**: 11/11 passing (`cargo test --test flock_tests`)
+- **Known issues**: LLM operations require a running Ollama server with the
+  configured models pulled; without one, LLM-dependent validation layers fail
+  at runtime (`frozen-duckdb-cli validate-ffi` accepts `--skip-llm`, but
+  audited 2026-09-22 the flag is not yet wired — LLM layers run regardless)
 
 #### Unsupported Operations
 

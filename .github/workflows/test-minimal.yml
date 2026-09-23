@@ -50,9 +50,10 @@ jobs:
           fi
 
       # frozen_duckdb_builder::ensure_binary() looks FIRST in
-      # ~/.frozen-duckdb/cache/v<version>-<arch>/libduckdb_<arch>.so. Its own
-      # fallbacks are unusable on CI (no vendored binary, 404 release
-      # download, source-compile fallback with ignored exit codes). Keep
+      # ~/.frozen-duckdb/cache/v<version>-<arch>/libduckdb_<arch>.so. Its
+      # fallbacks are unusable on CI (no vendored binary; release download
+      # 404s until the operator cuts the v1.5.5 release; post-TR7
+      # source-compile fallback is a full ~30-90 min DuckDB build). Keep
       # DUCKDB_VERSION in sync with crates/frozen-duckdb-builder/src/lib.rs.
       - name: Provision DuckDB library (pre-seed builder cache)
         run: |
@@ -72,8 +73,9 @@ jobs:
             -o "$TMP/libduckdb.zip"
           unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
           cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
-          # -lduckdb resolves the plain name; the builder only symlinks
-          # libduckdb.dylib, which the linux linker never searches for.
+          # -lduckdb resolves the plain name; seed it here so the cache is
+          # complete before the builder runs (post-TR7 ensure_link_name links
+          # the platform-correct plain name itself; this is belt-and-braces).
           ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
           test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
           echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"

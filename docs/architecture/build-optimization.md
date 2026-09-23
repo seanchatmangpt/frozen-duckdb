@@ -188,20 +188,14 @@ where
 
 ## Performance Validation
 
-### Test Results (3 consecutive runs)
+### Test Results (measured 2026-09-21, G3 falsification pass)
 
 ```bash
-# Run 1: cargo test --all
-# ✅ 30 core tests passing (100%)
-# ❌ 7 Flock tests failing (known limitations)
-
-# Run 2: cargo test --all
-# ✅ 30 core tests passing (100%)
-# ❌ 7 Flock tests failing (consistent)
-
-# Run 3: cargo test --all
-# ✅ 30 core tests passing (100%)
-# ❌ 7 Flock tests failing (consistent)
+$ cargo test --workspace
+# 18 test suites, 303 passed, 0 failed, exit 0
+# (301 pre-existing tests + the 2 new cli_surface_tests tripwires; includes
+#  flock_tests 11/11 — the '30 core + 7 Flock failing' figures this section
+#  used to carry predated the wave-3..5 test repairs and are obsolete)
 ```
 
 ### Performance Benchmarks
@@ -212,7 +206,7 @@ cargo build --release
 # Finished in 0.11s (pre-compiled binary)
 
 cargo test --all
-# Finished in ~8-10s (30 tests passing)
+# 303 tests passing across 18 suites (2026-09-21 measurement)
 ```
 
 ## Build Time Optimization Details
@@ -332,8 +326,9 @@ cargo build -v 2>&1 | grep -i duckdb
 ### Performance Debug Information
 
 ```bash
-# Show detailed build information
-RUST_LOG=debug cargo build
+# Show detailed build information (cargo's own flag — RUST_LOG is not
+# read by the builder or the CLI)
+cargo build -v
 
 # Time individual operations
 time cargo build --release

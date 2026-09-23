@@ -13,7 +13,8 @@ The Frozen DuckDB CLI provides **comprehensive command-line operations** for dat
 ### System Operations
 - **`info`** - Display system information and configuration
 - **`test`** - Show testing guidance
-- **`benchmark`** - Performance benchmarking (coming soon)
+- **`benchmark`** - Performance benchmarking
+- **`validate-ffi`** - Validate FFI functionality (core DuckDB + Flock LLM)
 
 ### LLM Operations
 - **`flock-setup`** - Configure Ollama for LLM operations
@@ -30,14 +31,13 @@ The Frozen DuckDB CLI provides **comprehensive command-line operations** for dat
 Downloads or generates sample datasets for testing and development.
 
 ```bash
-frozen-duckdb download --dataset <DATASET> [OPTIONS]
-
-Arguments:
-    <DATASET>    Dataset name [possible values: chinook, tpch]
+frozen-duckdb-cli download --dataset <DATASET> [OPTIONS]
 
 Options:
+    -d, --dataset <DATASET>   Dataset name (runtime-validated: chinook, tpch)
     -o, --output-dir <DIR>    Output directory [default: datasets]
-    -f, --format <FORMAT>     Output format [default: csv] [possible values: csv, parquet, duckdb]
+    -f, --format <FORMAT>     Output format [default: csv]
+                              (chinook: csv, parquet; tpch: csv, parquet, duckdb)
     -h, --help               Print help
 ```
 
@@ -73,14 +73,15 @@ CREATE TABLE tracks (
 **Usage Examples:**
 ```bash
 # Generate Chinook in CSV format
-frozen-duckdb download --dataset chinook --format csv
+frozen-duckdb-cli download --dataset chinook --format csv
 
 # Generate in Parquet with custom location
-frozen-duckdb download --dataset chinook --format parquet --output-dir ./data
+frozen-duckdb-cli download --dataset chinook --format parquet --output-dir ./data
 
-# Generate in DuckDB native format
-frozen-duckdb download --dataset chinook --format duckdb
 ```
+
+(Chinook supports `csv` and `parquet` only — `--format duckdb` warns
+"Unsupported format" and writes no database file.)
 
 #### TPC-H Dataset
 
@@ -136,13 +137,13 @@ CREATE TABLE lineitem (
 **Usage Examples:**
 ```bash
 # Generate TPC-H in Parquet format (recommended)
-frozen-duckdb download --dataset tpch --format parquet
+frozen-duckdb-cli download --dataset tpch --format parquet
 
 # Generate in CSV format
-frozen-duckdb download --dataset tpch --format csv --output-dir ./benchmark
+frozen-duckdb-cli download --dataset tpch --format csv --output-dir ./benchmark
 
 # Generate in DuckDB format for maximum performance
-frozen-duckdb download --dataset tpch --format duckdb
+frozen-duckdb-cli download --dataset tpch --format duckdb
 ```
 
 ### `convert` Command
@@ -150,35 +151,36 @@ frozen-duckdb download --dataset tpch --format duckdb
 Converts datasets between different file formats for optimal performance and compatibility.
 
 ```bash
-frozen-duckdb convert --input <INPUT> --output <OUTPUT> [OPTIONS]
+frozen-duckdb-cli convert --input <INPUT> --output <OUTPUT> [OPTIONS]
 
 Options:
     -i, --input <INPUT>              Input file path
     -o, --output <OUTPUT>            Output file path
-    -f, --input-format <FORMAT>      Input format [default: csv] [possible values: csv, parquet, json]
-    -t, --output-format <FORMAT>     Output format [default: parquet] [possible values: csv, parquet, json, arrow]
+        --input-format <FORMAT>      Input format [default: csv] (long flag only)
+        --output-format <FORMAT>     Output format [default: parquet] (long flag only)
     -h, --help                      Print help
 ```
 
-**Supported Conversions:**
+**Supported Conversions** (only CSV ↔ Parquet is implemented; other pairs
+error with "Unsupported conversion"):
 | Input → Output | CSV | Parquet | JSON | Arrow |
 |----------------|-----|---------|------|-------|
-| **CSV** | ✅ | ✅ | ✅ | ❌ |
-| **Parquet** | ✅ | ✅ | ❌ | ❌ |
-| **JSON** | ❌ | ❌ | ✅ | ❌ |
-| **Arrow** | ❌ | ❌ | ❌ | ✅ |
+| **CSV** | ❌ | ✅ | ❌ | ❌ |
+| **Parquet** | ✅ | ❌ | ❌ | ❌ |
+| **JSON** | ❌ | ❌ | ❌ | ❌ |
+| **Arrow** | ❌ | ❌ | ❌ | ❌ |
 
 **Usage Examples:**
 ```bash
 # Convert CSV to Parquet (recommended for analytics)
-frozen-duckdb convert --input customer_data.csv --output customer_data.parquet
+frozen-duckdb-cli convert --input customer_data.csv --output customer_data.parquet
 
 # Convert Parquet to CSV for human analysis
-frozen-duckdb convert --input analytics.parquet --output report.csv
+frozen-duckdb-cli convert --input analytics.parquet --output report.csv
 
 # Batch conversion script
 for file in *.csv; do
-    frozen-duckdb convert --input "$file" --output "${file%.csv}.parquet"
+    frozen-duckdb-cli convert --input "$file" --output "${file%.csv}.parquet"
 done
 ```
 
@@ -189,40 +191,41 @@ done
 Displays comprehensive information about the Frozen DuckDB configuration and capabilities.
 
 ```bash
-frozen-duckdb info [OPTIONS]
+frozen-duckdb-cli info
 
 Options:
-    -v, --verbose    Show detailed information
-    -h, --help      Print help
+    -h, --help    Print help
 ```
+
+(The global `-v` is a top-level flag: `frozen-duckdb-cli -v info`.)
 
 **Information Categories:**
 - **Version Information**: Frozen DuckDB version (the crate version, mirroring the bundled DuckDB version)
 - **Architecture Details**: System architecture and target OS
 - **Extension Status**: Available DuckDB extensions
 
-**Example Output:**
+**Example Output** (requires `-v` — every field is a tracing INFO event,
+suppressed at the default WARN verbosity; witnessed 2026-09-22 the default
+invocation prints nothing and exits 0):
 ```bash
-🦆 Frozen DuckDB Information
-  Version: 1.5.5
-  Build Type: Pre-compiled binary
-  Architecture: arm64
-  Target: macos
-  Available Extensions: parquet, tpch, flock
+$ frozen-duckdb-cli -v info
+INFO ... 🦆 Frozen DuckDB Information
+INFO ...   Version: 1.5.5
+INFO ...   Build Type: Pre-compiled binary
+INFO ...   Architecture: aarch64        # std::env::consts::ARCH ("aarch64", not "arm64")
+INFO ...   Target: macos
+INFO ...   Available Extensions: autocomplete, avro, aws, ... (full
+            duckdb_extensions() list — 31 entries on the v1.5.5 dylib)
 ```
 
 **Verbose Output:**
 ```bash
-# With -v flag, tracing emits DEBUG-level detail alongside the same fields
-frozen-duckdb -v info
-
-🦆 Frozen DuckDB Information
-  Version: 1.5.5
-  Build Type: Pre-compiled binary
-  Architecture: arm64
-  Target: macos
-  Available Extensions: parquet, tpch, flock, arrow, json
+# The -v flag is what makes ANY of this visible; it does not add fields
+frozen-duckdb-cli -v info
 ```
+
+(There is no separate extension list between default and verbose — the
+same fields print either way, via tracing, or not at all without `-v`.)
 
 The prebuilt dylib behind this command is cached at
 `~/.frozen-duckdb/cache/v1.5.5-{arch}/` (universal binary, arm64 + x86_64).
@@ -232,9 +235,11 @@ The prebuilt dylib behind this command is cached at
 Shows guidance for running the comprehensive test suite.
 
 ```bash
-frozen-duckdb test
+frozen-duckdb-cli test
 
-# Output:
+# Output (only with -v or higher — tracing INFO events, suppressed at
+# default WARN verbosity; witnessed 2026-09-22: default invocation
+# prints nothing and exits 0):
 🧪 Tests have been moved to the test suite
    Run tests with: cargo test
    Run specific tests with: cargo test <test_name>
@@ -265,23 +270,31 @@ cargo test --all && cargo test --all && cargo test --all
 
 ### `benchmark` Command
 
-Performance benchmarking for various DuckDB operations (feature coming soon).
+Performance benchmarking for various DuckDB operations.
+
+> **STATUS (audited 2026-09-22):** stub — no benchmark is executed. The
+> handler only logs "Benchmarking ... operation" and "📊 Performance
+> benchmarking feature coming soon!" at INFO level and exits 0
+> (`crates/frozen-duckdb/src/main.rs`, `Commands::Benchmark`); at default
+> verbosity it prints nothing. Witnessed: `benchmark -i 2` → no output,
+> exit 0.
 
 ```bash
-frozen-duckdb benchmark [OPTIONS]
+frozen-duckdb-cli benchmark [OPTIONS]
 
 Options:
-    -o, --operation <OPERATION>    Operation type [default: query] [possible values: query, insert, export]
-    -n, --iterations <INT>         Number of iterations [default: 1000]
-    -s, --size <SIZE>              Dataset size [default: medium] [possible values: small, medium, large]
+    -o, --operation <OPERATION>    Operation type [default: query]
+                                   (possible values: query, insert, export)
+    -i, --iterations <N>           Number of iterations [default: 1000]
+    -s, --size <SIZE>              Dataset size [default: medium]
+                                   (possible values: small, medium, large)
     -h, --help                    Print help
 ```
 
-**Planned Features:**
+**Operations:**
 - **Query Performance**: SELECT operation benchmarking
 - **Insert Performance**: Data loading speed measurement
 - **Export Performance**: Data export efficiency testing
-- **LLM Performance**: Text generation and embedding speed
 
 ## LLM Operations
 
@@ -290,11 +303,13 @@ Options:
 Configures Ollama integration for LLM operations via the Flock extension.
 
 ```bash
-frozen-duckdb flock-setup [OPTIONS]
+frozen-duckdb-cli flock-setup [OPTIONS]
 
 Options:
-    -u, --ollama-url <URL>    Ollama server URL [default: http://localhost:11434]
-    -s, --skip-verification   Skip model verification
+        --ollama-url <URL>         Ollama server URL [default: http://localhost:11434]
+        --text-model <MODEL>       Text generation model [default: qwen3-coder:30b]
+        --embedding-model <MODEL>  Embedding model [default: qwen3-embedding:8b]
+        --skip-verification        Skip model verification (long flag only)
     -h, --help               Print help
 ```
 
@@ -307,13 +322,13 @@ Options:
 **Usage Examples:**
 ```bash
 # Standard setup with local Ollama
-frozen-duckdb flock-setup
+frozen-duckdb-cli flock-setup
 
 # Setup with remote Ollama server
-frozen-duckdb flock-setup --ollama-url http://192.168.1.100:11434
+frozen-duckdb-cli flock-setup --ollama-url http://192.168.1.100:11434
 
 # Quick setup without verification
-frozen-duckdb flock-setup --skip-verification
+frozen-duckdb-cli flock-setup --skip-verification
 ```
 
 **Verification Steps:**
@@ -325,7 +340,7 @@ curl -s http://localhost:11434/api/version
 curl -s http://localhost:11434/api/tags | grep qwen3-coder
 
 # Test LLM functionality
-frozen-duckdb complete --prompt "Hello, how are you?"
+frozen-duckdb-cli complete --prompt "Hello, how are you?"
 ```
 
 ### `complete` Command
@@ -333,13 +348,15 @@ frozen-duckdb complete --prompt "Hello, how are you?"
 Generates text completion using LLM models.
 
 ```bash
-frozen-duckdb complete [OPTIONS]
+frozen-duckdb-cli complete [OPTIONS]
 
 Options:
-    -p, --prompt <PROMPT>      Text to complete
+    -p, --prompt <PROMPT>      Text to complete (mutually exclusive with --input)
     -i, --input <FILE>         Read prompt from file
     -o, --output <FILE>        Write response to file
-    -m, --model <MODEL>        Model to use [default: coder] [possible values: coder, embedder]
+    -m, --model <MODEL>        Model alias to use [default: text_generator]
+        --max-tokens <N>       Maximum tokens to generate [default: 512]
+    -t, --temperature <T>      Sampling temperature [default: 0.7]
     -h, --help                Print help
 ```
 
@@ -351,26 +368,26 @@ Options:
 **Usage Examples:**
 ```bash
 # Complete text directly
-frozen-duckdb complete --prompt "Explain recursion in programming"
+frozen-duckdb-cli complete --prompt "Explain recursion in programming"
 
 # Read from file and save to file
-frozen-duckdb complete --input my_prompt.txt --output response.txt
+frozen-duckdb-cli complete --input my_prompt.txt --output response.txt
 
 # Interactive mode
-echo "Write a haiku about databases" | frozen-duckdb complete
+echo "Write a haiku about databases" | frozen-duckdb-cli complete
 
 # Use specific model
-frozen-duckdb complete --prompt "Debug this code" --model coder
+frozen-duckdb-cli complete --prompt "Debug this code" --model text_generator
 ```
 
 **Output Examples:**
 ```bash
 # Simple completion
-$ frozen-duckdb complete --prompt "The Rust programming language"
+$ frozen-duckdb-cli complete --prompt "The Rust programming language"
 The Rust programming language is a systems programming language that runs blazingly fast, prevents segfaults, and guarantees thread safety featuring...
 
 # Code completion
-$ frozen-duckdb complete --prompt "fn fibonacci(n: u32) -> u32 {"
+$ frozen-duckdb-cli complete --prompt "fn fibonacci(n: u32) -> u32 {"
 fn fibonacci(n: u32) -> u32 {
     match n {
         0 => 0,
@@ -384,36 +401,43 @@ fn fibonacci(n: u32) -> u32 {
 
 Generates embeddings for semantic search and similarity operations.
 
+> **STATUS (audited 2026-09-22):** not implemented. After the Flock
+> readiness check, `generate_embeddings()` always returns `Err` (vector
+> extraction from DuckDB's array type is a TODO — see
+> `crates/frozen-duckdb/src/cli/flock_manager.rs`), so the CLI's
+> `.expect()` panics and exits **101**. Witnessed: `embed --text "hello"`
+> → panic "Embedding generation not implemented yet", exit 101.
+
 ```bash
-frozen-duckdb embed [OPTIONS]
+frozen-duckdb-cli embed [OPTIONS]
 
 Options:
-    -t, --text <TEXT>         Text to generate embeddings for
+    -t, --text <TEXT>         Text to generate embeddings for (mutually exclusive with --input)
     -i, --input <FILE>        Read texts from file (one per line)
     -o, --output <FILE>       Write embeddings to file as JSON
-    -m, --model <MODEL>       Model to use [default: embedder] [possible values: coder, embedder]
-    -n, --normalize          Normalize embeddings
+    -m, --model <MODEL>       Model alias to use [default: embedder]
+        --normalize           Normalize embeddings (long flag only)
     -h, --help               Print help
 ```
 
 **Input Formats:**
 - **Single text**: `--text "Python programming language"`
 - **Multiple texts**: `--input documents.txt` (one text per line)
-- **Batch processing**: Both options combined
+- The two options are mutually exclusive — they cannot be combined
 
 **Usage Examples:**
 ```bash
 # Generate embedding for single text
-frozen-duckdb embed --text "machine learning"
+frozen-duckdb-cli embed --text "machine learning"
 
 # Process multiple texts from file
-frozen-duckdb embed --input documents.txt --output embeddings.json
+frozen-duckdb-cli embed --input documents.txt --output embeddings.json
 
 # Generate normalized embeddings
-frozen-duckdb embed --text "artificial intelligence" --normalize
+frozen-duckdb-cli embed --text "artificial intelligence" --normalize
 
 # Batch processing with output
-frozen-duckdb embed --input texts.txt --output vectors.json --normalize
+frozen-duckdb-cli embed --input texts.txt --output vectors.json --normalize
 ```
 
 **Output Format:**
@@ -432,8 +456,14 @@ frozen-duckdb embed --input texts.txt --output vectors.json --normalize
 
 Performs semantic search using embeddings and similarity matching.
 
+> **STATUS (audited 2026-09-22):** not implemented.
+> `FlockManager::semantic_search()` always returns `Err("Semantic search
+> not implemented ...")`, so the CLI's `.expect()` panics with **exit
+> code 101**. The options below document the accepted surface; the
+> operation itself is a TODO.
+
 ```bash
-frozen-duckdb search [OPTIONS]
+frozen-duckdb-cli search [OPTIONS]
 
 Options:
     -q, --query <QUERY>       Search query
@@ -454,16 +484,16 @@ Options:
 **Usage Examples:**
 ```bash
 # Basic semantic search
-frozen-duckdb search --query "machine learning" --corpus documents.txt
+frozen-duckdb-cli search --query "machine learning" --corpus documents.txt
 
 # Search with custom threshold and limit
-frozen-duckdb search --query "database optimization" --corpus papers.txt --threshold 0.8 --limit 5
+frozen-duckdb-cli search --query "database optimization" --corpus papers.txt --threshold 0.8 --limit 5
 
 # JSON output for programmatic processing
-frozen-duckdb search --query "rust programming" --corpus code.txt --format json
+frozen-duckdb-cli search --query "rust programming" --corpus code.txt --format json
 
 # Search in generated embeddings
-frozen-duckdb search --query "neural networks" --corpus embeddings.json --threshold 0.75
+frozen-duckdb-cli search --query "neural networks" --corpus embeddings.json --threshold 0.75
 ```
 
 **Output Formats:**
@@ -495,14 +525,15 @@ frozen-duckdb search --query "neural networks" --corpus embeddings.json --thresh
 Filters data using LLM evaluation and criteria matching.
 
 ```bash
-frozen-duckdb filter [OPTIONS]
+frozen-duckdb-cli filter [OPTIONS]
 
 Options:
-    -c, --criteria <CRITERIA>    Filtering criteria
+    -c, --criteria <CRITERIA>    Filtering criteria (mutually exclusive with --prompt)
     -p, --prompt <PROMPT>        Custom evaluation prompt
     -i, --input <FILE>           Input file to filter (one item per line)
     -o, --output <FILE>          Output file for results
-    -m, --model <MODEL>          Model to use [default: coder] [possible values: coder, embedder]
+    -m, --model <MODEL>          Model alias to use [default: text_generator]
+        --positive-only          Show only matching items (long flag only)
     -h, --help                  Print help
 ```
 
@@ -514,16 +545,16 @@ Options:
 **Usage Examples:**
 ```bash
 # Filter technology-related items
-frozen-duckdb filter --criteria "Is this about technology?" --input items.txt
+frozen-duckdb-cli filter --criteria "Is this about technology?" --input items.txt
 
 # Custom evaluation prompt
-frozen-duckdb filter --prompt "Is this a programming language? Answer yes or no: {{text}}" --input languages.txt
+frozen-duckdb-cli filter --prompt "Is this a programming language? Answer yes or no: {{text}}" --input languages.txt
 
 # Save filtered results
-frozen-duckdb filter --criteria "Is this positive?" --input reviews.txt --output positive_reviews.txt
+frozen-duckdb-cli filter --criteria "Is this positive?" --input reviews.txt --output positive_reviews.txt
 
 # Show only matching items
-frozen-duckdb filter --criteria "Contains 'machine learning'?" --input articles.txt
+frozen-duckdb-cli filter --criteria "Contains 'machine learning'?" --input articles.txt
 ```
 
 **Output Examples:**
@@ -550,14 +581,17 @@ frozen-duckdb filter --criteria "Contains 'machine learning'?" --input articles.
 Summarizes collections of text using LLM capabilities.
 
 ```bash
-frozen-duckdb summarize [OPTIONS]
+frozen-duckdb-cli summarize [OPTIONS]
 
 Options:
     -i, --input <FILE>       Input file or directory
     -o, --output <FILE>      Output file for summary
-    -s, --strategy <STRATEGY> Summarization strategy [default: concise] [possible values: concise, detailed, bullet]
-    -l, --max-length <INT>   Maximum summary length in words [default: 200]
-    -m, --model <MODEL>      Model to use [default: coder] [possible values: coder, embedder]
+    -s, --strategy <STRATEGY> Summarization strategy [default: reduce]
+                             (implemented values: reduce, map — any other
+                             value, including "extractive", falls back to a
+                             single combined-summary path)
+        --max-length <INT>   Maximum summary length in words [default: 150] (long flag only)
+    -m, --model <MODEL>      Model alias to use [default: text_generator]
     -h, --help              Print help
 ```
 
@@ -567,71 +601,35 @@ Options:
 - **Multiple files**: Processes all text files in directory
 
 **Summarization Strategies:**
-- **`concise`**: Brief, to-the-point summary (default)
-- **`detailed`**: Comprehensive summary with key points
-- **`bullet`**: Bullet-point format for easy scanning
+- **`reduce`**: Hierarchical summarization via the LLM reduce function (default)
+- **`map`**: Individual summaries, then combined
+- **anything else** (including `extractive`): falls back to one combined
+  LLM summary over all texts — there is no distinct extractive
+  implementation (`flock_manager.rs`, `summarize_texts`)
 
 **Usage Examples:**
 ```bash
 # Summarize single document
-frozen-duckdb summarize --input article.txt --strategy concise
+frozen-duckdb-cli summarize --input article.txt
 
 # Summarize multiple documents in directory
-frozen-duckdb summarize --input research_papers/ --output summary.txt --strategy detailed
+frozen-duckdb-cli summarize --input research_papers/ --output summary.txt --strategy map
 
-# Bullet-point summary with custom length
-frozen-duckdb summarize --input meeting_notes.txt --strategy bullet --max-length 100
+# Extractive-style summary with custom length (falls back to the
+# combined-summary path — no distinct extractive implementation)
+frozen-duckdb-cli summarize --input meeting_notes.txt --strategy extractive --max-length 100
 
 # Save summary to file
-frozen-duckdb summarize --input documents.txt --output summary.md --strategy detailed --max-length 300
+frozen-duckdb-cli summarize --input documents.txt --output summary.md --strategy map --max-length 300
 ```
 
-**Output Examples:**
-
-**Concise Strategy:**
+**Output Example:**
 ```text
-# summary.txt
-The research examines machine learning applications in healthcare, focusing on diagnostic accuracy improvements through neural networks. Key findings show 95% accuracy in medical image analysis, with recommendations for clinical implementation including data privacy considerations and model validation protocols.
-```
-
-**Bullet Strategy:**
-```text
-# summary.txt
-- Machine learning shows 95% accuracy in medical diagnostics
-- Neural networks excel at medical image analysis
-- Key challenges: data privacy and model validation
-- Recommendations: clinical trials and regulatory approval
-- Future directions: real-time diagnostics and personalized medicine
-```
-
-**Detailed Strategy:**
-```text
-# summary.txt
-## Machine Learning in Healthcare: A Comprehensive Analysis
-
-### Diagnostic Accuracy
-The study demonstrates significant improvements in diagnostic accuracy using machine learning algorithms, particularly neural networks for medical image analysis. The research reports a 95% accuracy rate across multiple medical imaging modalities.
-
-### Technical Implementation
-- **Model Architecture**: Convolutional neural networks with transfer learning
-- **Training Data**: 10,000+ annotated medical images across 5 specialties
-- **Validation**: 5-fold cross-validation with external test set
-
-### Clinical Applications
-- **Radiology**: Chest X-ray analysis for pneumonia detection
-- **Pathology**: Tissue sample classification for cancer diagnosis
-- **Dermatology**: Skin lesion analysis for melanoma screening
-
-### Challenges and Recommendations
-- **Data Privacy**: HIPAA compliance and patient data protection
-- **Model Validation**: Prospective clinical trials required
-- **Regulatory Approval**: FDA clearance for clinical use
-- **Implementation**: Integration with existing healthcare systems
-
-### Future Directions
-- **Real-time Diagnostics**: Point-of-care AI systems
-- **Personalized Medicine**: Patient-specific treatment recommendations
-- **Multi-modal Analysis**: Combining imaging with genomic data
+# summary.txt — output shape is the same for every strategy (a single
+# LLM-written summary); only reduce vs map changes how inputs are
+# combined, and max_length bounds the target length in words
+The research examines machine learning applications in healthcare, focusing
+on diagnostic accuracy improvements through neural networks...
 ```
 
 ## Error Handling and Exit Codes
@@ -641,26 +639,33 @@ The study demonstrates significant improvements in diagnostic accuracy using mac
 | Code | Description | Example Usage |
 |------|-------------|---------------|
 | **0** | Success | Operation completed successfully |
-| **1** | General error | Invalid arguments, file not found |
-| **2** | Environment error | DUCKDB_LIB_DIR not set |
-| **3** | Binary validation | No DuckDB binary found |
+| **1** | General error | Invalid input, file not found, operation failed |
+| **2** | CLI usage error | Unknown flag / missing argument (clap parse error) |
 | **4** | Flock extension | Extension not available |
+| **101** | Unimplemented-feature panic | `embed` / `search` abort via `.expect()` |
+
+(Explicit `std::process::exit` calls in `src/main.rs` emit only 0, 1, and
+4; code 2 comes from clap's own parse-error exit, and 101 from the
+`embed`/`search` panics. There is no dedicated environment or
+binary-validation exit code — binary acquisition happens inside
+`cargo build` via `frozen-duckdb-builder`.)
 
 ### Error Messages
 
-**Environment Errors:**
+**Environment Errors (legacy prebuilt workflow only):**
 ```bash
 ❌ DUCKDB_LIB_DIR not set
-   Please run: source prebuilt/setup_env.sh
 
 ❌ No frozen DuckDB binary found in /path/to/lib
-   Check that binaries exist in prebuilt/
 ```
+
+These come from `env_setup::validate_binary()` in the legacy manual-prebuilt
+path; the normal `cargo build` path has no environment to configure.
 
 **LLM Errors:**
 ```bash
 ❌ Flock extension not available
-   Run 'frozen-duckdb flock-setup' first
+   Run 'frozen-duckdb-cli flock-setup' first
 
 ❌ Model not found
    Check if Ollama models are properly configured
@@ -706,13 +711,13 @@ The study demonstrates significant improvements in diagnostic accuracy using mac
 # dataset_pipeline.sh
 
 # Generate test data
-frozen-duckdb download --dataset tpch --format parquet --output-dir ./data
+frozen-duckdb-cli download --dataset tpch --format parquet --output-dir ./data
 
 # Convert for optimal performance
-frozen-duckdb convert --input ./data/customer.csv --output ./data/customer.parquet
+frozen-duckdb-cli convert --input ./data/customer.csv --output ./data/customer.parquet
 
 # Generate embeddings for search
-frozen-duckdb embed --input ./data/documents.txt --output ./data/embeddings.json
+frozen-duckdb-cli embed --input ./data/documents.txt --output ./data/embeddings.json
 
 echo "✅ Dataset pipeline complete"
 ```
@@ -724,7 +729,7 @@ echo "✅ Dataset pipeline complete"
 - name: Setup test environment
   run: |
     source frozen-duckdb/prebuilt/setup_env.sh
-    frozen-duckdb download --dataset chinook --format parquet --output-dir test_data
+    frozen-duckdb-cli download --dataset chinook --format parquet --output-dir test_data
 
 - name: Run tests
   run: cargo test --all
@@ -746,22 +751,23 @@ def run_llm_command(cmd):
 
 # Generate embeddings for documents
 print("Generating embeddings...")
-run_llm_command("frozen-duckdb embed --input documents.txt --output embeddings.json")
+run_llm_command("frozen-duckdb-cli embed --input documents.txt --output embeddings.json")
 
 # Search for relevant content
 print("Searching for 'machine learning'...")
 search_results = run_llm_command(
-    "frozen-duckdb search --query 'machine learning' --corpus documents.txt --format json"
+    "frozen-duckdb-cli search --query 'machine learning' --corpus documents.txt --format json"
 )
 
 # Parse and use results
 results = json.loads(search_results)
 print(f"Found {len(results)} relevant documents")
 
-# Generate summary
+# Generate summary (strategies: reduce, map; any other value falls back
+# to the combined-summary path)
 print("Generating summary...")
 summary = run_llm_command(
-    "frozen-duckdb summarize --input documents.txt --strategy concise"
+    "frozen-duckdb-cli summarize --input documents.txt --strategy map"
 )
 print("Summary:", summary)
 ```
@@ -770,7 +776,7 @@ print("Summary:", summary)
 
 ### 1. Command Not Found
 
-**Error:** `frozen-duckdb: command not found`
+**Error:** `frozen-duckdb-cli: command not found`
 
 **Solutions:**
 ```bash
@@ -778,25 +784,20 @@ print("Summary:", summary)
 cargo build --release
 
 # Use full path
-./target/release/frozen-duckdb --help
+./target/release/frozen-duckdb-cli --help
 
 # Add to PATH
 export PATH="$PWD/target/release:$PATH"
 ```
 
-### 2. Environment Not Configured
+### 2. No Environment Needed
 
-**Error:** `DUCKDB_LIB_DIR not set`
-
-**Solutions:**
-```bash
-# Source the setup script
-source ../frozen-duckdb/prebuilt/setup_env.sh
-
-# Set environment manually
-export DUCKDB_LIB_DIR="/path/to/frozen-duckdb/prebuilt"
-export DUCKDB_INCLUDE_DIR="/path/to/frozen-duckdb/prebuilt"
-```
+The CLI requires no environment configuration: the builder acquires the
+Dylib during `cargo build` and the emitted `@rpath` loads it. (The only
+consumer of `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR` is the legacy manual
+prebuilt workflow via `prebuilt/setup_env.sh`. The text of some runtime
+error strings — e.g. "Run 'frozen-duckdb flock-setup' first" — still names
+the library-style binary; the executable is `frozen-duckdb-cli`.)
 
 ### 3. LLM Operations Failing
 
@@ -805,7 +806,7 @@ export DUCKDB_INCLUDE_DIR="/path/to/frozen-duckdb/prebuilt"
 **Solutions:**
 ```bash
 # Setup Ollama integration
-frozen-duckdb flock-setup
+frozen-duckdb-cli flock-setup
 
 # Check Ollama server
 curl -s http://localhost:11434/api/version

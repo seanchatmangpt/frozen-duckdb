@@ -29,3 +29,9 @@ cargo build --workspace
 cargo run --example dropin_replacement
 ```
 
+## 5. Run the test suite
+
+```bash
+cargo test --workspace
+```
+

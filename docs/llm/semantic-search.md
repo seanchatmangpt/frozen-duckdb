@@ -1,5 +1,13 @@
 # Semantic Search Guide
 
+> **STATUS (audited 2026-09-22):** the `frozen-duckdb-cli search`
+> command documented on this page is **not implemented** — it panics
+> with exit code 101 ("Semantic search not implemented"). SQL-level
+> embedding functions remain available. This page was authored for the
+> v1.4.0 release (commit b41574b) and was not part of the v1.5.5 doc
+> reconciliation; treat command examples as the intended surface, not
+> verified behavior.
+
 ## Overview
 
 **Semantic search** finds content based on **meaning and context** rather than exact keyword matches, using **embeddings** and **similarity calculations** to identify relevant documents. Frozen DuckDB enables **powerful semantic search** directly within database queries using the **Flock extension**.

@@ -6,7 +6,7 @@ Get up and running with frozen DuckDB in under 5 minutes!
 
 - Rust (stable or later)
 - Git
-- macOS (Linux/Windows support coming soon)
+- macOS (recommended: prebuilt dylib downloads automatically). Linux and Windows build via the pinned local-compile fallback (DuckDB `v1.5.5` source); no prebuilt assets for those platforms yet.
 
 ## ⚡ Quick Setup
 
@@ -87,7 +87,7 @@ cargo build
 ## 📚 Next Steps
 
 - Read the full [README.md](README.md) for detailed documentation
-- Check out the [examples/](examples/) directory for more usage patterns
+- Check out the [crates/frozen-duckdb/examples/](crates/frozen-duckdb/examples/) directory for more usage patterns
 - Visit the [GitHub repository](https://github.com/seanchatmangpt/frozen-duckdb) for updates
 
 ## 🤝 Need Help?

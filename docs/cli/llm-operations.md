@@ -43,13 +43,13 @@ ollama list
 
 ```bash
 # Setup Ollama integration
-frozen-duckdb flock-setup
+frozen-duckdb-cli flock-setup
 
 # Or setup with custom URL
-frozen-duckdb flock-setup --ollama-url http://192.168.1.100:11434
+frozen-duckdb-cli flock-setup --ollama-url http://192.168.1.100:11434
 
 # Verify setup
-frozen-duckdb info
+frozen-duckdb-cli info
 # Should show Flock extension available
 ```
 
@@ -60,7 +60,7 @@ frozen-duckdb info
 **Simple completion:**
 ```bash
 # Complete text directly
-frozen-duckdb complete --prompt "Explain recursion in programming"
+frozen-duckdb-cli complete --prompt "Explain recursion in programming"
 
 # Expected output:
 # Recursion in programming is a technique where a function calls itself to solve a problem...
@@ -70,20 +70,20 @@ frozen-duckdb complete --prompt "Explain recursion in programming"
 ```bash
 # Read prompt from file
 echo "Write a function to calculate fibonacci numbers" > prompt.txt
-frozen-duckdb complete --input prompt.txt --output response.txt
+frozen-duckdb-cli complete --input prompt.txt --output response.txt
 
 # Interactive mode
-echo "Explain quantum computing" | frozen-duckdb complete
+echo "Explain quantum computing" | frozen-duckdb-cli complete
 ```
 
 **Advanced completion:**
 ```bash
 # Use specific model
-frozen-duckdb complete --prompt "Debug this Rust code" --model coder
+frozen-duckdb-cli complete --prompt "Debug this Rust code" --model text_generator
 
 # Multiple completions
 for prompt in prompt1.txt prompt2.txt prompt3.txt; do
-    frozen-duckdb complete --input "$prompt" --output "response_${prompt%.txt}.txt"
+    frozen-duckdb-cli complete --input "$prompt" --output "response_${prompt%.txt}.txt"
 done
 ```
 
@@ -91,7 +91,7 @@ done
 
 **Function generation:**
 ```bash
-frozen-duckdb complete --prompt "Write a Rust function to calculate factorial"
+frozen-duckdb-cli complete --prompt "Write a Rust function to calculate factorial"
 
 # Output:
 # fn factorial(n: u64) -> u64 {
@@ -104,7 +104,7 @@ frozen-duckdb complete --prompt "Write a Rust function to calculate factorial"
 
 **Code explanation:**
 ```bash
-frozen-duckdb complete --prompt "Explain this code: fn main() { println!(\"Hello\"); }"
+frozen-duckdb-cli complete --prompt "Explain this code: fn main() { println!(\"Hello\"); }"
 
 # Output:
 # This is a simple Rust program that prints "Hello" to the console...
@@ -119,17 +119,23 @@ fn main() {
 }
 EOF
 
-frozen-duckdb complete --input buggy_code.txt --prompt "Fix the compilation error in this code"
+frozen-duckdb-cli complete --input buggy_code.txt --prompt "Fix the compilation error in this code"
 ```
 
 ## Embedding Operations
+
+> **STATUS (audited 2026-09-22):** the `embed` CLI command is not
+> implemented — after the Flock readiness check it panics with exit code
+> 101 ("Embedding generation not implemented yet"; vector extraction is a
+> TODO in `crates/frozen-duckdb/src/cli/flock_manager.rs`). The examples
+> below document the intended surface only.
 
 ### Single Text Embedding
 
 **Basic embedding:**
 ```bash
 # Generate embedding for single text
-frozen-duckdb embed --text "machine learning"
+frozen-duckdb-cli embed --text "machine learning"
 
 # Output (JSON):
 # [
@@ -144,7 +150,7 @@ frozen-duckdb embed --text "machine learning"
 **Normalized embeddings:**
 ```bash
 # Generate normalized embeddings (better for similarity)
-frozen-duckdb embed --text "artificial intelligence" --normalize
+frozen-duckdb-cli embed --text "artificial intelligence" --normalize
 
 # Output includes normalized vectors for cosine similarity
 ```
@@ -158,7 +164,7 @@ Deep learning uses neural networks
 Natural language processing analyzes text
 EOF
 
-frozen-duckdb embed --input documents.txt --output embeddings.json
+frozen-duckdb-cli embed --input documents.txt --output embeddings.json
 ```
 
 ### Batch Embedding Processing
@@ -174,7 +180,7 @@ split -l 100 large_document.txt chunk_
 # Process each chunk
 for chunk in chunk_*; do
     chunk_output="${chunk}.json"
-    frozen-duckdb embed --input "$chunk" --output "$chunk_output"
+    frozen-duckdb-cli embed --input "$chunk" --output "$chunk_output"
     echo "Processed $chunk → $chunk_output"
 done
 
@@ -185,17 +191,21 @@ cat chunk_*.json | jq -s 'add' > combined_embeddings.json
 **Directory processing:**
 ```bash
 # Process all text files in directory
-frozen-duckdb embed --input ./documents/ --output all_embeddings.json
+frozen-duckdb-cli embed --input ./documents/ --output all_embeddings.json
 ```
 
 ## Semantic Search Operations
+
+> **STATUS (audited 2026-09-22):** the `search` CLI command is not
+> implemented — it panics with exit code 101 ("Semantic search not
+> implemented"). The examples below document the intended surface only.
 
 ### Basic Semantic Search
 
 **Simple search:**
 ```bash
 # Search in documents
-frozen-duckdb search --query "machine learning" --corpus documents.txt
+frozen-duckdb-cli search --query "machine learning" --corpus documents.txt
 
 # Output:
 # 🔍 Found 3 similar documents:
@@ -207,16 +217,16 @@ frozen-duckdb search --query "machine learning" --corpus documents.txt
 **Custom thresholds:**
 ```bash
 # Search with higher similarity threshold
-frozen-duckdb search --query "database optimization" --corpus papers.txt --threshold 0.8
+frozen-duckdb-cli search --query "database optimization" --corpus papers.txt --threshold 0.8
 
 # Limit number of results
-frozen-duckdb search --query "rust programming" --corpus code.txt --limit 5
+frozen-duckdb-cli search --query "rust programming" --corpus code.txt --limit 5
 ```
 
 **JSON output for processing:**
 ```bash
 # Get structured results
-frozen-duckdb search --query "neural networks" --corpus research.txt --format json
+frozen-duckdb-cli search --query "neural networks" --corpus research.txt --format json
 
 # Output:
 # [
@@ -239,7 +249,7 @@ CORPUS="documents.txt"
 
 for query in "${QUERIES[@]}"; do
     echo "🔍 Searching for: $query"
-    frozen-duckdb search --query "$query" --corpus "$CORPUS" --format json
+    frozen-duckdb-cli search --query "$query" --corpus "$CORPUS" --format json
 done
 ```
 
@@ -277,7 +287,7 @@ results = search_and_process("quantum computing", "research_papers.txt")
 **Simple filtering:**
 ```bash
 # Filter items matching criteria
-frozen-duckdb filter --criteria "Is this about technology?" --input items.txt
+frozen-duckdb-cli filter --criteria "Is this about technology?" --input items.txt
 
 # Output:
 # 📊 Filter results:
@@ -289,16 +299,16 @@ frozen-duckdb filter --criteria "Is this about technology?" --input items.txt
 **Custom evaluation prompts:**
 ```bash
 # Custom filter logic
-frozen-duckdb filter --prompt "Is this a programming language? Answer yes or no: {{text}}" --input languages.txt
+frozen-duckdb-cli filter --prompt "Is this a programming language? Answer yes or no: {{text}}" --input languages.txt
 
 # Complex criteria
-frozen-duckdb filter --criteria "Contains 'machine learning' AND mentions 'AI'?" --input articles.txt
+frozen-duckdb-cli filter --criteria "Contains 'machine learning' AND mentions 'AI'?" --input articles.txt
 ```
 
 **Positive-only results:**
 ```bash
 # Show only matching items
-frozen-duckdb filter --criteria "Is this positive?" --input reviews.txt --output positive_reviews.txt
+frozen-duckdb-cli filter --criteria "Is this positive?" --input reviews.txt --output positive_reviews.txt
 ```
 
 ### Advanced Filtering
@@ -312,7 +322,7 @@ CATEGORIES=("technology" "science" "business" "entertainment")
 
 for category in "${CATEGORIES[@]}"; do
     output_file="${category}_items.txt"
-    frozen-duckdb filter --criteria "Is this about $category?" --input all_items.txt --output "$output_file"
+    frozen-duckdb-cli filter --criteria "Is this about $category?" --input all_items.txt --output "$output_file"
     echo "Filtered $category items → $output_file"
 done
 ```
@@ -353,7 +363,7 @@ matches, total = analyze_filter_results("Is this about technology?", "documents.
 **Basic summarization:**
 ```bash
 # Summarize single document
-frozen-duckdb summarize --input article.txt --strategy concise
+frozen-duckdb-cli summarize --input article.txt
 
 # Output:
 # The research examines machine learning applications in healthcare, focusing on diagnostic accuracy improvements through neural networks. Key findings show 95% accuracy in medical image analysis, with recommendations for clinical implementation including data privacy considerations and model validation protocols.
@@ -362,13 +372,13 @@ frozen-duckdb summarize --input article.txt --strategy concise
 **Different strategies:**
 ```bash
 # Concise summary (default)
-frozen-duckdb summarize --input research.txt --strategy concise
+frozen-duckdb-cli summarize --input research.txt
 
 # Detailed summary
-frozen-duckdb summarize --input paper.txt --strategy detailed --max-length 300
+frozen-duckdb-cli summarize --input paper.txt --strategy map --max-length 300
 
 # Bullet-point format
-frozen-duckdb summarize --input meeting_notes.txt --strategy bullet --max-length 150
+frozen-duckdb-cli summarize --input meeting_notes.txt --strategy extractive --max-length 150
 ```
 
 ### Multiple Document Summarization
@@ -376,10 +386,10 @@ frozen-duckdb summarize --input meeting_notes.txt --strategy bullet --max-length
 **Directory processing:**
 ```bash
 # Summarize all documents in directory
-frozen-duckdb summarize --input ./research_papers/ --output combined_summary.txt --strategy detailed
+frozen-duckdb-cli summarize --input ./research_papers/ --output combined_summary.txt --strategy map
 
 # Process specific file types
-find ./documents/ -name "*.txt" -exec frozen-duckdb summarize --input {} --output summaries/{}.summary.txt \;
+find ./documents/ -name "*.txt" -exec frozen-duckdb-cli summarize --input {} --output summaries/{}.summary.txt \;
 ```
 
 **Batch summarization:**
@@ -399,11 +409,11 @@ for file in "$DOCUMENTS_DIR"/*.txt; do
     summary_file="$SUMMARIES_DIR/${filename}_summary.txt"
 
     echo "Summarizing $file → $summary_file"
-    frozen-duckdb summarize --input "$file" --output "$summary_file" --strategy concise
+    frozen-duckdb-cli summarize --input "$file" --output "$summary_file"
 done
 
 # Create combined summary
-frozen-duckdb summarize --input "$SUMMARIES_DIR"/*_summary.txt --output "overall_summary.txt" --strategy bullet
+frozen-duckdb-cli summarize --input "$SUMMARIES_DIR"/*_summary.txt --output "overall_summary.txt" --strategy map
 ```
 
 ## Advanced LLM Patterns
@@ -416,15 +426,15 @@ frozen-duckdb summarize --input "$SUMMARIES_DIR"/*_summary.txt --output "overall
 # rag_pipeline.sh
 
 # 1. Generate embeddings for knowledge base
-frozen-duckdb embed --input knowledge_base.txt --output embeddings.json
+frozen-duckdb-cli embed --input knowledge_base.txt --output embeddings.json
 
 # 2. Search for relevant context
-CONTEXT=$(frozen-duckdb search --query "$1" --corpus knowledge_base.txt --format json | jq -r '.[0].document')
+CONTEXT=$(frozen-duckdb-cli search --query "$1" --corpus knowledge_base.txt --format json | jq -r '.[0].document')
 
 # 3. Generate answer with context
 echo "Context: $CONTEXT
 Question: $1
-Please provide a comprehensive answer based on the context." | frozen-duckdb complete
+Please provide a comprehensive answer based on the context." | frozen-duckdb-cli complete
 ```
 
 **RAG with filtering:**
@@ -471,9 +481,9 @@ results = rag_with_filtering(
 **Multi-label classification:**
 ```bash
 # Classify documents by topic
-frozen-duckdb filter --criteria "Is this about machine learning?" --input documents.txt --output ml_docs.txt
-frozen-duckdb filter --criteria "Is this about databases?" --input documents.txt --output db_docs.txt
-frozen-duckdb filter --criteria "Is this about programming?" --input documents.txt --output prog_docs.txt
+frozen-duckdb-cli filter --criteria "Is this about machine learning?" --input documents.txt --output ml_docs.txt
+frozen-duckdb-cli filter --criteria "Is this about databases?" --input documents.txt --output db_docs.txt
+frozen-duckdb-cli filter --criteria "Is this about programming?" --input documents.txt --output prog_docs.txt
 ```
 
 **Automated tagging:**
@@ -514,7 +524,7 @@ split -l 1000 large_document.txt chunk_
 
 # Process each chunk separately
 for chunk in chunk_*; do
-    frozen-duckdb embed --input "$chunk" --output "${chunk}_embeddings.json"
+    frozen-duckdb-cli embed --input "$chunk" --output "${chunk}_embeddings.json"
 done
 
 # Combine results
@@ -625,7 +635,7 @@ tail -f ~/.ollama/logs/server.log
 **Solutions:**
 ```bash
 # Re-setup Ollama integration
-frozen-duckdb flock-setup
+frozen-duckdb-cli flock-setup
 
 # Check extension status
 duckdb -c "SELECT extension_name FROM duckdb_extensions() WHERE extension_name = 'flock';"
@@ -642,7 +652,7 @@ LOAD flock;
 **Diagnosis:**
 ```bash
 # Monitor operation timing
-time frozen-duckdb complete --prompt "test"
+time frozen-duckdb-cli complete --prompt "test"
 
 # Check system resources
 top -p $(pgrep ollama) -p $(pgrep frozen-duckdb)
@@ -756,7 +766,7 @@ source ../frozen-duckdb/prebuilt/setup_env.sh
 
 # Generate embeddings for knowledge base
 echo "🧠 Generating embeddings for knowledge base..."
-frozen-duckdb embed --input knowledge_base.txt --output knowledge_embeddings.json
+frozen-duckdb-cli embed --input knowledge_base.txt --output knowledge_embeddings.json
 
 # Process user query
 if [[ -n "$1" ]]; then
@@ -764,13 +774,13 @@ if [[ -n "$1" ]]; then
     echo "🔍 Searching for: $QUERY"
 
     # Search for relevant information
-    frozen-duckdb search --query "$QUERY" --corpus knowledge_base.txt --format json
+    frozen-duckdb-cli search --query "$QUERY" --corpus knowledge_base.txt --format json
 
     # Generate comprehensive answer
     echo "Context from knowledge base:
-$(frozen-duckdb search --query "$QUERY" --corpus knowledge_base.txt --format text | head -5)
+$(frozen-duckdb-cli search --query "$QUERY" --corpus knowledge_base.txt --format text | head -5)
 
-Question: $QUERY" | frozen-duckdb complete
+Question: $QUERY" | frozen-duckdb-cli complete
 else
     echo "Usage: $0 <query>"
     echo "Example: $0 'How does machine learning work?'"

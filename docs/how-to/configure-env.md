@@ -3,7 +3,22 @@
 
 # How to configure environment variables
 
-To run this project, add the following environment variables to your `.env` file:
+No environment variables are required for the normal macOS build: the builder
+auto-detects the architecture (`uname -m`), downloads the matching per-arch
+dylib, and emits the runtime rpath itself. The following variables are
+optional:
 
-- `ARCH` — Selects the architecture for prebuilt/setup_env.sh and the architecture helper module only; the builder's download path is unaffected because each v1.5.5 release asset is a universal binary (arm64 + x86_64).
-- `RUST_LOG` — Set to debug for verbose build output.
+- `ARCH` — Overrides the architecture reported by `prebuilt/setup_env.sh` and
+  `frozen_duckdb::architecture::detect()`. The builder ignores it: the download
+  path always uses its own `uname -m` detection.
+- `DUCKDB_LIB_DIR`, `DUCKDB_INCLUDE_DIR` — Point at a manually installed DuckDB
+  (library and headers directory). When both are set,
+  `frozen_duckdb::env_setup::is_configured()` reports the environment as ready;
+  this is the path for system DuckDB installs outside the frozen cache.
+- `DOCS_RS` — Set by the docs.rs build infrastructure only: makes the sys-crate
+  build script generate bindings from the vendored headers and skip linking, so
+  rustdoc can typecheck without the dylib.
+
+Verbosity is not configured through environment variables: the CLI uses
+repeated `-v` flags (`-v` INFO, `-vv` DEBUG, `-vvv` TRACE). `RUST_LOG` is not
+read by this crate.

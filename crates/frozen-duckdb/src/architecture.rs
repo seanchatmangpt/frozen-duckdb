@@ -34,15 +34,17 @@
 //!
 //! ## Environment Override
 //!
-//! You can override the detected architecture by setting the `ARCH` environment variable:
+//! The `ARCH` environment variable overrides `detect()` (and therefore
+//! `get_binary_name()`) at runtime:
 //!
 //! ```bash
-//! # Force x86_64 binary selection
-//! ARCH=x86_64 cargo build
-//!
-//! # Force arm64 binary selection
-//! ARCH=arm64 cargo build
+//! # Runtime helpers behave as if on x86_64
+//! ARCH=x86_64 cargo test
 //! ```
+//!
+//! Note that `ARCH` does NOT steer build-time binary selection: the
+//! frozen-duckdb-builder build dependency detects the build host with
+//! `uname -m` and ignores `ARCH`.
 //!
 //! ## Performance Considerations
 //!
@@ -117,9 +119,9 @@ pub fn detect() -> String {
 ///
 /// # Supported Architectures
 ///
-/// - `x86_64`: Intel/AMD 64-bit processors (55MB optimized binary)
-/// - `arm64`: Apple Silicon processors (50MB optimized binary)
-/// - `aarch64`: ARM 64-bit processors (same as arm64, 50MB optimized binary)
+/// - `x86_64`: Intel/AMD 64-bit processors (~112MB binary, measured)
+/// - `arm64`: Apple Silicon processors (~112MB binary, measured)
+/// - `aarch64`: ARM 64-bit processors (same as arm64, ~112MB binary)
 pub fn is_supported(arch: &str) -> bool {
     matches!(arch, "x86_64" | "arm64" | "aarch64")
 }
@@ -153,9 +155,9 @@ pub fn is_supported(arch: &str) -> bool {
 ///
 /// | Architecture | Binary Name | Size | Optimization |
 /// |--------------|-------------|------|--------------|
-/// | x86_64 | libduckdb_x86_64.dylib | 55MB | Intel/AMD optimized |
-/// | arm64/aarch64 | libduckdb_arm64.dylib | 50MB | ARM optimized |
-/// | Other | libduckdb.dylib | ~50MB | Generic fallback |
+/// | x86_64 | libduckdb_x86_64.dylib | ~112MB (measured) | Intel/AMD optimized |
+/// | arm64/aarch64 | libduckdb_arm64.dylib | ~112MB (measured) | ARM optimized |
+/// | Other | libduckdb.dylib | (link name) | Generic fallback |
 ///
 /// # Performance Impact
 ///

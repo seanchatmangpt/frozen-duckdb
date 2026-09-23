@@ -115,7 +115,9 @@ cd frozen-duckdb
 
 # Verify repository structure
 ls -la
-# Should show: Cargo.toml, src/, prebuilt/, scripts/, etc.
+# Should show: Cargo.toml, crates/ (frozen-duckdb, frozen-duckdb-sys,
+# frozen-duckdb-builder), prebuilt/, scripts/, gates/, schema/, templates/,
+# generated/, docs/ — the workspace has no top-level src/
 ```
 
 ### 2. Install Dependencies
@@ -132,18 +134,13 @@ cargo check
 cargo check --all-targets
 ```
 
-### 3. Set Up Environment
+### 3. Environment (nothing to do)
 
-```bash
-# Set up frozen DuckDB environment
-source prebuilt/setup_env.sh
-
-# Verify environment configuration
-echo $DUCKDB_LIB_DIR
-echo $DUCKDB_INCLUDE_DIR
-
-# Should show paths to prebuilt directory
-```
+No environment setup is needed: the first `cargo build` acquires the dylib
+via `frozen-duckdb-builder` into `~/.frozen-duckdb/cache/v1.5.5-{arch}/` and
+the emitted `-Wl,-rpath` loads it at run time. The legacy manual workflow
+(`source prebuilt/setup_env.sh`, setting `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR`)
+is optional and not consumed by the normal build path.
 
 ### 4. Run Tests
 
@@ -164,13 +161,9 @@ cargo test --all && cargo test --all && cargo test --all
 
 **VS Code Configuration:**
 ```json
-// .vscode/settings.json
+// .vscode/settings.json — no DUCKDB_* env needed: the builder handles
+// acquisition inside the normal cargo build rust-analyzer triggers
 {
-  "rust-analyzer.cargo.extraEnv": {
-    "DUCKDB_LIB_DIR": "${workspaceFolder}/prebuilt",
-    "DUCKDB_INCLUDE_DIR": "${workspaceFolder}/prebuilt"
-  },
-  "rust-analyzer.cargo.extraArgs": ["--all-features"],
   "rust-analyzer.check.extraArgs": ["--all-targets"],
   "rust-analyzer.cargo.buildScripts.enable": true,
   "rust-analyzer.procMacro.enable": true,
@@ -207,7 +200,8 @@ export DUCKDB_INCLUDE_DIR="$(pwd)/prebuilt"
 # Rust development tools
 export PATH="$HOME/.cargo/bin:$PATH"
 export RUST_BACKTRACE=1
-export RUST_LOG=debug
+# (No RUST_LOG export: the CLI and builder do not read it — CLI
+# verbosity is the -v/-vv/-vvv flag, audited 2026-09-22)
 
 # Ollama configuration
 export OLLAMA_HOST=127.0.0.1:11434
@@ -338,10 +332,8 @@ CREATE MODEL('test_coder', 'qwen3-coder:30b', 'ollama');
 
 **Verbose Build Output:**
 ```bash
-# Debug build issues
-RUST_LOG=debug cargo build
-
-# Show compilation commands
+# Debug build issues (cargo's own flag — RUST_LOG is not read by the
+# builder or the CLI; audited 2026-09-22)
 cargo build -v
 
 # Check dependencies
@@ -367,11 +359,9 @@ cargo clean && cargo build
 # Debug with backtrace
 RUST_BACKTRACE=1 cargo run -- complete --prompt "test"
 
-# Debug with logging
-RUST_LOG=debug cargo run -- info
-
-# Profile memory usage
-cargo profdata --bin frozen-duckdb
+# Debug with logging (the -v flag before the subcommand; RUST_LOG has no
+# effect — without -v, info prints nothing and exits 0)
+cargo run -- -v info
 ```
 
 **LLM Debugging:**
@@ -794,8 +784,8 @@ for i in {1..5}; do
 done
 
 # Run with different configurations
-RUST_LOG=debug cargo test specific_test
 cargo test --release specific_test
+ARCH=x86_64 cargo test --workspace   # affects architecture-module tests
 ```
 
 ### 3. LLM Development Issues
