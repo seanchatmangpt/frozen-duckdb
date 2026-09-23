@@ -1,0 +1,17 @@
+{
+ "wo": "FDDB-26922-04",
+ "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+ "repo": "/Users/sac/frozen-duckdb (feat/duckdb-1.5.5)",
+ "branch_head": "71c4b16",
+ "command": "MIX_BUILD_PATH=/tmp/gi_build_l10b/dev WO=/Users/sac/frozen-duckdb/docs/sjira/v26.9.22/wo.json mix run <xaas-graph>/admit.exs | grep -c '^REFUSED' / '^ADMITTED'",
+ "exit": 0,
+ "output_excerpt": [
+  "grep -c '^REFUSED' => 0",
+  "grep -c '^ADMITTED' => 6 == jq length docs/sjira/v26.9.22/index.json (6)",
+  "ADMITTED FDDB-26922-01..06 with sha256 digests (docs/sjira/v26.9.22/admission-output.txt)",
+  "projected from the admitted xaas v26.9.22 graph (repository seanchatmangpt/frozen-duckdb): index.json top-level array, wo.json admit_work_order field set, jira/FDDB-26922-0{1..6}.md",
+  "kernel: ggen_igniter release/v26.9.22 worktree (facdf0d) \u2014 the same kernel that admitted the 153-order graph; MIX_BUILD_PATH scratch copy so nothing wrote into the ggen_igniter worktree",
+  "dep caveat: GGEN_IGNITER-26922-13 has no receipt yet (not landed); the kernel source ref release/v26.9.22 is resolvable and is exactly what ran"
+ ],
+ "standing": "ALIVE"
+}

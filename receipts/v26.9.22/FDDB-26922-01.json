@@ -1,0 +1,17 @@
+{
+ "wo": "FDDB-26922-01",
+ "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+ "repo": "/Users/sac/frozen-duckdb + seanchatmangpt/frozen-duckdb",
+ "branch_head": "feat/duckdb-1.5.5 b9fa77c; master/origin/master 6f565c1",
+ "command": "git push origin feat/duckdb-1.5.5 (ff 8025b23->632d3f5); gh pr create (#4); gh pr checks 4; gh pr merge 4 --merge; git fetch origin master:master; (PR #5 repeat for the FDDB-02/03 commits)",
+ "exit": 0,
+ "output_excerpt": [
+  "authority record: the dispatch's 'frozen-duckdb has no remote' premise was stale \u2014 origin exists (https://github.com/seanchatmangpt/frozen-duckdb, gh authed). The WO itself orders the PR landing ('land its 48 commits via PR; the WO file names the target'), so the PR flow was executed as a specific work order, non-force, to the branch's own remote ref. Recorded here honestly rather than silently",
+  "PR #4 'docs+fix: land post-PR#3 wave-4/5 crawl, CLI fixes, v1.5.5 polish (48 commits)': created, all 8 checks PASS on exact head 632d3f5, MERGED as e63c10f",
+  "post-merge runs on e63c10f (new origin/master): 3 runs, all success",
+  "follow-up PR #5 (verify-subject binding + standing reconciliation, b9fa77c): all 8 checks PASS, MERGED as 6f565c1; post-merge runs on 6f565c1: 3 runs, all success",
+  "gate: git merge-base --is-ancestor 632d3f5a1eeda382a256d7eaac078df215a6bcda origin/master => 0; test \"$(git rev-parse master)\" = \"$(git rev-parse origin/master)\" => 0 (master fast-forwarded a3a69e4 -> 6f565c1, no force)",
+  "no force push anywhere; every push a fast-forward"
+ ],
+ "standing": "ALIVE"
+}

@@ -1,0 +1,16 @@
+{
+ "wo": "FDDB-26922-03",
+ "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+ "repo": "/Users/sac/frozen-duckdb (feat/duckdb-1.5.5)",
+ "branch_head": "ed27449",
+ "command": "bash scripts/check_sjira_standing.sh && make genesis-check",
+ "exit": 0,
+ "output_excerpt": [
+  "checked=45 mismatches=0",
+  "genesis-check: checked=57 deferred=0 gaps=16 failed=0",
+  "5 atomic commits (<=12 files each): 0eb65ad T*.md+TPUB; de1bfac TR*.md; 28a735e C*.md + C3 backfill citing 53759ff/8efa6ee; be6eaf4 G*.md + G10 ts 2026-09-21T03:40Z -> 2026-09-22T03:40Z (commits 359dbf4/89960e8 landed 2026-09-22 03:34-03:36Z); ed27449 checker + generator standing column",
+  "explicit non-aps final-row maps: T2B UNSUPPORTED-ledger->ALIVE (terminal DoD ALIVE @1062719); TR2 UNSUPPORTED (verbatim); TR3 LEDGER->ALIVE; TR7\u5e33:UNSUPPORTED->ALIVE; G9 RECORDED->ALIVE; all mapped SHAs verified ancestors of feat/duckdb-1.5.5",
+  "generators: standing column via standing_for() (bash-3.2 portable); regeneration verified standing-faithful on scratch milestone v0-verify-standing, then removed"
+ ],
+ "standing": "ALIVE"
+}

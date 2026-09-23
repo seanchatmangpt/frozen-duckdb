@@ -1,0 +1,11 @@
+{
+ "wo": "FDDB-26922-06",
+ "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+ "repo": "/Users/sac/frozen-duckdb",
+ "command": "not run \u2014 depends on user approval",
+ "exit": null,
+ "output_excerpt": [
+  "REFUSED_NO_AUTHORITY: dropping stash@{0} (7d3b4c0c) requires user approval per the WO; approval not granted in this dispatch. The stash content is additionally preserved as branch preserve/v26.9.22/stash-0 (W0), so no information is at risk; git stash list remains 1"
+ ],
+ "standing": "REFUSED_NO_AUTHORITY"
+}

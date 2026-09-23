@@ -1,0 +1,11 @@
+{
+ "wo": "FDDB-26922-05",
+ "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+ "repo": "/Users/sac/frozen-duckdb",
+ "command": "not run \u2014 operator-retained steps",
+ "exit": null,
+ "output_excerpt": [
+  "REFUSED_NO_AUTHORITY: tag v1.5.5 re-pin/push, crates.io publish (builder -> sys -> frozen-duckdb), and ISSUE_1_COMMENT posting are operator steps per the release action ('retargeted to post-merge master'); this dispatch grants no crates.io credentials or tag-push authority for frozen-duckdb"
+ ],
+ "standing": "REFUSED_NO_AUTHORITY"
+}

@@ -1,0 +1,17 @@
+{
+ "wo": "FDDB-26922-02",
+ "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+ "repo": "/Users/sac/frozen-duckdb (feat/duckdb-1.5.5)",
+ "branch_head": "b9fa77c",
+ "command": "make verify && make gates && cargo run --example basic_usage; grep -c subjectTree scripts/verify-evidence.ttl",
+ "exit": 0,
+ "output_excerpt": [
+  "make verify => 0: ggen sync run 0; ggen receipt verify valid (chain cde5b7c0..., 11 outputs, signed); verify-gates 5/5 green (build, clippy -D warnings, fmt, test-validation, test-workspace)",
+  "grep -c subjectTree scripts/verify-evidence.ttl => 1 (ver:verifySubject ver:subjectHead ed27449 / ver:subjectTree d18dd49 recorded at gate time; source edit in ggen.toml render-verify-gates template, verify-gates.sh re-rendered via ggen sync run)",
+  "make gates => 0 (GATES GREEN: sync exit 0 + genesis-check exit 0)",
+  "cargo run --example basic_usage => 0 (real DuckDB 1.5.5 engine, 1000-query benchmark 7131 q/s)",
+  "dep note: pack imports are absolute paths into /Users/sac/ggen-marketplace at main e4fef61 (post-W0 ff); sync exit 0 is the resolution proof",
+  "NOTE: first example run failed 'No space left on device' (disk 0 GB); 57 GB of stale ended-session scratch under /private/tmp/claude-501 freed; rerun green"
+ ],
+ "standing": "ALIVE"
+}
