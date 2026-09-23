@@ -1,0 +1,347 @@
+[
+ {
+  "identity": "FDDB-26922-01",
+  "title": "Land the 48 commits made after the merge: fast-forward local master, push the 2 local commits",
+  "description": "Land the 48 commits made after the merge: fast-forward local master, push the 2 local commits, open and merge a PR feat/duckdb-1.5.5 -> master. Acceptance: `cd /Users/sac/frozen-duckdb && git fetch origin && git merge-base --is-ancestor 632d3f5a1eeda382a256d7eaac078df215a6bcda origin/master && test \"$(git rev-parse master)\" = \"$(git rev-parse origin/master)\"`, and every run whose headSha is the new origin/master is success. Non-order prerequisites: push authority.",
+  "subject": "seanchatmangpt/frozen-duckdb@release/v26.9.22#FDDB-26922-01",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+  "standing": "UNKNOWN",
+  "evidence_ceiling": "EXECUTED_VERIFIED",
+  "authority_ceiling": "CONSTRUCT",
+  "authority_requirement": "NONE",
+  "promotion_rule": "FDDB-26922-01 leaves UNKNOWN only through a TransitionLog event whose receipt binds candidateSha and subjectSha on seanchatmangpt/frozen-duckdb release/v26.9.22 descended from 3ebfac8c62c3fdf14275bdff737074079731234e: the court must observe the acceptance check pass at that head, observe it fail when the order's diff is reverted (revert-mutation), and find every upstream edge (none) ALIVE, with the prerequisite evidence (push authority) recorded. A passing log without a receipt, a generated projection, or upstream standing alone never promotes.",
+  "replay_identity": "semantic-jira:v26.9.22:FDDB-26922-01",
+  "required_courts": [
+   "court-fddb-26922-01"
+  ],
+  "required_evidence": [
+   "authority-evidence",
+   "ev-fddb-26922-01-push-authority",
+   "local-execution-evidence",
+   "postcondition-evidence",
+   "receipt-evidence",
+   "replay-evidence",
+   "source-evidence"
+  ],
+  "acceptance": [
+   "`cd /Users/sac/frozen-duckdb && git fetch origin && git merge-base --is-ancestor 632d3f5a1eeda382a256d7eaac078df215a6bcda origin/master && test \"$(git rev-parse master)\" = \"$(git rev-parse origin/master)\"`, and every run whose headSha is the new origin/master is success",
+   "The check runs at a recorded head of seanchatmangpt/frozen-duckdb release/v26.9.22 that has 3ebfac8c62c3fdf14275bdff737074079731234e as an ancestor (git merge-base --is-ancestor 3ebfac8c62c3 HEAD exits 0); that head is the receipt subjectSha."
+  ],
+  "falsifiers": [
+   "Refutes the acceptance of FDDB-26922-01 as evidence: after reverting only the order diff on the court head, the same check still passes, so it does not observe this order consequence.",
+   "Refutes FDDB-26922-01: at the court head, a named run, job or suite does not succeed."
+  ],
+  "projections": [
+   "jira",
+   "sa2a",
+   "worker",
+   "verification",
+   "machine",
+   "receipt",
+   "replay"
+  ],
+  "dependencies": [],
+  "path_scope": [
+   "."
+  ],
+  "required_receipt_classes": [
+   "manufacture",
+   "authority_preparation",
+   "verification",
+   "postcondition",
+   "replay"
+  ],
+  "next_action": "Take /Users/sac/wt/v26922/frozen-duckdb/.merge.lock per COORDINATION.md, build in an own worktree off release/v26.9.22 (3ebfac8c62c3), run the acceptance check, write receipts/v26.9.22/FDDB-26922-01.json (validate_receipt.py) and the court verdict, then append the standing transition to the TransitionLog.",
+  "next_checkpoint": "cp-frozen-duckdb-v26922-release"
+ },
+ {
+  "identity": "FDDB-26922-02",
+  "title": "Reproducible verify receipt: record the git HEAD/tree hash in scripts/verify-evidence.ttl",
+  "description": "Reproducible verify receipt: record the git HEAD/tree hash in scripts/verify-evidence.ttl, with the pack imports resolved against published ggen-marketplace main. Acceptance: `make verify && make gates && cargo run --example basic_usage` exit 0, and `grep -c 'subjectTree' scripts/verify-evidence.ttl` is at least 1. Upstream work orders: FDDB-26922-01, GGMKT-26922-01.",
+  "subject": "seanchatmangpt/frozen-duckdb@release/v26.9.22#FDDB-26922-02",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+  "standing": "UNKNOWN",
+  "evidence_ceiling": "EXECUTED_VERIFIED",
+  "authority_ceiling": "CONSTRUCT",
+  "authority_requirement": "NONE",
+  "promotion_rule": "FDDB-26922-02 leaves UNKNOWN only through a TransitionLog event whose receipt binds candidateSha and subjectSha on seanchatmangpt/frozen-duckdb release/v26.9.22 descended from 3ebfac8c62c3fdf14275bdff737074079731234e: the court must observe the acceptance check pass at that head, observe it fail when the order's diff is reverted (revert-mutation), and find every upstream edge (FDDB-26922-01, GGMKT-26922-01) ALIVE. A passing log without a receipt, a generated projection, or upstream standing alone never promotes.",
+  "replay_identity": "semantic-jira:v26.9.22:FDDB-26922-02",
+  "required_courts": [
+   "court-fddb-26922-02"
+  ],
+  "required_evidence": [
+   "local-execution-evidence",
+   "publication-evidence",
+   "receipt-evidence",
+   "replay-evidence",
+   "source-evidence"
+  ],
+  "acceptance": [
+   "`make verify && make gates && cargo run --example basic_usage` exit 0, and `grep -c 'subjectTree' scripts/verify-evidence.ttl` is at least 1",
+   "The check runs at a recorded head of seanchatmangpt/frozen-duckdb release/v26.9.22 that has 3ebfac8c62c3fdf14275bdff737074079731234e as an ancestor (git merge-base --is-ancestor 3ebfac8c62c3 HEAD exits 0); that head is the receipt subjectSha."
+  ],
+  "falsifiers": [
+   "Refutes the acceptance of FDDB-26922-02 as evidence: after reverting only the order diff on the court head, the same check still passes, so it does not observe this order consequence.",
+   "Refutes FDDB-26922-02: at the court head, a command in the check exits nonzero; or a counted value is below 1."
+  ],
+  "projections": [
+   "jira",
+   "sa2a",
+   "worker",
+   "verification",
+   "machine",
+   "receipt",
+   "replay"
+  ],
+  "dependencies": [
+   {
+    "upstream": "FDDB-26922-01",
+    "type": "requiresReceipt"
+   },
+   {
+    "upstream": "GGMKT-26922-01",
+    "type": "requiresReceipt"
+   }
+  ],
+  "path_scope": [
+   "scripts/verify-evidence.ttl"
+  ],
+  "required_receipt_classes": [
+   "manufacture",
+   "verification",
+   "replay"
+  ],
+  "next_action": "Take /Users/sac/wt/v26922/frozen-duckdb/.merge.lock per COORDINATION.md, build in an own worktree off release/v26.9.22 (3ebfac8c62c3), run the acceptance check, write receipts/v26.9.22/FDDB-26922-02.json (validate_receipt.py) and the court verdict, then append the standing transition to the TransitionLog.",
+  "next_checkpoint": "cp-frozen-duckdb-v26922-release"
+ },
+ {
+  "identity": "FDDB-26922-03",
+  "title": "Reconcile standing without clobbering History",
+  "description": "Reconcile standing without clobbering History: add a standing column to the SPECS generators and write each ticket's frontmatter from its final History standing, mapping non-aps rows (T2B, TR2, TR3, TR7, G9) explicitly; backfill C3 citing 53759ff/8efa6ee; fix G10's timestamp. Acceptance: a checker over T*.md, TR*.md, C[0-9]*.md, G*.md and TPUB.md (excluding CI_PROJECTION.md) reports 0 mismatches, and `make genesis-check` exit 0.",
+  "subject": "seanchatmangpt/frozen-duckdb@release/v26.9.22#FDDB-26922-03",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+  "standing": "UNKNOWN",
+  "evidence_ceiling": "EXECUTED_VERIFIED",
+  "authority_ceiling": "CONSTRUCT",
+  "authority_requirement": "NONE",
+  "promotion_rule": "FDDB-26922-03 leaves UNKNOWN only through a TransitionLog event whose receipt binds candidateSha and subjectSha on seanchatmangpt/frozen-duckdb release/v26.9.22 descended from 3ebfac8c62c3fdf14275bdff737074079731234e: the court must observe the acceptance check pass at that head, observe it fail when the order's diff is reverted (revert-mutation), and find every upstream edge (none) ALIVE. A passing log without a receipt, a generated projection, or upstream standing alone never promotes.",
+  "replay_identity": "semantic-jira:v26.9.22:FDDB-26922-03",
+  "required_courts": [
+   "court-fddb-26922-03"
+  ],
+  "required_evidence": [
+   "generated-artifact-evidence",
+   "local-execution-evidence",
+   "receipt-evidence",
+   "replay-evidence",
+   "source-evidence"
+  ],
+  "acceptance": [
+   "a checker over T*.md, TR*.md, C[0-9]*.md, G*.md and TPUB.md (excluding CI_PROJECTION.md) reports 0 mismatches, and `make genesis-check` exit 0",
+   "The check runs at a recorded head of seanchatmangpt/frozen-duckdb release/v26.9.22 that has 3ebfac8c62c3fdf14275bdff737074079731234e as an ancestor (git merge-base --is-ancestor 3ebfac8c62c3 HEAD exits 0); that head is the receipt subjectSha."
+  ],
+  "falsifiers": [
+   "Refutes the acceptance of FDDB-26922-03 as evidence: after reverting only the order diff on the court head, the same check still passes, so it does not observe this order consequence.",
+   "Refutes FDDB-26922-03: at the court head, a command in the check exits nonzero."
+  ],
+  "projections": [
+   "jira",
+   "sa2a",
+   "worker",
+   "verification",
+   "machine",
+   "receipt",
+   "replay"
+  ],
+  "dependencies": [],
+  "path_scope": [
+   "."
+  ],
+  "required_receipt_classes": [
+   "manufacture",
+   "verification",
+   "replay"
+  ],
+  "next_action": "Take /Users/sac/wt/v26922/frozen-duckdb/.merge.lock per COORDINATION.md, build in an own worktree off release/v26.9.22 (3ebfac8c62c3), run the acceptance check, write receipts/v26.9.22/FDDB-26922-03.json (validate_receipt.py) and the court verdict, then append the standing transition to the TransitionLog.",
+  "next_checkpoint": "cp-frozen-duckdb-v26922-release"
+ },
+ {
+  "identity": "FDDB-26922-04",
+  "title": "docs/sjira/v26.9.22 as admitted orders in the xaas shape",
+  "description": "docs/sjira/v26.9.22 as admitted orders in the xaas shape (top-level array index.json, wo.json list keyed by identity, repository seanchatmangpt/frozen-duckdb). Acceptance: from ~/ggen_igniter, `WO=/Users/sac/frozen-duckdb/docs/sjira/v26.9.22/wo.json mix run /Users/sac/xaas/docs/sjira/v26.9.21/admit.exs | grep -c '^REFUSED'` prints 0, and the ADMITTED count equals `jq length /Users/sac/frozen-duckdb/docs/sjira/v26.9.22/index.json`. Upstream work orders: FDDB-26922-03, GGEN_IGNITER-26922-13.",
+  "subject": "seanchatmangpt/frozen-duckdb@release/v26.9.22#FDDB-26922-04",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+  "standing": "UNKNOWN",
+  "evidence_ceiling": "EXECUTED_VERIFIED",
+  "authority_ceiling": "CONSTRUCT",
+  "authority_requirement": "NONE",
+  "promotion_rule": "FDDB-26922-04 leaves UNKNOWN only through a TransitionLog event whose receipt binds candidateSha and subjectSha on seanchatmangpt/frozen-duckdb release/v26.9.22 descended from 3ebfac8c62c3fdf14275bdff737074079731234e: the court must observe the acceptance check pass at that head, observe it fail when the order's diff is reverted (revert-mutation), and find every upstream edge (FDDB-26922-03, GGEN_IGNITER-26922-13) ALIVE. A passing log without a receipt, a generated projection, or upstream standing alone never promotes.",
+  "replay_identity": "semantic-jira:v26.9.22:FDDB-26922-04",
+  "required_courts": [
+   "court-fddb-26922-04"
+  ],
+  "required_evidence": [
+   "local-execution-evidence",
+   "receipt-evidence",
+   "replay-evidence",
+   "source-evidence"
+  ],
+  "acceptance": [
+   "from ~/ggen_igniter, `WO=/Users/sac/frozen-duckdb/docs/sjira/v26.9.22/wo.json mix run /Users/sac/xaas/docs/sjira/v26.9.21/admit.exs | grep -c '^REFUSED'` prints 0, and the ADMITTED count equals `jq length /Users/sac/frozen-duckdb/docs/sjira/v26.9.22/index.json`",
+   "The check runs at a recorded head of seanchatmangpt/frozen-duckdb release/v26.9.22 that has 3ebfac8c62c3fdf14275bdff737074079731234e as an ancestor (git merge-base --is-ancestor 3ebfac8c62c3 HEAD exits 0); that head is the receipt subjectSha."
+  ],
+  "falsifiers": [
+   "Refutes the acceptance of FDDB-26922-04 as evidence: after reverting only the order diff on the court head, the same check still passes, so it does not observe this order consequence.",
+   "Refutes FDDB-26922-04: at the court head, the printed count is nonzero; or a compared pair differs."
+  ],
+  "projections": [
+   "jira",
+   "sa2a",
+   "worker",
+   "verification",
+   "machine",
+   "receipt",
+   "replay"
+  ],
+  "dependencies": [
+   {
+    "upstream": "FDDB-26922-03",
+    "type": "requiresReceipt"
+   },
+   {
+    "upstream": "GGEN_IGNITER-26922-13",
+    "type": "requiresReceipt"
+   }
+  ],
+  "path_scope": [
+   "docs/sjira/v26.9.22"
+  ],
+  "required_receipt_classes": [
+   "manufacture",
+   "verification",
+   "replay"
+  ],
+  "next_action": "Take /Users/sac/wt/v26922/frozen-duckdb/.merge.lock per COORDINATION.md, build in an own worktree off release/v26.9.22 (3ebfac8c62c3), run the acceptance check, write receipts/v26.9.22/FDDB-26922-04.json (validate_receipt.py) and the court verdict, then append the standing transition to the TransitionLog.",
+  "next_checkpoint": "cp-frozen-duckdb-v26922-release"
+ },
+ {
+  "identity": "FDDB-26922-05",
+  "title": "Operator v1.5.5: re-pin the tag target to post-01 master (a3a69e4 lacks the CLI clap fix ac77ae3/031597c), tag, verify release assets",
+  "description": "Operator v1.5.5: re-pin the tag target to post-01 master (a3a69e4 lacks the CLI clap fix ac77ae3/031597c), tag, verify release assets, cargo publish builder -> sys -> frozen-duckdb, post ISSUE_1_COMMENT (issue #1 is already closed). Acceptance: `git ls-remote --tags origin refs/tags/v1.5.5 | wc -l` = 1, and crates.io max_version = 1.5.5 for all three crates. Upstream work orders: FDDB-26922-01, FDDB-26922-02. Non-order prerequisites: operator authority.",
+  "subject": "seanchatmangpt/frozen-duckdb@release/v26.9.22#FDDB-26922-05",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+  "standing": "UNKNOWN",
+  "evidence_ceiling": "EXECUTED_VERIFIED",
+  "authority_ceiling": "CONSTRUCT",
+  "authority_requirement": "NONE",
+  "promotion_rule": "FDDB-26922-05 leaves UNKNOWN only through a TransitionLog event whose receipt binds candidateSha and subjectSha on seanchatmangpt/frozen-duckdb release/v26.9.22 descended from 3ebfac8c62c3fdf14275bdff737074079731234e: the court must observe the acceptance check pass at that head, observe it fail when the order's diff is reverted (revert-mutation), and find every upstream edge (FDDB-26922-01, FDDB-26922-02) ALIVE, with the prerequisite evidence (operator authority) recorded. A passing log without a receipt, a generated projection, or upstream standing alone never promotes.",
+  "replay_identity": "semantic-jira:v26.9.22:FDDB-26922-05",
+  "required_courts": [
+   "court-fddb-26922-05"
+  ],
+  "required_evidence": [
+   "authority-evidence",
+   "ev-fddb-26922-05-operator-authority",
+   "local-execution-evidence",
+   "publication-evidence",
+   "receipt-evidence",
+   "replay-evidence",
+   "source-evidence"
+  ],
+  "acceptance": [
+   "`git ls-remote --tags origin refs/tags/v1.5.5 | wc -l` = 1, and crates.io max_version = 1.5.5 for all three crates",
+   "The check runs at a recorded head of seanchatmangpt/frozen-duckdb release/v26.9.22 that has 3ebfac8c62c3fdf14275bdff737074079731234e as an ancestor (git merge-base --is-ancestor 3ebfac8c62c3 HEAD exits 0); that head is the receipt subjectSha."
+  ],
+  "falsifiers": [
+   "Refutes the acceptance of FDDB-26922-05 as evidence: after reverting only the order diff on the court head, the same check still passes, so it does not observe this order consequence.",
+   "Refutes FDDB-26922-05: at the court head, a compared value is not 1; or a compared value is not 1.5.5."
+  ],
+  "projections": [
+   "jira",
+   "sa2a",
+   "worker",
+   "verification",
+   "machine",
+   "receipt",
+   "replay"
+  ],
+  "dependencies": [
+   {
+    "upstream": "FDDB-26922-01",
+    "type": "requiresReceipt"
+   },
+   {
+    "upstream": "FDDB-26922-02",
+    "type": "requiresReceipt"
+   }
+  ],
+  "path_scope": [
+   "."
+  ],
+  "required_receipt_classes": [
+   "manufacture",
+   "authority_preparation",
+   "verification",
+   "replay"
+  ],
+  "next_action": "Take /Users/sac/wt/v26922/frozen-duckdb/.merge.lock per COORDINATION.md, build in an own worktree off release/v26.9.22 (3ebfac8c62c3), run the acceptance check, write receipts/v26.9.22/FDDB-26922-05.json (validate_receipt.py) and the court verdict, then append the standing transition to the TransitionLog.",
+  "next_checkpoint": "cp-frozen-duckdb-v26922-release"
+ },
+ {
+  "identity": "FDDB-26922-06",
+  "title": "Drop the stale stash@{0} (verify-evidence timestamps superseded by 8025b23/db0cfcf)",
+  "description": "Drop the stale stash@{0} (verify-evidence timestamps superseded by 8025b23/db0cfcf). Acceptance: `git stash list | wc -l` = 0. Non-order prerequisites: user approval.",
+  "subject": "seanchatmangpt/frozen-duckdb@release/v26.9.22#FDDB-26922-06",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "base_sha": "3ebfac8c62c3fdf14275bdff737074079731234e",
+  "standing": "UNKNOWN",
+  "evidence_ceiling": "EXECUTED_VERIFIED",
+  "authority_ceiling": "CONSTRUCT",
+  "authority_requirement": "NONE",
+  "promotion_rule": "FDDB-26922-06 leaves UNKNOWN only through a TransitionLog event whose receipt binds candidateSha and subjectSha on seanchatmangpt/frozen-duckdb release/v26.9.22 descended from 3ebfac8c62c3fdf14275bdff737074079731234e: the court must observe the acceptance check pass at that head, observe it fail when the order's diff is reverted (revert-mutation), and find every upstream edge (none) ALIVE, with the prerequisite evidence (user approval) recorded. A passing log without a receipt, a generated projection, or upstream standing alone never promotes.",
+  "replay_identity": "semantic-jira:v26.9.22:FDDB-26922-06",
+  "required_courts": [
+   "court-fddb-26922-06"
+  ],
+  "required_evidence": [
+   "ev-fddb-26922-06-user-approval",
+   "local-execution-evidence",
+   "receipt-evidence",
+   "replay-evidence",
+   "source-evidence"
+  ],
+  "acceptance": [
+   "`git stash list | wc -l` = 0",
+   "The check runs at a recorded head of seanchatmangpt/frozen-duckdb release/v26.9.22 that has 3ebfac8c62c3fdf14275bdff737074079731234e as an ancestor (git merge-base --is-ancestor 3ebfac8c62c3 HEAD exits 0); that head is the receipt subjectSha."
+  ],
+  "falsifiers": [
+   "Refutes the acceptance of FDDB-26922-06 as evidence: after reverting only the order diff on the court head, the same check still passes, so it does not observe this order consequence.",
+   "Refutes FDDB-26922-06: at the court head, a compared value is not 0."
+  ],
+  "projections": [
+   "jira",
+   "sa2a",
+   "worker",
+   "verification",
+   "machine",
+   "receipt",
+   "replay"
+  ],
+  "dependencies": [],
+  "path_scope": [
+   "."
+  ],
+  "required_receipt_classes": [
+   "manufacture",
+   "verification",
+   "replay"
+  ],
+  "next_action": "Take /Users/sac/wt/v26922/frozen-duckdb/.merge.lock per COORDINATION.md, build in an own worktree off release/v26.9.22 (3ebfac8c62c3), run the acceptance check, write receipts/v26.9.22/FDDB-26922-06.json (validate_receipt.py) and the court verdict, then append the standing transition to the TransitionLog.",
+  "next_checkpoint": "cp-frozen-duckdb-v26922-release"
+ }
+]
