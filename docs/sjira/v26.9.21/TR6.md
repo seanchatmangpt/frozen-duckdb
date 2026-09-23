@@ -4,7 +4,7 @@ dcterms:title: "Repo hygiene + 帳 ledger"
 dcterms:created: "2026-09-21"
 dcterms:isPartOf: "v26.9.21"
 rdf:type: oslc_cm:ChangeRequest, earl:TestRequirement
-aps:standing: https://w3id.org/chatman/aps#OPEN
+aps:standing: https://w3id.org/chatman/aps#ALIVE
 milestone: frozen-duckdb v1.5.5 wave 3 (hardening, pre-publish)
 worktree: /Users/sac/frozen-duckdb-wt/r6
 branch: feat/155-r6

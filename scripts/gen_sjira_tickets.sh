@@ -48,9 +48,19 @@ DoD: [ ] all five probes executed with command+exit recorded in History  [ ] sta
 Context: (1) cargo publish --dry-run in order: frozen-duckdb-builder, frozen-duckdb-sys, frozen-duckdb — fix nothing; record all three outcomes. Verify vendored headers ship: cargo package -p frozen-duckdb-builder --list | grep vendored-headers. Record package sizes (crates.io limit 10MiB). (2) Render PR_BODY.md — title 'feat: DuckDB 1.5.5 support — pin bump, release asset fix, API layer restoration (closes #1)' + Summary/Changes/Test-plan with [FILL] slots for cross-ticket evidence. (3) Render ISSUE_1_COMMENT.md — warm reply to @dfeyer (opened 2026-03-23: 'Did you plan to release a version with DuckDB 1.5?'): done, crate v1.5.5 tracks upstream v1.5.5, drop-in, automatic prebuilt download (macOS universal arm64+x86_64), vendored headers, honest note that Windows/Linux assets remain roadmap, #{PR_NUMBER} placeholder. (4) MILESTONE.md: mark DoD done-items and list operator cuts (merge, tag v1.5.5 push, release-asset verify, cargo publish, post comment).
 DoD: [ ] three dry-runs executed + recorded  [ ] vendored-headers in package list  [ ] PR_BODY.md + ISSUE_1_COMMENT.md + MILESTONE.md rendered  [ ] committed"
 )
+# Standing column (FDDB-26922-03): each ticket's frontmatter aps:standing is
+# rendered from its FINAL History standing; new tickets default to OPEN.
+standing_for() {
+  case "$1" in
+    T2A|T2B|T4|T5|T6|T8|TPUB) echo "ALIVE" ;;
+    T3|T7) echo "PARTIAL_ALIVE" ;;
+    TR2) echo "UNSUPPORTED" ;;
+    *) echo "OPEN" ;;
+  esac
+}
 
 render_ticket() {
-  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6"
+  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6" standing="${7:-OPEN}"
   cat > "$OUT/$id.md" <<EOF
 ---
 id: $id
@@ -58,7 +68,7 @@ dcterms:title: "$title"
 dcterms:created: "$DATE"
 dcterms:isPartOf: "$MILESTONE"
 rdf:type: oslc_cm:ChangeRequest, earl:TestRequirement
-aps:standing: $(printf 'https://w3id.org/chatman/aps#OPEN')
+aps:standing: $(printf 'https://w3id.org/chatman/aps#%s' "$standing")
 milestone: frozen-duckdb v1.5.5 (DuckDB 1.5.5 support, closes seanchatmangpt/frozen-duckdb#1)
 worktree: $wt
 branch: $branch
@@ -164,7 +174,8 @@ for spec in "${SPECS[@]}"; do
   wt="${rest%%|*}";        rest="${rest#*|}"
   branch="${rest%%|*}";    rest="${rest#*|}"
   scope="${rest%%|*}";     body="${rest#*|}"
-  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body"
+  standing="$(standing_for "$id")"
+  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body" "$standing"
 done
 
 echo "rendered $(ls "$OUT" | wc -l | tr -d ' ') files into $OUT:"

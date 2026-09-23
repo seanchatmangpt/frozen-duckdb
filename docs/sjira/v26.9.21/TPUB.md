@@ -3,7 +3,7 @@ id: TPUB
 dcterms:title: "Dry-run publish pre-flight (final head)"
 dcterms:created: "2026-09-21"
 rdf:type: oslc_cm:ChangeRequest, earl:TestRequirement
-aps:standing: https://w3id.org/chatman/aps#OPEN
+aps:standing: https://w3id.org/chatman/aps#ALIVE
 milestone: frozen-duckdb v1.5.5 — pre-publish verification
 worktree: /Users/sac/frozen-duckdb-wt/publish
 branch: feat/155-publish
