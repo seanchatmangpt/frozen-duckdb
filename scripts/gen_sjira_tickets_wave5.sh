@@ -48,9 +48,17 @@ DoD: [ ] new laws in ontology with evidence anchors  [ ] ≥2 new gates proven t
 The adversarial whole-repo crawler. Hunt: (1) version chaos — every occurrence of 1.4.0 / 1.5.5 / v1.5.5 / 1.10505 / 1.10505.0 classified (current-pin / historical / crate-encoding / STALE); (2) dead internal links (README + docs/*.md hrefs to files that don't exist, anchor links); (3) session-relative claims in durable files (this session / just fixed / not yet run) that will read as false in a week; (4) TODO/FIXME/XXX/UNSUPPORTED inventory with per-item disposition; (5) orphaned files (nothing references them — feed candidates to docs/GENESIS.md gaps via a report, do not delete). Produce a findings table, fix the safe class (docs/links/labels), ledger the rest.
 DoD: [ ] version chaos table complete  [ ] dead links fixed or ledgered  [ ] session-relative claims neutralized in durable docs  [ ] inventory delivered  [ ] ggen sync run + cargo build green  [ ] committed"
 )
+# Standing column (FDDB-26922-03): each ticket's frontmatter aps:standing is
+# rendered from its FINAL History standing; new tickets default to OPEN.
+standing_for() {
+  case "$1" in
+    G1|G2|G3|G4|G5|G6|G7|G8|G9|G10) echo "ALIVE" ;;
+    *) echo "OPEN" ;;
+  esac
+}
 
 render_ticket() {
-  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6"
+  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6" standing="${7:-OPEN}"
   cat > "$OUT/$id.md" <<EOF
 ---
 id: $id
@@ -58,7 +66,7 @@ dcterms:title: "$title"
 dcterms:created: "$DATE"
 dcterms:isPartOf: "$MILESTONE"
 rdf:type: oslc_cm:ChangeRequest, earl:TestRequirement
-aps:standing: https://w3id.org/chatman/aps#OPEN
+aps:standing: https://w3id.org/chatman/aps#${standing}
 milestone: frozen-duckdb v1.5.5 wave 5 (gap/staleness crawl → pack feedback)
 worktree: $wt
 branch: $branch
@@ -101,6 +109,7 @@ for spec in "${SPECS[@]}"; do
   wt="${rest%%|*}";        rest="${rest#*|}"
   branch="${rest%%|*}";    rest="${rest#*|}"
   scope="${rest%%|*}";     body="${rest#*|}"
-  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body"
+  standing="$(standing_for "$id")"
+  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body" "$standing"
 done
 echo "rendered G1..G10"

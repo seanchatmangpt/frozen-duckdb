@@ -44,9 +44,17 @@ DoD: [ ] manifest covers every consequence file  [ ] Makefile targets rendered/d
 Packs: packs/github-actions-pack and packs/cargo-cicd-pack (assess both). Context: this repo's CI (ci.yml, ci-simple.yml, test-minimal.yml, build-binaries.yml) was hand-repaired in wave 3 (TR1/TR2) — that is 帳 debt. Assess whether either pack can project these workflows from facts: if yes, project and reconcile (careful: the wave-3 fixes encode hard-won laws — cache pre-seeding, CMAKE_OSX_ARCHITECTURES, asset names — a projection that loses them is a regression; diff ruthlessly); if no, record the failed edge with specifics. Output: CI_PROJECTION.md verdict + rendered workflows or ledgered edges.
 DoD: [ ] both packs assessed with citations  [ ] projection or failed-edge ledger  [ ] yaml-parse any touched workflow  [ ] sync exit 0  [ ] committed"
 )
+# Standing column (FDDB-26922-03): each ticket's frontmatter aps:standing is
+# rendered from its FINAL History standing; new tickets default to OPEN.
+standing_for() {
+  case "$1" in
+    C2|C3|C4|C5|C7|C8|C9|C10|C11) echo "ALIVE" ;;
+    *) echo "OPEN" ;;
+  esac
+}
 
 render_ticket() {
-  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6"
+  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6" standing="${7:-OPEN}"
   cat > "$OUT/$id.md" <<EOF
 ---
 id: $id
@@ -54,7 +62,7 @@ dcterms:title: "$title"
 dcterms:created: "$DATE"
 dcterms:isPartOf: "$MILESTONE"
 rdf:type: oslc_cm:ChangeRequest, earl:TestRequirement
-aps:standing: https://w3id.org/chatman/aps#OPEN
+aps:standing: https://w3id.org/chatman/aps#${standing}
 milestone: frozen-duckdb v1.5.5 wave 4 (marketplace capability composition)
 worktree: $wt
 branch: $branch
@@ -101,6 +109,7 @@ for spec in "${SPECS[@]}"; do
   wt="${rest%%|*}";        rest="${rest#*|}"
   branch="${rest%%|*}";    rest="${rest#*|}"
   scope="${rest%%|*}";     body="${rest#*|}"
-  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body"
+  standing="$(standing_for "$id")"
+  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body" "$standing"
 done
 echo "rendered: C2 C3 C4 C5 C7 C8 C9 C10 C11"

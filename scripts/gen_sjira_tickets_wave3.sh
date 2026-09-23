@@ -42,9 +42,19 @@ DoD: [ ] platform-aware naming unit-consistent (review + cargo test -p frozen-du
 Context: pre-publish polish. (1) Crate metadata: builder + main crate get description/readme/keywords sanity (sys is TR4's; do not touch it); ensure readme files referenced exist. (2) README: badges/links point at real URLs (repo-relative docs links must resolve on crates.io — use absolute GitHub URLs where needed); mention Linux/multi-arch honestly (TR7 may land after you — write 'macOS prebuilt assets; Linux via local compile (prebuilt .so planned)' unless TR7 evidence says otherwise at your run time). (3) CHANGELOG: add entries for the wave-3 hardening under [1.5.5] Unreleased-fixes subsection. (4) Final grep: no stale 1.4.0-as-current, no 1.10505 vs 1.5.5 inconsistencies in user-facing strings.
 DoD: [ ] metadata complete (cargo package -p frozen-duckdb --list spot-check)  [ ] README claims grep-anchored  [ ] CHANGELOG updated  [ ] committed"
 )
+# Standing column (FDDB-26922-03): each ticket's frontmatter aps:standing is
+# rendered from its FINAL History standing; new tickets default to OPEN.
+standing_for() {
+  case "$1" in
+    TR3|TR4|TR5|TR6|TR7|TR8) echo "ALIVE" ;;
+    TR1) echo "PARTIAL_ALIVE" ;;
+    TR2) echo "UNSUPPORTED" ;;
+    *) echo "OPEN" ;;
+  esac
+}
 
 render_ticket() {
-  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6"
+  local id="$1" title="$2" wt="$3" branch="$4" scope="$5" body="$6" standing="${7:-OPEN}"
   cat > "$OUT/$id.md" <<EOF
 ---
 id: $id
@@ -52,7 +62,7 @@ dcterms:title: "$title"
 dcterms:created: "$DATE"
 dcterms:isPartOf: "$MILESTONE"
 rdf:type: oslc_cm:ChangeRequest, earl:TestRequirement
-aps:standing: https://w3id.org/chatman/aps#OPEN
+aps:standing: https://w3id.org/chatman/aps#${standing}
 milestone: frozen-duckdb v1.5.5 wave 3 (hardening, pre-publish)
 worktree: $wt
 branch: $branch
@@ -93,7 +103,8 @@ for spec in "${SPECS[@]}"; do
   wt="${rest%%|*}";        rest="${rest#*|}"
   branch="${rest%%|*}";    rest="${rest#*|}"
   scope="${rest%%|*}";     body="${rest#*|}"
-  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body"
+  standing="$(standing_for "$id")"
+  render_ticket "$id" "$title" "$wt" "$branch" "$scope" "$body" "$standing"
 done
 
 echo "wave-3 tickets rendered:"
