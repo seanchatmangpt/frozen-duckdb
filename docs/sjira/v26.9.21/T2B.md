@@ -4,7 +4,7 @@ dcterms:title: "Extension test suite green/gated"
 dcterms:created: "2026-09-21"
 dcterms:isPartOf: "v26.9.21"
 rdf:type: oslc_cm:ChangeRequest, earl:TestRequirement
-aps:standing: https://w3id.org/chatman/aps#OPEN
+aps:standing: https://w3id.org/chatman/aps#ALIVE
 milestone: frozen-duckdb v1.5.5 (DuckDB 1.5.5 support, closes seanchatmangpt/frozen-duckdb#1)
 worktree: /Users/sac/frozen-duckdb-wt/tests-ext
 branch: feat/155-tests-ext
