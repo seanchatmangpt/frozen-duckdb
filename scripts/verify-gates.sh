@@ -44,6 +44,12 @@ run_gate 'test-workspace' 'cargo test --workspace' 'build_broken'
   echo "# Vocabulary: ver: packs/ggen-verify-pack; standing: es: evidence-standing-pack."
   echo "@prefix ver: <http://seanchatmangpt.github.io/packs/ggen-verify#> ."
   echo ""
+  SUBJECT_HEAD="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+  SUBJECT_TREE="$(git rev-parse 'HEAD^{tree}' 2>/dev/null || echo unknown)"
+  echo "ver:verifySubject ver:subjectHead \"$SUBJECT_HEAD\" ;"
+  echo "    ver:subjectTree \"$SUBJECT_TREE\" ;"
+  echo "    ver:recordedAt \"$RECORDED_AT\" ."
+  echo ""
   i=0
   while [ "$i" -lt "${#NAMES[@]}" ]; do
     echo "ver:check-${NAMES[$i]} a ver:Check ;"
