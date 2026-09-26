@@ -55,7 +55,7 @@ assert!(!architecture::is_supported("unknown"));
 - `arm64`: Apple Silicon processors
 - `aarch64`: ARM 64-bit processors (same as arm64)
 
-Each v1.5.5 release asset is a universal binary containing both arm64 and x86_64 slices (~117MB per asset).
+Each v1.5.5 release asset is built for a single architecture (`libduckdb_arm64.dylib` or `libduckdb_x86_64.dylib`, ~117MB per asset); the builder downloads the asset matching the current machine. (The development cache currently carries universal binaries, but released assets are per-architecture.)
 
 #### `get_binary_name() -> String`
 
@@ -77,8 +77,8 @@ std::env::remove_var("ARCH");
 **Binary Mapping:**
 | Architecture | Binary Name | Size | Notes |
 |--------------|-------------|------|-------|
-| x86_64 | libduckdb_x86_64.dylib | ~117MB | universal (arm64 + x86_64) |
-| arm64/aarch64 | libduckdb_arm64.dylib | ~117MB | universal (arm64 + x86_64) |
+| x86_64 | libduckdb_x86_64.dylib | ~117MB | single-architecture (x86_64 slice) |
+| arm64/aarch64 | libduckdb_arm64.dylib | ~117MB | single-architecture (arm64 slice) |
 | Other | libduckdb.dylib | — | link name created by the builder/cache normalization |
 
 ### Performance Characteristics
@@ -129,7 +129,7 @@ if let Some(lib_dir) = env_setup::get_lib_dir() {
 ```
 
 **Expected Directory Contents:**
-- `libduckdb_{arch}.dylib` (~117MB) — universal binary (arm64 + x86_64)
+- `libduckdb_{arch}.dylib` (~117MB) — single-architecture asset (one slice per released asset)
 - `libduckdb.dylib` — link name (symlink to the cached arch binary)
 - `duckdb/` — header directory used by bindgen
 

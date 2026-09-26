@@ -539,16 +539,18 @@ Options:
 
 **Filtering Strategies:**
 - **Criteria-based**: `--criteria "Is this about technology?"`
-- **Custom prompt**: `--prompt "Answer yes or no: {{text}}"`
+- **Custom prompt**: `--prompt "Answer yes or no"` (applied verbatim as the classification instruction for every input line — there is no placeholder substitution)
 - **Positive only**: Only show items that match criteria
+
+Note: `--input` is plain text, one item per line.
 
 **Usage Examples:**
 ```bash
 # Filter technology-related items
 frozen-duckdb-cli filter --criteria "Is this about technology?" --input items.txt
 
-# Custom evaluation prompt
-frozen-duckdb-cli filter --prompt "Is this a programming language? Answer yes or no: {{text}}" --input languages.txt
+# Custom evaluation prompt (used verbatim for every line)
+frozen-duckdb-cli filter --prompt "Is this a programming language? Answer yes or no" --input languages.txt
 
 # Save filtered results
 frozen-duckdb-cli filter --criteria "Is this positive?" --input reviews.txt --output positive_reviews.txt

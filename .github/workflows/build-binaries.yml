@@ -159,11 +159,11 @@ jobs:
             No manual installation required.
 
             ## Features Included
-            - DuckDB with all extensions
+            - DuckDB v1.5.5 with the bundled extension set
+              (parquet, json, icu, httpfs, tpch, tpcds, fts, inet, sqlsmith;
+              jemalloc + autoload enabled)
             - Apache Arrow integration
-            - Polars dataframe support
             - ICU internationalization
-            - All modern DuckDB features
           files: |
             libduckdb_x86_64/libduckdb_x86_64.dylib
             libduckdb_arm64/libduckdb_arm64.dylib

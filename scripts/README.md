@@ -42,7 +42,13 @@ against the crates.io-published crate — re-verify at TR8 release),
 `verify-gates.sh` + `verify-evidence.ttl` are rendered by `ggen sync run`
 (rule `render-verify-gates`); edit `schema/verify.ttl` and re-render.
 `make gates` runs `ggen sync run` + `make genesis-check`
-(`docs/GENESIS.md` is the reconciliation manifest).
+(`docs/GENESIS.md` is the reconciliation manifest). Each verify-gates run also records
+`ver:subjectHead` / `ver:subjectTree` (`git rev-parse HEAD` / `HEAD^{tree}`) at gate time,
+pinning the evidence to the exact verified subject (commit b9fa77c).
+
+`check_sjira_standing.sh` — standing gate (FDDB-26922-03, hand-written, not
+ggen-rendered): verifies each ticket's frontmatter `aps:standing` equals its
+final History standing (first run: checked=45 mismatches=0, commit ed27449).
 
 ### Hygiene and gap detection
 `rg_sweep.sh` — informational pattern sweep (stub/fake/TODO tokens, telemetry
@@ -55,7 +61,9 @@ probes, the real frozen-duckdb-sys FFI surface). Never a gate; see
 ### Ticket renderers
 `gen_sjira_tickets*.sh` — edit the SPECS table, re-run the script; the
 `docs/sjira/` tickets are rendered consequences (票 law: History appends are
-the sanctioned exception).
+the sanctioned exception). Each rendered ticket carries an `aps:standing`
+frontmatter column taken from the script's per-id standing map (terminal
+History standings; new tickets default OPEN).
 
 ## Removed tooling record (de-fakery era)
 

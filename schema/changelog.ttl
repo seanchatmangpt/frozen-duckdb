@@ -30,6 +30,11 @@
 # Release 1.5.5
 #################################################################
 
+# UNRELEASED as of 2026-09-24: no tag cut (FDDB-26922-05 re-pin law) — do
+# not render as released. The rel: vocabulary carries no status property,
+# so this is recorded as a comment: rel:date below is the fact date, not a
+# publication claim (no GitHub Release exists; ensure_binary() still gets
+# HTTP 404 and falls back to the pinned local compile).
 fd:release-v1.5.5 a rel:Release ;
     rel:version "1.5.5" ;
     rel:date "2026-09-21"^^xsd:date .
@@ -77,6 +82,22 @@ fd:changelog-a6 a rel:ChangeEntry ;
     rel:category rel:catAdded ;
     rel:entryOrder 6 ;
     rel:description """Reconciliation governance for generated artifacts: `docs/GENESIS.md` — a manifest mapping every generated/consequence file to its owning source — checked by `make genesis-check` (source existence, consequence existence, upstream pin match, and ledger-row cross-check), so upstream changes name exactly which projections must re-render and orphans surface as defects.""" .
+
+# Post-freeze v26.9.21 work (FDDB-26922-02, FDDB-26922-03) — still part of the
+# unreleased v1.5.5. Facts only; the CHANGELOG render is a consequence of the
+# next lawful `ggen sync run` (the rendered file is never hand-edited).
+
+fd:changelog-a7 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 7 ;
+    rel:description """**Verify evidence pinned to the exact subject**: every verify-gates run records `ver:subjectHead` / `ver:subjectTree` (`git rev-parse HEAD` / `git rev-parse HEAD^{tree}`) into `scripts/verify-evidence.ttl`, so a committed evidence file proves which HEAD/tree passed the 5/5 gate battery (commit b9fa77c).""" .
+
+fd:changelog-a8 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 8 ;
+    rel:description """**Standing gate for the ticket ledger**: `scripts/check_sjira_standing.sh` verifies every v26.9.21 ticket's frontmatter `aps:standing` equals its final History standing (explicit non-aps mappings documented in-file; CI_PROJECTION.md excluded; first run checked=45 mismatches=0), and the `gen_sjira_tickets*.sh` renderers gain a standing column threaded from a per-id standing map (terminal History standings; new tickets default OPEN), so regenerated tickets are standing-faithful (commit ed27449).""" .
 
 #################################################################
 # Changed
@@ -132,9 +153,10 @@ fd:changelog-f5 a rel:ChangeEntry ;
     rel:entryOrder 5 ;
     rel:description """**docs.rs build pattern**: `frozen-duckdb-sys` detects the `DOCS_RS` environment variable and generates bindings from the vendored headers while skipping library linking, so documentation builds on docs.rs (Linux, no prebuilt `.so`) succeed without a 30+ minute compile.""" .
 
-# Folds the hand-written "Known limitations" facts (macOS-only universal
-# binaries; Linux/Windows on the local-compile fallback; prebuilt .so
-# planned) into this entry, which already carried the planned-.so fact.
+# Folds the hand-written "Known limitations" facts (macOS-only
+# per-architecture binaries; Linux/Windows on the local-compile fallback;
+# prebuilt .so planned) into this entry, which already carried the
+# planned-.so fact.
 fd:changelog-f6 a rel:ChangeEntry ;
     rel:inRelease fd:release-v1.5.5 ;
     rel:category rel:catFixed ;
@@ -158,3 +180,9 @@ fd:changelog-f9 a rel:ChangeEntry ;
     rel:category rel:catFixed ;
     rel:entryOrder 9 ;
     rel:description """**CLI parse panic fixed — `convert` and `summarize` runnable again**: duplicate clap short flags (`-i`/`-o` on `convert --input-format`/`--output-format`, `-m` on `summarize --max-length`) tripped clap's debug asserts and aborted parsing with exit 101, making both commands unusable. The three options are now long-only (hand-repair ledgered in `HANDWRITTEN.md`, guarded by `tests/cli_surface_tests.rs`, which also renders every subcommand's `--help`).""" .
+
+fd:changelog-f10 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 10 ;
+    rel:description """**DuckDB 1.5 `TIME_NS` rows readable**: DuckDB >= 1.5 exports `TIME_NS` columns as arrow `Time64(Nanosecond)`; the vendored arrow row reader only knew `Microsecond` and hit `unreachable!()` on such rows. The symmetric `Time64(Nanosecond)` arm was added (commit 36b180f), so `TIME_NS` columns now read instead of panicking.""" .
