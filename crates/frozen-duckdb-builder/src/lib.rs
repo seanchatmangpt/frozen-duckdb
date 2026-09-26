@@ -95,7 +95,16 @@ pub fn ensure_binary() -> Result<PathBuf> {
 
     if binary_path.exists() {
         info!("Using cached DuckDB binary: {}", binary_path.display());
+        // A cache written before TR7 closed may hold the wrong slice under
+        // this label (x86_64 bytes in v{VER}-arm64/libduckdb_arm64.dylib).
+        verify_library_slice(&binary_path, &arch).with_context(|| {
+            format!(
+                "stale cached binary does not match its label; remove {} and rebuild",
+                versioned_cache.display()
+            )
+        })?;
     } else if let Ok(prebuilt_path) = check_prebuilt_binary(&arch) {
+        verify_library_slice(&prebuilt_path, &arch)?;
         info!(
             "Found prebuilt binary, copying to cache: {}",
             prebuilt_path.display()
@@ -280,40 +289,174 @@ fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
 /// unknown values fall through to host detection rather than adopting a
 /// target the cmake invocation cannot be proven to match.
 fn detect_architecture() -> Result<String> {
-    let explicit = env::var("CMAKE_OSX_ARCHITECTURES")
-        .or_else(|_| env::var("ARCH"))
-        .ok();
+    let explicit = [
+        env::var("CMAKE_OSX_ARCHITECTURES").ok(),
+        env::var("ARCH").ok(),
+    ];
+    let host = host_architecture()?;
+    resolve_target_architecture(&explicit, &host)
+}
+
+/// Raw `uname -m` answer for the build host (the machine running cmake).
+fn host_architecture() -> Result<String> {
     let output = Command::new("uname")
         .arg("-m")
         .output()
         .context("Failed to run uname command")?;
-
-    let host = String::from_utf8(output.stdout)
+    Ok(String::from_utf8(output.stdout)
         .context("Invalid UTF-8 in uname output")?
         .trim()
-        .to_string();
+        .to_string())
+}
 
-    resolve_architecture(explicit.as_deref(), &host)
+/// Canonical single-slice name for `value`, or `None` for anything that is
+/// not exactly one supported slice (multi-arch lists, unknown or mis-cased
+/// names such as `amd64`/`X86_64`, empty strings).
+fn single_slice(value: &str) -> Option<&'static str> {
+    match value.trim() {
+        "x86_64" => Some("x86_64"),
+        "arm64" | "aarch64" => Some("arm64"),
+        _ => None,
+    }
+}
+
+/// Precedence law over the explicit target sources (TR7 hardening): the
+/// FIRST source that names exactly one supported slice wins, in order
+/// `CMAKE_OSX_ARCHITECTURES`, then `ARCH`; an unset, empty, multi-arch or
+/// unrecognized earlier source does not shadow a valid later one. With no
+/// valid explicit slice the host decides.
+fn resolve_target_architecture(explicit: &[Option<String>], host: &str) -> Result<String> {
+    let chosen = explicit
+        .iter()
+        .flatten()
+        .map(|v| v.as_str())
+        .find(|v| single_slice(v).is_some());
+    resolve_architecture(chosen, host)
 }
 
 /// Pure decision core of [`detect_architecture`] (kept env-free so the
 /// slice-targeting law is unit-testable without process-global mutation).
 fn resolve_architecture(explicit: Option<&str>, host: &str) -> Result<String> {
-    if let Some(target) = explicit.map(str::trim).filter(|t| !t.is_empty()) {
-        match target {
-            "x86_64" => return Ok(target.to_string()),
-            "arm64" | "aarch64" => return Ok("arm64".to_string()),
-            _ => {} // multi-arch list or unknown target: host detection below
-        }
+    if let Some(slice) = explicit.and_then(single_slice) {
+        return Ok(slice.to_string());
     }
-    match host {
-        "x86_64" => Ok("x86_64".to_string()),
-        "arm64" | "aarch64" => Ok("arm64".to_string()),
-        other => anyhow::bail!("Unsupported architecture: {}", other),
+    match single_slice(host) {
+        Some(slice) => Ok(slice.to_string()),
+        None => anyhow::bail!("Unsupported architecture: {}", host.trim()),
     }
 }
 
-/// Get the cache directory (~/.frozen-duckdb)
+/// Value handed to cmake as `-DCMAKE_OSX_ARCHITECTURES` for a local compile
+/// labeled `arch`. An operator-set value passes through verbatim (it may be
+/// a universal list); otherwise on macOS the LABEL itself is pinned, so a
+/// label taken from `ARCH` can never diverge from the slice clang emits
+/// (pre-hardening, `ARCH=x86_64` on an arm64 host labeled an arm64 build
+/// x86_64). Off macOS cmake ignores the flag, so none is emitted.
+fn cmake_osx_architectures_for(os: &str, env_value: Option<&str>, arch: &str) -> Option<String> {
+    if let Some(v) = env_value.map(str::trim).filter(|v| !v.is_empty()) {
+        return Some(v.to_string());
+    }
+    (os == "macos").then(|| arch.to_string())
+}
+
+/// Refuse a local compile whose label cannot be honored: off macOS there is
+/// no slice-selection flag, so a cross-arch target would produce a
+/// host-arch library under a foreign-arch name (the TR7 mislabel class).
+fn check_local_compile_target(os: &str, arch: &str, host: &str) -> Result<()> {
+    if os == "macos" || single_slice(host) == Some(arch) {
+        return Ok(());
+    }
+    anyhow::bail!(
+        "cross-architecture local compile unsupported on {}: target {} but host {} \
+         (the built library would be mislabeled; TR7)",
+        os,
+        arch,
+        host.trim()
+    )
+}
+
+/// Outcome of a slice check that did not find a mismatch.
+#[derive(Debug, PartialEq, Eq)]
+enum SliceCheck {
+    /// `lipo -archs` listed the labeled slice.
+    Verified,
+    /// No checker available on this host (non-macOS, or lipo absent); the
+    /// label is UNVERIFIED, not admitted.
+    Unverifiable(String),
+}
+
+/// True when whitespace-separated `lipo -archs` output lists exactly `arch`
+/// (`arm64e` is not `arm64`).
+fn lipo_archs_contain(lipo_output: &str, arch: &str) -> bool {
+    lipo_output.split_whitespace().any(|a| a == arch)
+}
+
+/// Check that the Mach-O at `path` actually carries the slice it is labeled
+/// with (TR7 falsifier made permanent: a label/slice mismatch fails closed
+/// instead of shipping or caching a mislabeled library).
+fn verify_library_slice_for(os: &str, path: &Path, arch: &str) -> Result<SliceCheck> {
+    if os != "macos" {
+        return Ok(SliceCheck::Unverifiable(format!(
+            "slice check is macOS-only (os={})",
+            os
+        )));
+    }
+    let out = match Command::new("lipo").arg("-archs").arg(path).output() {
+        Ok(out) => out,
+        Err(e) => return Ok(SliceCheck::Unverifiable(format!("lipo unavailable: {}", e))),
+    };
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    if !out.status.success() {
+        if stderr.contains("xcrun: error") {
+            return Ok(SliceCheck::Unverifiable(format!(
+                "lipo unavailable: {}",
+                stderr.trim()
+            )));
+        }
+        anyhow::bail!(
+            "{} is not a readable Mach-O library (lipo -archs exit {:?}): {}",
+            path.display(),
+            out.status.code(),
+            stderr.trim()
+        );
+    }
+    if lipo_archs_contain(&stdout, arch) {
+        Ok(SliceCheck::Verified)
+    } else {
+        anyhow::bail!(
+            "TR7 slice mismatch: {} is labeled {} but carries [{}]",
+            path.display(),
+            arch,
+            stdout.trim()
+        )
+    }
+}
+
+/// Host-platform form of [`verify_library_slice_for`]; an unverifiable
+/// check is logged, a mismatch or unreadable library is an error.
+fn verify_library_slice(path: &Path, arch: &str) -> Result<()> {
+    match verify_library_slice_for(target_os_name(), path, arch)? {
+        SliceCheck::Verified => debug!("slice {} verified in {}", arch, path.display()),
+        SliceCheck::Unverifiable(why) => {
+            warn!("slice {} UNVERIFIED for {}: {}", arch, path.display(), why)
+        }
+    }
+    Ok(())
+}
+
+/// Write `bytes` to `dest` only if they carry the labeled slice: a
+/// mismatched or malformed payload is removed again, so a bad download can
+/// never poison the versioned cache for later runs.
+fn persist_verified_for(os: &str, bytes: &[u8], dest: &Path, arch: &str) -> Result<()> {
+    fs::write(dest, bytes).context("Failed to write downloaded binary")?;
+    if let Err(e) = verify_library_slice_for(os, dest, arch) {
+        let _ = fs::remove_file(dest);
+        return Err(e.context("refusing to cache downloaded binary"));
+    }
+    Ok(())
+}
+
 fn get_cache_dir() -> Result<PathBuf> {
     let home = env::var("HOME").context("HOME environment variable not set")?;
 
@@ -357,7 +500,7 @@ fn download_from_github_release(cache_dir: &Path, arch: &str) -> Result<PathBuf>
 
     let content = response.bytes().context("Failed to read response body")?;
 
-    fs::write(&binary_path, content).context("Failed to write downloaded binary")?;
+    persist_verified_for(target_os_name(), &content, &binary_path, arch)?;
 
     // Make binary executable on Unix systems
     #[cfg(unix)]
@@ -375,6 +518,7 @@ fn download_from_github_release(cache_dir: &Path, arch: &str) -> Result<PathBuf>
 /// Compile DuckDB locally as fallback
 fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     info!("Compiling DuckDB locally for {}...", arch);
+    check_local_compile_target(target_os_name(), arch, &host_architecture()?)?;
 
     // Create cache directory
     fs::create_dir_all(cache_dir).context("Failed to create cache directory")?;
@@ -388,7 +532,7 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     info!("Cloning DuckDB source...");
     let duckdb_dir = temp_path.join("duckdb");
 
-    Command::new("git")
+    let clone_out = Command::new("git")
         .args([
             "clone",
             "--depth",
@@ -401,6 +545,13 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
         .current_dir(temp_path)
         .output()
         .context("Failed to clone DuckDB repository")?;
+    if !clone_out.status.success() {
+        anyhow::bail!(
+            "DuckDB git clone failed (exit {:?}):\n{}",
+            clone_out.status.code(),
+            String::from_utf8_lossy(&clone_out.stderr)
+        );
+    }
 
     // Build DuckDB with all features
     info!("Building DuckDB with all features...");
@@ -430,12 +581,11 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
             "-DBUILD_AUTOLOAD=ON",
         ])
         .current_dir(&build_dir);
-    if let Ok(osx_archs) = env::var("CMAKE_OSX_ARCHITECTURES") {
-        let osx_archs = osx_archs.trim();
-        if !osx_archs.is_empty() {
-            info!("Configuring with CMAKE_OSX_ARCHITECTURES={}", osx_archs);
-            configure.arg(format!("-DCMAKE_OSX_ARCHITECTURES={}", osx_archs));
-        }
+    let osx_env = env::var("CMAKE_OSX_ARCHITECTURES").ok();
+    if let Some(osx_archs) = cmake_osx_architectures_for(target_os_name(), osx_env.as_deref(), arch)
+    {
+        info!("Configuring with CMAKE_OSX_ARCHITECTURES={}", osx_archs);
+        configure.arg(format!("-DCMAKE_OSX_ARCHITECTURES={}", osx_archs));
     }
     // Fail loudly with the captured tool output instead of discarding it and
     // dying later in find_built_library with no diagnostics.
@@ -466,6 +616,7 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
 
     // Find the built library
     let built_lib = find_built_library(&build_dir, arch).context("Failed to find built library")?;
+    verify_library_slice(&built_lib, arch)?;
 
     // Copy library to cache directory with proper name
     let binary_path = get_binary_path(cache_dir, arch);
@@ -666,5 +817,330 @@ mod tests {
         assert!(link.exists(), "link name missing: {}", link.display());
 
         ensure_link_name(cache, arch).unwrap(); // second call must not fail
+    }
+
+    // ---- TR7 hardening: boundary / adversarial / falsifier tests ----------
+
+    fn some(v: &str) -> Option<String> {
+        Some(v.to_string())
+    }
+
+    #[test]
+    fn tr7_precedence_invalid_cmake_value_does_not_shadow_valid_arch() {
+        // An unrecognized CMAKE_OSX_ARCHITECTURES must not hide ARCH (the
+        // pre-hardening `.or_else` only fell through on UNSET).
+        assert_eq!(
+            resolve_target_architecture(&[some("ppc"), some("x86_64")], "arm64").unwrap(),
+            "x86_64"
+        );
+        assert_eq!(
+            resolve_target_architecture(&[some(""), some("arm64")], "x86_64").unwrap(),
+            "arm64"
+        );
+        // Universal list + explicit single slice in ARCH: ARCH names the label.
+        assert_eq!(
+            resolve_target_architecture(&[some("arm64;x86_64"), some("x86_64")], "arm64").unwrap(),
+            "x86_64"
+        );
+        // CMAKE_OSX_ARCHITECTURES outranks ARCH when both are valid slices.
+        assert_eq!(
+            resolve_target_architecture(&[some("arm64"), some("x86_64")], "x86_64").unwrap(),
+            "arm64"
+        );
+        // Nothing explicit: host decides; unresolvable host fails closed.
+        assert_eq!(
+            resolve_target_architecture(&[None, None], "aarch64").unwrap(),
+            "arm64"
+        );
+        assert!(resolve_target_architecture(&[None, some("amd64")], "riscv64").is_err());
+    }
+
+    #[test]
+    fn tr7_malformed_explicit_targets_are_not_adopted() {
+        // Whitespace is tolerated (GITHUB_ENV lines), everything else that is
+        // not exactly one supported slice falls through to the host.
+        assert_eq!(
+            resolve_architecture(Some(" x86_64\n"), "arm64").unwrap(),
+            "x86_64"
+        );
+        for bad in [
+            "X86_64",
+            "amd64",
+            "x86-64",
+            "arm64e",
+            "arm64 x86_64",
+            ";",
+            "x86_64;",
+        ] {
+            assert_eq!(
+                resolve_architecture(Some(bad), "arm64").unwrap(),
+                "arm64",
+                "malformed target {:?} must not be adopted",
+                bad
+            );
+        }
+        let err = resolve_architecture(None, " sparc\n")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("Unsupported architecture: sparc"), "{}", err);
+    }
+
+    #[test]
+    fn tr7_cmake_flag_pins_the_label_on_macos() {
+        // Label from ARCH only (no CMAKE_OSX_ARCHITECTURES): cmake must be
+        // told the same slice, or clang emits the host slice under it.
+        assert_eq!(
+            cmake_osx_architectures_for("macos", None, "x86_64").as_deref(),
+            Some("x86_64")
+        );
+        assert_eq!(
+            cmake_osx_architectures_for("macos", Some("  "), "arm64").as_deref(),
+            Some("arm64")
+        );
+        // Operator-set value (possibly universal) passes through verbatim.
+        assert_eq!(
+            cmake_osx_architectures_for("macos", Some(" arm64;x86_64 "), "arm64").as_deref(),
+            Some("arm64;x86_64")
+        );
+        // Off macOS no flag is invented.
+        assert_eq!(cmake_osx_architectures_for("linux", None, "x86_64"), None);
+    }
+
+    #[test]
+    fn tr7_cross_arch_local_compile_refused_off_macos() {
+        let err = check_local_compile_target("linux", "arm64", "x86_64\n")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("target arm64 but host x86_64"), "{}", err);
+        assert!(check_local_compile_target("linux", "arm64", "aarch64").is_ok());
+        assert!(check_local_compile_target("linux", "x86_64", "x86_64").is_ok());
+        assert!(check_local_compile_target("macos", "x86_64", "arm64").is_ok());
+    }
+
+    #[test]
+    fn tr7_lipo_output_parsing_is_token_exact() {
+        assert!(lipo_archs_contain("x86_64 arm64\n", "arm64"));
+        assert!(lipo_archs_contain("x86_64 arm64\n", "x86_64"));
+        assert!(!lipo_archs_contain("arm64e\n", "arm64"));
+        assert!(!lipo_archs_contain("x86_64h\n", "x86_64"));
+        assert!(!lipo_archs_contain("", "arm64"));
+    }
+
+    #[test]
+    fn tr7_slice_check_off_macos_is_unverifiable_not_admitted() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("libduckdb_x86_64.so");
+        fs::write(&path, b"not inspected").unwrap();
+        match verify_library_slice_for("linux", &path, "x86_64").unwrap() {
+            SliceCheck::Unverifiable(why) => assert!(why.contains("macOS-only"), "{}", why),
+            SliceCheck::Verified => panic!("non-macOS check must not claim Verified"),
+        }
+    }
+
+    /// Compile a real one-symbol Mach-O dylib for `archs` with the host C
+    /// toolchain. `None` (printed as a visible SKIP by callers) when cc
+    /// cannot target those slices on this machine.
+    #[cfg(target_os = "macos")]
+    fn real_dylib(dir: &Path, name: &str, archs: &[&str]) -> Option<PathBuf> {
+        let src = dir.join("tr7_probe.c");
+        fs::write(&src, "int tr7_probe(void) { return 7; }\n").ok()?;
+        let out = dir.join(name);
+        let mut cc = Command::new("cc");
+        for a in archs {
+            cc.args(["-arch", a]);
+        }
+        let status = cc
+            .arg("-dynamiclib")
+            .arg("-o")
+            .arg(&out)
+            .arg(&src)
+            .status()
+            .ok()?;
+        status.success().then_some(out)
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tr7_real_mach_o_slice_match_and_mismatch() {
+        let tmp = tempfile::tempdir().unwrap();
+        let Some(arm) = real_dylib(tmp.path(), "a.dylib", &["arm64"]) else {
+            eprintln!("SKIP tr7_real_mach_o_slice_match_and_mismatch: cc cannot emit arm64");
+            return;
+        };
+        assert_eq!(
+            verify_library_slice_for("macos", &arm, "arm64").unwrap(),
+            SliceCheck::Verified
+        );
+        let err = verify_library_slice_for("macos", &arm, "x86_64")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("TR7 slice mismatch"), "{}", err);
+        assert!(
+            err.contains("labeled x86_64") && err.contains("arm64"),
+            "{}",
+            err
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tr7_real_universal_dylib_satisfies_either_label() {
+        let tmp = tempfile::tempdir().unwrap();
+        let Some(fat) = real_dylib(tmp.path(), "u.dylib", &["arm64", "x86_64"]) else {
+            eprintln!("SKIP tr7_real_universal_dylib_satisfies_either_label: no x86_64 SDK slice");
+            return;
+        };
+        for arch in ["arm64", "x86_64"] {
+            assert_eq!(
+                verify_library_slice_for("macos", &fat, arch).unwrap(),
+                SliceCheck::Verified
+            );
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tr7_malformed_libraries_fail_closed() {
+        let tmp = tempfile::tempdir().unwrap();
+        let text = tmp.path().join("libduckdb_arm64.dylib");
+        fs::write(&text, b"<html>404 Not Found</html>").unwrap();
+        let empty = tmp.path().join("empty.dylib");
+        fs::write(&empty, b"").unwrap();
+        let missing = tmp.path().join("missing.dylib");
+        for p in [&text, &empty, &missing] {
+            let r = verify_library_slice_for("macos", p, "arm64");
+            match r {
+                Err(e) => assert!(e.to_string().contains("not a readable Mach-O"), "{}", e),
+                Ok(SliceCheck::Unverifiable(why)) => {
+                    eprintln!("SKIP malformed check for {}: {}", p.display(), why)
+                }
+                Ok(SliceCheck::Verified) => panic!("{} must not verify", p.display()),
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tr7_stale_pre_fix_cache_layout_is_detected() {
+        // Reproduce the exact pre-fix TR7 artifact: x86_64 bytes placed at
+        // v1.5.5-arm64/libduckdb_arm64.dylib. The cached-path check must
+        // refuse it rather than link a foreign slice.
+        let tmp = tempfile::tempdir().unwrap();
+        let versioned = tmp.path().join(format!("v{}-arm64", VERSION));
+        fs::create_dir_all(&versioned).unwrap();
+        let Some(x86) = real_dylib(tmp.path(), "x.dylib", &["x86_64"]) else {
+            eprintln!("SKIP tr7_stale_pre_fix_cache_layout_is_detected: no x86_64 SDK slice");
+            return;
+        };
+        let poisoned = get_binary_path(&versioned, "arm64");
+        fs::copy(&x86, &poisoned).unwrap();
+        assert!(verify_library_slice_for("macos", &poisoned, "arm64").is_err());
+        assert_eq!(
+            verify_library_slice_for("macos", &poisoned, "x86_64").unwrap(),
+            SliceCheck::Verified
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tr7_mismatched_download_never_reaches_the_cache() {
+        let tmp = tempfile::tempdir().unwrap();
+        let Some(arm) = real_dylib(tmp.path(), "a.dylib", &["arm64"]) else {
+            eprintln!("SKIP tr7_mismatched_download_never_reaches_the_cache: no arm64 cc");
+            return;
+        };
+        let bytes = fs::read(&arm).unwrap();
+        let dest = get_binary_path(tmp.path(), "x86_64");
+        let err = persist_verified_for("macos", &bytes, &dest, "x86_64").unwrap_err();
+        assert!(
+            format!("{:#}", err).contains("TR7 slice mismatch"),
+            "{:#}",
+            err
+        );
+        assert!(!dest.exists(), "mislabeled download left in cache");
+        // Duplicate delivery of a GOOD payload is idempotent.
+        let good = get_binary_path(tmp.path(), "arm64");
+        persist_verified_for("macos", &bytes, &good, "arm64").unwrap();
+        persist_verified_for("macos", &bytes, &good, "arm64").unwrap();
+        assert_eq!(fs::read(&good).unwrap(), bytes);
+        // A 404 body delivered as the asset is refused and removed too.
+        let html = get_binary_path(tmp.path(), "arm64-html");
+        assert!(persist_verified_for("macos", b"<html>404</html>", &html, "arm64").is_err());
+        assert!(!html.exists());
+    }
+
+    #[test]
+    fn tr7_workflow_exports_both_target_vars_and_full_error_chain() {
+        // Guard the workflow half of TR7: per-leg exports feed detection and
+        // cmake; {:#} surfaces the captured cmake/make stderr.
+        let wf = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.github/workflows/build-binaries.yml");
+        let Ok(text) = fs::read_to_string(&wf) else {
+            eprintln!(
+                "SKIP workflow guard: {} absent (packaged crate)",
+                wf.display()
+            );
+            return;
+        };
+        assert!(text.contains(r#"echo "ARCH=${{ matrix.arch }}" >> "$GITHUB_ENV""#));
+        assert!(
+            text.contains(r#"echo "CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}" >> "$GITHUB_ENV""#)
+        );
+        assert!(text.contains(r#"eprintln!("Failed to build mega-library: {:#}", e);"#));
+        assert!(!text.contains(r#"eprintln!("Failed to build mega-library: {}", e);"#));
+    }
+
+    /// Deterministic timing bench with committed regression bounds (debug
+    /// profile, loaded CI host => bounds are >=10x the measured means;
+    /// measured means are recorded in the TR7 hardening commit message).
+    #[test]
+    fn tr7_bench_regression_bounds() {
+        use std::time::Instant;
+        const N_RESOLVE: u32 = 200_000;
+        let inputs = [some("arm64;x86_64"), some("x86_64")];
+        let t = Instant::now();
+        for _ in 0..N_RESOLVE {
+            let a = resolve_target_architecture(std::hint::black_box(&inputs), "arm64").unwrap();
+            std::hint::black_box(a);
+        }
+        let resolve_ns = t.elapsed().as_nanos() / u128::from(N_RESOLVE);
+
+        const N_DETECT: u32 = 20;
+        let t = Instant::now();
+        for _ in 0..N_DETECT {
+            std::hint::black_box(detect_architecture().unwrap());
+        }
+        let detect_us = t.elapsed().as_micros() / u128::from(N_DETECT);
+        eprintln!(
+            "BENCH tr7 resolve_target_architecture={}ns/op detect_architecture={}us/op",
+            resolve_ns, detect_us
+        );
+        assert!(
+            resolve_ns < 20_000,
+            "resolve regression: {}ns/op",
+            resolve_ns
+        );
+        assert!(detect_us < 500_000, "detect regression: {}us/op", detect_us);
+
+        #[cfg(target_os = "macos")]
+        {
+            let tmp = tempfile::tempdir().unwrap();
+            if let Some(lib) = real_dylib(tmp.path(), "b.dylib", &["arm64"]) {
+                const N_LIPO: u32 = 20;
+                let t = Instant::now();
+                for _ in 0..N_LIPO {
+                    verify_library_slice_for("macos", &lib, "arm64").unwrap();
+                }
+                let lipo_us = t.elapsed().as_micros() / u128::from(N_LIPO);
+                eprintln!("BENCH tr7 verify_library_slice={}us/op", lipo_us);
+                assert!(
+                    lipo_us < 1_000_000,
+                    "slice-check regression: {}us/op",
+                    lipo_us
+                );
+            } else {
+                eprintln!("SKIP slice-check bench: no arm64 cc");
+            }
+        }
     }
 }
