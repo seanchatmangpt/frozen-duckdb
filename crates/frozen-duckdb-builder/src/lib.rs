@@ -266,22 +266,50 @@ fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Detect the current system architecture
+/// Detect the architecture this build must target.
+///
+/// TR7: on an Apple-silicon CI host, `uname -m` reports the HOST arch even
+/// when the workflow targets the other macOS slice — which is exactly how
+/// the v1.5.5 x86_64 release leg built an x86_64 cmake slice but detected
+/// itself as arm64, placed the artifact under `v1.5.5-arm64/` with an
+/// `libduckdb_arm64.dylib` name, and failed closed in the workflow's find
+/// step. The build-binaries workflow exports `CMAKE_OSX_ARCHITECTURES` (and
+/// `ARCH`) per matrix leg, and the same value is what gets handed to cmake,
+/// so an explicit single-slice target in those variables is the authority
+/// for detection, cache placement, and asset naming. Multi-arch lists and
+/// unknown values fall through to host detection rather than adopting a
+/// target the cmake invocation cannot be proven to match.
 fn detect_architecture() -> Result<String> {
+    let explicit = env::var("CMAKE_OSX_ARCHITECTURES")
+        .or_else(|_| env::var("ARCH"))
+        .ok();
     let output = Command::new("uname")
         .arg("-m")
         .output()
         .context("Failed to run uname command")?;
 
-    let arch = String::from_utf8(output.stdout)
+    let host = String::from_utf8(output.stdout)
         .context("Invalid UTF-8 in uname output")?
         .trim()
         .to_string();
 
-    match arch.as_str() {
+    resolve_architecture(explicit.as_deref(), &host)
+}
+
+/// Pure decision core of [`detect_architecture`] (kept env-free so the
+/// slice-targeting law is unit-testable without process-global mutation).
+fn resolve_architecture(explicit: Option<&str>, host: &str) -> Result<String> {
+    if let Some(target) = explicit.map(str::trim).filter(|t| !t.is_empty()) {
+        match target {
+            "x86_64" => return Ok(target.to_string()),
+            "arm64" | "aarch64" => return Ok("arm64".to_string()),
+            _ => {} // multi-arch list or unknown target: host detection below
+        }
+    }
+    match host {
         "x86_64" => Ok("x86_64".to_string()),
         "arm64" | "aarch64" => Ok("arm64".to_string()),
-        _ => anyhow::bail!("Unsupported architecture: {}", arch),
+        other => anyhow::bail!("Unsupported architecture: {}", other),
     }
 }
 
@@ -526,6 +554,39 @@ mod tests {
     fn test_detect_architecture() {
         let arch = detect_architecture().unwrap();
         assert!(arch == "x86_64" || arch == "arm64");
+    }
+
+    // TR7 falsifier: reverting to uname-only detection makes this fail — the
+    // pre-fix code answered "arm64" for the (Some("x86_64"), "arm64") host.
+    #[test]
+    fn tr7_explicit_slice_target_outranks_host() {
+        // Apple-silicon CI host targeting the x86_64 slice (the exact TR7 case).
+        assert_eq!(
+            resolve_architecture(Some("x86_64"), "arm64").unwrap(),
+            "x86_64"
+        );
+        // Symmetrically, an x86_64 host may target arm64.
+        assert_eq!(
+            resolve_architecture(Some("arm64"), "x86_64").unwrap(),
+            "arm64"
+        );
+        assert_eq!(
+            resolve_architecture(Some("aarch64"), "x86_64").unwrap(),
+            "arm64"
+        );
+    }
+
+    #[test]
+    fn tr7_multi_arch_list_and_empty_fall_back_to_host() {
+        // A universal-binary list is not a single-slice target: host decides.
+        assert_eq!(
+            resolve_architecture(Some("arm64;x86_64"), "arm64").unwrap(),
+            "arm64"
+        );
+        assert_eq!(resolve_architecture(Some(""), "x86_64").unwrap(), "x86_64");
+        assert_eq!(resolve_architecture(None, "arm64").unwrap(), "arm64");
+        // Unset env + unresolvable host fails closed.
+        assert!(resolve_architecture(None, "sparc").is_err());
     }
 
     #[test]
