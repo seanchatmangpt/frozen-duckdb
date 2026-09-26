@@ -10,7 +10,7 @@ Frozen DuckDB revolutionizes Rust database development with a groundbreaking **B
 
 **DuckDB v1.5.5 is now supported as of this release** (closes [#1](https://github.com/seanchatmangpt/frozen-duckdb/issues/1)). The crate version mirrors the bundled DuckDB version: frozen-duckdb 1.5.5 contains DuckDB 1.5.5. This is a drop-in upgrade — no code changes are needed for existing users.
 
-- **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`.
+- **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`. Automatic download requires a published GitHub Release — until the `v1.5.5` tag is cut, the download misses and builds compile DuckDB locally from the pinned `v1.5.5` source instead.
 - **Per-architecture macOS assets**: the release workflow publishes one dylib per architecture (arm64 and x86_64); the builder detects your architecture and downloads the matching asset. (The development cache currently carries universal arm64 + x86_64 binaries; asset contents at the first tag are set by `build-binaries.yml`.)
 - **Offline-capable builds**: the DuckDB 1.5.5 headers (`duckdb.h`, `duckdb.hpp`) are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works even when a release download carries only the dylib.
 - **No `DYLD_*` environment variables needed**: the frozen dylib carries the neutral install name `@rpath/libduckdb.dylib`, and the `frozen-duckdb` build script emits the matching runtime rpath for binaries, tests, and examples — `cargo build && cargo run` just works.
@@ -18,7 +18,7 @@ Frozen DuckDB revolutionizes Rust database development with a groundbreaking **B
 
 ## 🖥️ Platform Support (as of v1.5.5)
 
-- **macOS**: prebuilt per-architecture release assets (arm64, x86_64) downloaded automatically on first build. No local compilation, no `DYLD_*` setup.
+- **macOS**: prebuilt per-architecture release assets (arm64, x86_64) downloaded automatically on first build. No local compilation, no `DYLD_*` setup. As above, this requires the release to be published — until the `v1.5.5` tag is cut, builds compile DuckDB locally.
 - **Linux**: builds via the pinned local-compile fallback (DuckDB `v1.5.5` source). Prebuilt `.so` release assets are planned.
 - **Windows**: builds via the pinned local-compile fallback.
 
@@ -48,7 +48,7 @@ Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Ru
 4. **Transparent Operation**: Zero configuration required
 
 ### Mega-Library Compilation
-- **Single dynamic library** includes DuckDB with all extensions enabled
+- **Single dynamic library** includes DuckDB with the bundled extension set enabled (parquet;json;icu;httpfs;tpch;tpcds;fts;inet;sqlsmith, plus jemalloc/autoload)
 - **All features enabled** by default
 - **Compiled once**, cached globally, shared across projects
 

@@ -2,14 +2,14 @@
 
 ## Release Asset Strategy
 
-Frozen DuckDB ships **prebuilt macOS dylibs as GitHub Release assets** and downloads them automatically on first build. As of DuckDB 1.5.5, each released asset is a **universal binary containing both arm64 and x86_64 slices**, so a single asset serves Apple Silicon and Intel Macs alike.
+Frozen DuckDB ships **prebuilt macOS dylibs as GitHub Release assets** and downloads them automatically on first build. As of DuckDB 1.5.5, the release workflow publishes **one dylib per architecture** — `libduckdb_arm64.dylib` for Apple Silicon, `libduckdb_x86_64.dylib` for Intel — and the builder downloads the asset matching the machine. (The development cache currently carries universal binaries; released assets are per-architecture.)
 
 ### Released Assets
 
 | Asset | Size | Contains | Served By |
 |-------|------|----------|-----------|
-| `libduckdb_arm64.dylib` | ~117MB | universal (arm64 + x86_64) | Apple Silicon and Intel Macs |
-| `libduckdb_x86_64.dylib` | ~117MB | universal (arm64 + x86_64) | Apple Silicon and Intel Macs |
+| `libduckdb_arm64.dylib` | ~117MB | arm64 slice (single-arch asset) | Apple Silicon Macs |
+| `libduckdb_x86_64.dylib` | ~117MB | x86_64 slice (single-arch asset) | Intel Macs |
 
 ### How the Cache Is Populated
 
@@ -29,7 +29,8 @@ materialized under `duckdb/` (copied from the vendored 1.5.5 headers inside
 
 The builder detects the architecture with `uname -m` (`x86_64`, or `arm64`/`aarch64` mapped
 to `arm64`) and selects the matching cache path. There is no environment override on this
-path; because each 1.5.5 asset is a universal binary, either asset runs on any supported Mac.
+path; each 1.5.5 asset is single-architecture, so the builder resolves the asset
+matching the detected machine.
 The `ARCH` environment variable is honored only by `prebuilt/setup_env.sh` and the in-crate
 `architecture` helper module (`frozen_duckdb::architecture::detect()`), not by the builder.
 
@@ -135,7 +136,7 @@ git push origin v1.5.5
 
 ### Memory Usage
 
-- **Binary footprint**: ~117MB per cached asset (universal: arm64 + x86_64)
+- **Binary footprint**: ~117MB per cached asset (one architecture slice per released asset)
 - **Runtime memory**: Standard DuckDB memory usage
 - **Build memory**: No additional overhead during builds
 
@@ -160,8 +161,8 @@ cargo clean && cargo build
 # Check current architecture
 uname -m
 
-# Builder uses uname -m; each v1.5.5 asset is universal
-# (arm64 + x86_64), so either asset runs on this Mac
+# Builder uses uname -m; each v1.5.5 released asset is single-architecture
+# (the dev cache may hold universal binaries from an older acquisition path)
 lipo -info ~/.frozen-duckdb/cache/v1.5.5-*/libduckdb_*.dylib
 ```
 
@@ -220,8 +221,8 @@ cargo build -v
 1. **Linux binaries**: Add support for Linux architectures (prebuilt assets are currently macOS-only; Linux builds use the local-compile fallback)
 2. **Windows binaries**: Add Windows DLL support
 3. **Cross-compilation**: Build binaries for multiple platforms
-4. ~~**Universal binaries**~~: shipped as of v1.5.5 — each macOS asset already contains arm64 + x86_64 slices
+4. ~~**Universal binaries**~~: NOT shipped as of v1.5.5 — the release workflow publishes one single-architecture dylib per matrix arch (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`); universal binaries exist only in the development cache
 
 ## Summary
 
-The binary management architecture provides **optimal performance** and **compatibility** while maintaining **simplicity** for end users. Release assets are universal macOS dylibs downloaded automatically from GitHub Releases, the cache is normalized on every acquisition path, and the emitted runtime `@rpath` means binaries and tests run with no environment configuration — seamless integration with existing Rust projects.
+The binary management architecture provides **optimal performance** and **compatibility** while maintaining **simplicity** for end users. Release assets are per-architecture macOS dylibs downloaded automatically from GitHub Releases, the cache is normalized on every acquisition path, and the emitted runtime `@rpath` means binaries and tests run with no environment configuration — seamless integration with existing Rust projects.

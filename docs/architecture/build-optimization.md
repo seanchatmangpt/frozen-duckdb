@@ -11,7 +11,7 @@ Traditional DuckDB integration in Rust projects suffers from **severe build perf
 
 ## Solution Architecture
 
-Frozen DuckDB eliminates these bottlenecks through **pre-compiled universal dylibs** (arm64 + x86_64 in each release asset) that provide **99% faster builds** while maintaining **100% compatibility**.
+Frozen DuckDB eliminates these bottlenecks through **pre-compiled per-architecture dylibs** (one arm64 or x86_64 slice per release asset) that provide **99% faster builds** while maintaining **100% compatibility**.
 
 ### Core Optimization Strategy
 
@@ -153,15 +153,15 @@ where
 - Consistent build times across environments
 - Reduced system resource usage during builds
 
-### 2. Universal Binary Distribution
+### 2. Per-Architecture Binary Distribution
 
-**Problem**: Publishing per-architecture binaries complicates asset management
+**Problem**: Universal binaries would double every asset's size and compile time for all users
 
-**Solution**: Each v1.5.5 release asset is a universal binary containing both arm64 and x86_64 slices
+**Solution**: The v1.5.5 release workflow builds and publishes **one dylib per architecture** (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`); the builder downloads the asset matching `uname -m`
 
 **Benefits**:
-- One asset serves Apple Silicon and Intel Macs
-- No architecture-specific asset selection at download time
+- Each machine downloads only the slice it needs (~117MB)
+- Faster CI matrix builds (each arch compiles once, no `lipo` step)
 - The builder still caches under `v1.5.5-{arch}` per `uname -m` for stable paths
 
 ### 3. Smart Caching Strategy
@@ -240,7 +240,7 @@ cargo test --all
 | Operation | Before | After | Improvement |
 |-----------|--------|-------|-------------|
 | **Build memory** | 500MB-1GB | 100MB-200MB | **75% less** |
-| **Disk usage** | 200MB+ (source build tree) | ~117MB universal dylib | **No compilation** |
+| **Disk usage** | 200MB+ (source build tree) | ~117MB per-arch dylib | **No compilation** |
 | **Network** | Full source | One dylib download | **90% less** |
 
 ### CPU Usage
@@ -309,7 +309,8 @@ cargo clean && cargo build
 
 #### 2. Wrong Architecture Binary
 ```bash
-# Check binary size and type — v1.5.5 assets are universal
+# Check binary size and type — v1.5.5 released assets are single-architecture
+# (cache entries may be universal binaries left by older dev acquisitions)
 ls -lah ~/.frozen-duckdb/cache/v1.5.5-*/
 lipo -info ~/.frozen-duckdb/cache/v1.5.5-*/libduckdb_*.dylib
 ```
@@ -376,7 +377,7 @@ time cargo build --release
 ### For Developers
 
 1. **Zero setup**: just `cargo build` — the builder acquires the dylib and the emitted `@rpath` handles runtime loading (no `setup_env.sh` needed)
-2. **Architecture awareness**: each v1.5.5 asset is a universal binary (arm64 + x86_64), so either asset runs on any supported Mac
+2. **Architecture awareness**: each v1.5.5 released asset is single-architecture; the builder downloads the one matching `uname -m`
 3. **Environment consistency**: no environment variables to keep in sync across development and CI/CD
 4. **Performance monitoring**: Track build times and investigate anomalies
 

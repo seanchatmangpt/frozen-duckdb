@@ -1,0 +1,53 @@
+[
+ {
+  "id": "FDDB-26922-01",
+  "path": "jira/FDDB-26922-01.md",
+  "standing": "UNKNOWN",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "dependencies": []
+ },
+ {
+  "id": "FDDB-26922-02",
+  "path": "jira/FDDB-26922-02.md",
+  "standing": "UNKNOWN",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "dependencies": [
+   "FDDB-26922-01",
+   "GGMKT-26922-01"
+  ]
+ },
+ {
+  "id": "FDDB-26922-03",
+  "path": "jira/FDDB-26922-03.md",
+  "standing": "UNKNOWN",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "dependencies": []
+ },
+ {
+  "id": "FDDB-26922-04",
+  "path": "jira/FDDB-26922-04.md",
+  "standing": "UNKNOWN",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "dependencies": [
+   "FDDB-26922-03",
+   "GGEN_IGNITER-26922-13"
+  ]
+ },
+ {
+  "id": "FDDB-26922-05",
+  "path": "jira/FDDB-26922-05.md",
+  "standing": "UNKNOWN",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "dependencies": [
+   "FDDB-26922-01",
+   "FDDB-26922-02"
+  ]
+ },
+ {
+  "id": "FDDB-26922-06",
+  "path": "jira/FDDB-26922-06.md",
+  "standing": "UNKNOWN",
+  "repository": "seanchatmangpt/frozen-duckdb",
+  "dependencies": []
+ }
+]
