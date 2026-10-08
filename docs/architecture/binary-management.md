@@ -15,10 +15,19 @@ Frozen DuckDB ships **prebuilt macOS dylibs as GitHub Release assets** and downl
 
 `frozen-duckdb-builder::ensure_binary()` resolves the binary through a fixed sequence:
 
-1. **Cache hit**: `~/.frozen-duckdb/cache/v1.5.5-{arch}/libduckdb_{arch}.dylib` (arch from `uname -m`)
+1. **Cache hit**: `~/.frozen-duckdb/cache/v1.5.5-{arch}/libduckdb_{arch}.dylib` (arch from `CMAKE_OSX_ARCHITECTURES`/`ARCH` or `uname -m`)
 2. **Local prebuilt dir**: copies `prebuilt/libduckdb_{arch}.dylib` into the cache if present
 3. **GitHub Release download**: fetches `https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v1.5.5/libduckdb_{arch}.dylib`
 4. **Local-compile fallback**: clones upstream DuckDB at the pinned `v1.5.5` tag and builds with CMake
+
+Every library that enters the cache — cached, prebuilt, downloaded, or locally compiled — is
+verified with `lipo -archs` against its label before use, and a mismatch fails closed:
+
+- a cached binary whose slice does not match its label is rejected: `stale cached binary does not match its label; remove <cache-dir> and rebuild`
+- a downloaded binary that fails the check is deleted again — never cached (`refusing to cache downloaded binary`)
+- any label/slice mismatch surfaces as `TR7 slice mismatch: <path> is labeled <arch> but carries [...]`
+
+(On non-macOS hosts, or where `lipo` is unavailable, the check is logged as unverified rather than admitted.)
 
 On **every** acquisition path, the builder then normalizes the cache layout: headers are
 materialized under `duckdb/` (copied from the vendored 1.5.5 headers inside
@@ -27,12 +36,14 @@ materialized under `duckdb/` (copied from the vendored 1.5.5 headers inside
 
 ## Binary Selection
 
-The builder detects the architecture with `uname -m` (`x86_64`, or `arm64`/`aarch64` mapped
-to `arm64`) and selects the matching cache path. There is no environment override on this
-path; each 1.5.5 asset is single-architecture, so the builder resolves the asset
-matching the detected machine.
-The `ARCH` environment variable is honored only by `prebuilt/setup_env.sh` and the in-crate
-`architecture` helper module (`frozen_duckdb::architecture::detect()`), not by the builder.
+The builder detects the architecture from the first explicit **single-slice** value among
+`CMAKE_OSX_ARCHITECTURES`, then `ARCH`, falling back to `uname -m` (`x86_64`, or
+`arm64`/`aarch64` mapped to `arm64`), and selects the matching cache path. Empty or
+multi-arch values are ignored. For the local-compile fallback on macOS, an operator-set
+`CMAKE_OSX_ARCHITECTURES` passes through verbatim and otherwise the label itself is pinned,
+so the emitted slice can never diverge from the label; off macOS a cross-architecture local
+compile is refused outright (there is no slice-selection flag, so the library would be
+mislabeled).
 
 ### Runtime Loading
 
@@ -161,9 +172,16 @@ cargo clean && cargo build
 # Check current architecture
 uname -m
 
-# Builder uses uname -m; each v1.5.5 released asset is single-architecture
+# Detection order: explicit single-slice CMAKE_OSX_ARCHITECTURES -> ARCH -> uname -m;
+# each v1.5.5 released asset is single-architecture
 # (the dev cache may hold universal binaries from an older acquisition path)
 lipo -info ~/.frozen-duckdb/cache/v1.5.5-*/libduckdb_*.dylib
+
+# A cache entry whose Mach-O slice does not match its label fails closed:
+#   stale cached binary does not match its label; remove <cache-dir> and rebuild
+# A verified-against-label mismatch anywhere else surfaces as:
+#   TR7 slice mismatch: <path> is labeled <arch> but carries [...]
+# Remove the named cache directory (or the bad download) and rebuild.
 ```
 
 #### 3. Permission Issues

@@ -25,8 +25,11 @@ rebuild if the state looks stale.
 
 #### What does the ARCH environment variable do?
 
-The builder auto-detects the architecture via uname -m and ignores ARCH. ARCH
-only affects prebuilt/setup_env.sh and the architecture helper module
+The builder detects the architecture in order: explicit single-slice
+CMAKE_OSX_ARCHITECTURES → ARCH → uname -m (multi-arch lists and unknown values
+fall through to host detection). An explicit single-slice value drives the
+builder's detection, cache placement, and asset naming — not just
+prebuilt/setup_env.sh and the architecture helper module
 (`frozen_duckdb::architecture::detect()`).
 
 #### Which platforms are supported?

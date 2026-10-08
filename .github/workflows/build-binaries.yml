@@ -49,13 +49,11 @@ jobs:
           # macos-latest is an arm64 runner: uname -m reports arm64 even on the
           # x86_64 matrix leg, so the local-compile fallback must be told the
           # target slice explicitly. CMAKE_OSX_ARCHITECTURES labels the slice
-          # clang emits. TR7 LANDED the builder side of the coordination
-          # (crates/frozen-duckdb-builder passes this env to cmake), but arch
-          # DETECTION and cache PLACEMENT there still key off `uname -m`: the
-          # x86_64 slice lands under v1.5.5-arm64/libduckdb_arm64.dylib, the
-          # find step below misses libduckdb_x86_64.dylib, and this leg fails
-          # closed rather than shipping a mislabeled slice. The
-          # detection/placement fix stays builder-owned (TR7 scope).
+          # clang emits. TR7 CLOSED (v26.9.26): the builder now derives
+          # detection AND cache placement from CMAKE_OSX_ARCHITECTURES/ARCH
+          # (falling back to uname -m), so the x86_64 leg lands under
+          # v1.5.5-x86_64/libduckdb_x86_64.dylib and the find step below
+          # resolves. Both env vars are exported here per leg.
           echo "CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}" >> "$GITHUB_ENV"
 
       - name: Guard version input
@@ -100,7 +98,10 @@ jobs:
               match ensure_binary() {
                   Ok(path) => println!("Built mega-library: {}", path.display()),
                   Err(e) => {
-                      eprintln!("Failed to build mega-library: {}", e);
+                      // {:#}, not {}: the anyhow chain carries the captured
+                      // cmake/make stderr — the v1.5.5 tag run died with only
+                      // "Failed to compile DuckDB locally" and no diagnostic.
+                      eprintln!("Failed to build mega-library: {:#}", e);
                       std::process::exit(1);
                   }
               }

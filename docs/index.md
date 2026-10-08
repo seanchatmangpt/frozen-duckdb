@@ -22,6 +22,7 @@ Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement
 - [Functions](reference/functions.md)
 - [Environment variables](reference/environment-variables.md)
 - [Tech stack](reference/tech-stack.md)
+- [Extension build pipeline](reference/extension-build.md)
 
 ## Explanation
 

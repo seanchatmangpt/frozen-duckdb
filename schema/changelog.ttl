@@ -30,11 +30,14 @@
 # Release 1.5.5
 #################################################################
 
-# UNRELEASED as of 2026-09-24: no tag cut (FDDB-26922-05 re-pin law) — do
-# not render as released. The rel: vocabulary carries no status property,
-# so this is recorded as a comment: rel:date below is the fact date, not a
-# publication claim (no GitHub Release exists; ensure_binary() still gets
-# HTTP 404 and falls back to the pinned local compile).
+# Tag v1.5.5 cut 2026-09-26 (77125ca); CHANGELOG.md rendered as released
+# (supersedes the 2026-09-24 UNRELEASED note, FDDB-26922-05 re-pin law).
+# The rel: vocabulary carries no status property, so publication status
+# stays a comment: rel:date below is the fact date, not a publication
+# claim (the GitHub Release is still unpublished, so ensure_binary() still
+# gets HTTP 404 and falls back to the pinned local compile; the tag run's
+# x86_64 leg failed closed on arch detection — fix abff9bc on
+# fix/tr7-arch-detection).
 fd:release-v1.5.5 a rel:Release ;
     rel:version "1.5.5" ;
     rel:date "2026-09-21"^^xsd:date .
@@ -117,6 +120,16 @@ fd:changelog-c2 a rel:ChangeEntry ;
     rel:category rel:catChanged ;
     rel:entryOrder 2 ;
     rel:description """`test-dependency` now exercises the upstream `duckdb = "1.5"` line alongside the frozen binary.""" .
+
+# Post-tag arch-detection fix (commit abff9bc, branch fix/tr7-arch-detection):
+# cause of the tag run's failed x86_64 leg (see the release comment above).
+# Fact only; the CHANGELOG.md render is a consequence of the next lawful
+# `ggen sync run` (re-render pending).
+fd:changelog-c3 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v1.5.5 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 3 ;
+    rel:description """Download-path architecture detection honors an explicit single-slice `CMAKE_OSX_ARCHITECTURES` or `ARCH` value: detection order is `CMAKE_OSX_ARCHITECTURES` → `ARCH` → `uname -m`, and an explicit single-slice value drives detection, cache placement, and release-asset naming, while multi-arch lists and unknown values fall through to host detection. Root-causes the `v1.5.5` tag run's x86_64 leg failing closed on arch detection (commit abff9bc).""" .
 
 #################################################################
 # Fixed (includes the six former "Fixes and hardening (wave 3)"
