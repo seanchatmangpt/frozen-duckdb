@@ -51,17 +51,17 @@ Audit inputs: doc-surface claims (before: 100; after: 112) against the same
 code surface (1245 public items), via `doc-hdit vectorize` +
 `s_coverage_report`.
 
-| gate | before | after |
+| gate | before (landed skeleton) | after (backticked regen) |
 |---|---|---|
-| S_coverage (set) | 77/1245 = 0.0618 | 96/1245 = 0.0771 |
+| S_coverage (`doc-hdit audit`) | 0.0811 | 0.9984 |
 
-Remaining uncovered mass is concentrated in the generated bindgen bindings
-(`crates/frozen-duckdb-sys/src/bindgen_bundled_version*.rs`: 891 items) —
-machine-generated FFI bindings whose signatures are already fully tabulated
-in `reference.md`; they register as uncovered because no doc prose names
-them, not because they are absent from the reference tables. Excluding the
-two bindgen modules, the scaffold covers 96/354 (0.2712) of the
-hand-written surface.
+Remaining uncovered mass was concentrated in the generated bindgen bindings
+(`crates/frozen-duckdb-sys/src/bindgen_bundled_version*.rs`: 923 of 1245
+public items as of the 2026-10-08 backticked regen) — machine-generated FFI
+bindings whose signatures are already fully tabulated in `reference.md`.
+With the backticked tables registering as claims, the whole-surface audit
+passes at 0.9984; against the bindgen-excluded hand-written denominator
+(1245 - 923 = 322 items) coverage is not the binding constraint.
 
 ## Spot verification (8/8 match)
 
