@@ -5,7 +5,7 @@
 
 | Variable | Required | Description |
 |---|---|---|
-| `ARCH` | false | Overrides the architecture reported by `prebuilt/setup_env.sh` and `frozen_duckdb::architecture::detect()`. The builder ignores it; downloads always use its own `uname -m` detection. |
+| `ARCH` | false | Overrides the architecture reported by `prebuilt/setup_env.sh` and `frozen_duckdb::architecture::detect()`. The builder reads it after `CMAKE_OSX_ARCHITECTURES`: the first explicit single-slice value among `CMAKE_OSX_ARCHITECTURES` → `ARCH` wins, falling back to `uname -m`; empty or multi-arch values are ignored. |
 | `DUCKDB_LIB_DIR` | false | Directory containing a manually installed DuckDB library; checked by `frozen_duckdb::env_setup::is_configured()`. |
 | `DUCKDB_INCLUDE_DIR` | false | Directory containing a manually installed DuckDB headers; checked by `frozen_duckdb::env_setup::is_configured()`. |
 | `DOCS_RS` | false | Set by docs.rs infrastructure only: sys-crate build script generates bindings from vendored headers and skips linking. |

@@ -10,7 +10,7 @@ Frozen DuckDB revolutionizes Rust database development with a groundbreaking **B
 
 **DuckDB v1.5.5 is now supported as of this release** (closes [#1](https://github.com/seanchatmangpt/frozen-duckdb/issues/1)). The crate version mirrors the bundled DuckDB version: frozen-duckdb 1.5.5 contains DuckDB 1.5.5. This is a drop-in upgrade — no code changes are needed for existing users.
 
-- **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`. Automatic download requires a published GitHub Release — until the `v1.5.5` tag is cut, the download misses and builds compile DuckDB locally from the pinned `v1.5.5` source instead.
+- **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`. Automatic download requires a published GitHub Release — the `v1.5.5` tag is cut (77125ca, 2026-09-26), but the GitHub Release with per-arch assets is not yet published, so the download still misses and builds compile DuckDB locally from the pinned `v1.5.5` source.
 - **Per-architecture macOS assets**: the release workflow publishes one dylib per architecture (arm64 and x86_64); the builder detects your architecture and downloads the matching asset. (The development cache currently carries universal arm64 + x86_64 binaries; asset contents at the first tag are set by `build-binaries.yml`.)
 - **Offline-capable builds**: the DuckDB 1.5.5 headers (`duckdb.h`, `duckdb.hpp`) are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works even when a release download carries only the dylib.
 - **No `DYLD_*` environment variables needed**: the frozen dylib carries the neutral install name `@rpath/libduckdb.dylib`, and the `frozen-duckdb` build script emits the matching runtime rpath for binaries, tests, and examples — `cargo build && cargo run` just works.
@@ -18,7 +18,7 @@ Frozen DuckDB revolutionizes Rust database development with a groundbreaking **B
 
 ## 🖥️ Platform Support (as of v1.5.5)
 
-- **macOS**: prebuilt per-architecture release assets (arm64, x86_64) downloaded automatically on first build. No local compilation, no `DYLD_*` setup. As above, this requires the release to be published — until the `v1.5.5` tag is cut, builds compile DuckDB locally.
+- **macOS**: prebuilt per-architecture release assets (arm64, x86_64) downloaded automatically on first build. No local compilation, no `DYLD_*` setup. As above, this requires the release to be published — the `v1.5.5` tag is cut, but the GitHub Release is not yet published, so builds currently compile DuckDB locally.
 - **Linux**: builds via the pinned local-compile fallback (DuckDB `v1.5.5` source). Prebuilt `.so` release assets are planned.
 - **Windows**: builds via the pinned local-compile fallback.
 
@@ -273,9 +273,9 @@ features of `frozen-duckdb` today.
    - Try `cargo clean` and rebuild
 
 3. **Architecture mismatch**
-   - The builder auto-detects the architecture via `uname -m`
+   - The builder detects the architecture in order: explicit single-slice `CMAKE_OSX_ARCHITECTURES` → `ARCH` → `uname -m` (multi-arch lists and unknown values fall through to host detection)
    - Release assets are published per architecture (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`), and the builder downloads the matching one
-   - The `ARCH` environment variable only affects `prebuilt/setup_env.sh` and the `architecture` helper module, not the builder's download path
+   - An explicit single-slice `ARCH` (or `CMAKE_OSX_ARCHITECTURES`) drives the builder's detection, cache placement, and asset naming — not just `prebuilt/setup_env.sh` and the `architecture` helper module
 
 ### Debug Information
 
