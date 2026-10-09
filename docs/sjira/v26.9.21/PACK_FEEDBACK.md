@@ -541,3 +541,17 @@ place for prose"); the durable fixes belong upstream in the named packs.
    mentioned it). Pack improvement: phase mappings should natively include the
    provenance-gate rows (phase 2 pre-cut law; phase 6 close-out re-run with
    `chain_hash`), as now harmonized in the runbook.
+
+### Item 425 (G10 #1) — CLOSED 2026-10-09 (lane R151)
+
+`readme-diataxis-pack` `templates/index.md.tmpl` Playground emission is now
+gated on declared `rdx:PlaygroundFile` rows (frontmatter `playground` SPARQL
+query + `{% if playground %}`). Fixing commit:
+`66462b92b` (ggen-marketplace, branch `hdit-v2-structs`); closure receipt:
+ggen-marketplace `docs/sjira/v26.10.8/PACK_FEEDBACK-425-CLOSE.md`.
+
+Witnesses: template court 4/4 (`tests/test_readme_diataxis_playground_gate.py`,
+present-with-rows and absent-without-rows); real ggen 26.9.28 scratch render
+with zero rows emits no Playground link; this repo's `docs/index.md` has no
+Playground link; link-check over `docs/**/*.md` (110 files) = 0 broken on doc
+surfaces (the only 2 raw hits are this item's own evidence quotes).
