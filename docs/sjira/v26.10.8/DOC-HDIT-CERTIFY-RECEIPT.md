@@ -86,3 +86,7 @@ receipt hash `b19213a2e05b6e427a041c78b5068bddead9dee1efb1db7a47aeb2d394f55c20`;
 (first receipt in chain).
 
 Gated under the module-level denominator law (ggen-marketplace docs/sjira/v26.10.8/DENOMINATOR-SCOPE-DECISION.md @0f3d840ff); per-function coverage figures are the report-only layer. As-of 2026-10-09.
+
+## Branch plane
+
+Branch-plane reconciliation (lane R156, 2026-10-09): `master` fast-forwarded `e9ba388..341f577` and `origin/docs/doc-hdit-scaffold` = `origin/master` = `341f57789e94e3b6050d66be7608b9f74b1d0ecd` — planes aligned, no history rewritten.
