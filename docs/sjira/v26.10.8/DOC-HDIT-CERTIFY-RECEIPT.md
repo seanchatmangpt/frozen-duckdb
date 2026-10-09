@@ -84,3 +84,5 @@ python3 /Users/sac/ggen-marketplace/scripts/gen_doc_surface.py doc   /Users/sac/
 Chain subject digest: `6693b85f292aae5c060038a6f42af2618c4bfa3c03d26119b1d726937554e395`;
 receipt hash `b19213a2e05b6e427a041c78b5068bddead9dee1efb1db7a47aeb2d394f55c20`; parent none
 (first receipt in chain).
+
+Gated under the module-level denominator law (ggen-marketplace docs/sjira/v26.10.8/DENOMINATOR-SCOPE-DECISION.md @0f3d840ff); per-function coverage figures are the report-only layer. As-of 2026-10-09.
