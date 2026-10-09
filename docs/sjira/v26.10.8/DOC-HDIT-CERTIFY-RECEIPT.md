@@ -10,7 +10,7 @@
 | extractor pin | sha256 `4c862576ab63595f9cd0417b35341af3ec1001f49450e79bf2e4c291a4a4246f` (`/Users/sac/ggen-marketplace/scripts/gen_doc_surface.py`); recorded natively in the chain receipt as BLAKE3 extractor identity `a579e2109941e1f27f2faf0403d6c91e3eebb7f234dcc191a814573001309616` |
 | court | `ggen-marketplace/packs/rust-doc-hdit-pack/courts/doc_quality.court` (S ≥ 0.90, Φ ≤ 0.001, Q ≥ 0.65 — thresholds unmodified) |
 
-> superseded-by f51d81ac4f7e4119dff950327237effee4968f4aa9aba52c7d62c5362f441fa9 as-of 2026-10-09 (R34); pin retained as historical subject identity for this ACCEPTED certify at `c7e53c352`.
+> extractor pinned in receipt is historical; current fleet pin see ggen-marketplace docs/sjira/v26.10.8/PIN-ROTATION-LEDGER.md; pin retained as historical subject identity for this ACCEPTED certify at `c7e53c352`.
 
 ## Pipeline (real runs, commands + exits)
 
