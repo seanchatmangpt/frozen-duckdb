@@ -32,6 +32,7 @@ AGENT-FORBIDDEN.
 | reference.md | AGENT-FORBIDDEN reference tables (module/symbol rows rendered from the code surface) |
 | how_to.md | prerequisite verbs list (build surface) |
 | explanation.md | summary + bounded AGENT-COMMENTARY slot |
+| extractor-generated-surface-config-proposal.md | PROPOSED `.doc-surface.toml` convention for excluding the bindgen sys pair from the coverage denominator (hand-written proposal, not generated; see backlog [38]) |
 | README.md | this provenance banner (hand-maintained, this file only) |
 
 ## Regeneration + gates
@@ -62,6 +63,15 @@ bindings whose signatures are already fully tabulated in `reference.md`.
 With the backticked tables registering as claims, the whole-surface audit
 passes at 0.9984; against the bindgen-excluded hand-written denominator
 (1245 - 923 = 322 items) coverage is not the binding constraint.
+
+**Generated-surface policy (backlog [38], lane fdb-bindgen 2026-10-08):**
+the bindgen sys pair is machine-generated output, declared out of scope for
+coverage denominators. The extractor has no per-file config today; the
+demonstrated exclusion path is its directory-name vendor policy (scratch
+re-extract with the pair under a `vendor/`-named dir: 1706 -> 404 items,
+0 bindgen modules). A repo-level `.doc-surface.toml` convention is proposed
+in `extractor-generated-surface-config-proposal.md` in this directory,
+awaiting extractor-side admission.
 
 ## Spot verification (8/8 match)
 
