@@ -1,0 +1,9 @@
+# .doc-surface.toml — generated-surface policy for gen_doc_surface.py
+# (doc-hdit v1; spec: docs/reference/generated/
+# extractor-generated-surface-config-proposal.md)
+[[generated]]
+paths = [
+  "crates/frozen-duckdb-sys/src/bindgen_bundled_version.rs",
+  "crates/frozen-duckdb-sys/src/bindgen_bundled_version_loadable.rs",
+]
+reason = "bindgen output; signatures already tabulated in docs/reference/generated/reference.md"
