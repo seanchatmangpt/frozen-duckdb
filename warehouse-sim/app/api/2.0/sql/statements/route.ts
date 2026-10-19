@@ -22,22 +22,34 @@ import { recordQuery } from "../../../../../lib/admin_engine.ts";
 
 export async function POST(request: Request): Promise<Response> {
   const raw = await request.text();
-  const body = JSON.parse(raw) as DatabricksSubmitRequest;
-  const res = databricksSubmit(body);
-  // Persist the submit wall-clock per handle so the poll route's
-  // QUEUED->RUNNING->SUCCEEDED timeline starts at the real submit time.
-  recordSubmitTime(res.statement_id);
-  // LEDGER BRIDGE: credit the real query on the shared engine (egress lands
-  // later, on the poll route's terminal observation via recordEgress).
-  recordQuery({
-    url: new URL(request.url).pathname,
-    sql: body.statement,
-    payloadBytes: Buffer.byteLength(raw),
-    handle: res.statement_id,
-  });
-  return new Response(JSON.stringify(res), {
-    status: DATABRICKS_SUBMIT_STATUS,
-    headers: { "content-type": "application/json" },
-  });
+  try {
+    const body = JSON.parse(raw) as DatabricksSubmitRequest;
+    if (typeof body.statement !== "string") {
+      throw new Error("statement must be a string");
+    }
+    const res = databricksSubmit(body);
+    // Persist the submit wall-clock per handle so the poll route's
+    // QUEUED->RUNNING->SUCCEEDED timeline starts at the real submit time.
+    recordSubmitTime(res.statement_id);
+    // LEDGER BRIDGE: credit the real query on the shared engine (egress lands
+    // later, on the poll route's terminal observation via recordEgress).
+    recordQuery({
+      url: new URL(request.url).pathname,
+      sql: body.statement,
+      payloadBytes: Buffer.byteLength(raw),
+      handle: res.statement_id,
+    });
+    return new Response(JSON.stringify(res), {
+      status: DATABRICKS_SUBMIT_STATUS,
+      headers: { "content-type": "application/json" },
+    });
+  } catch (err) {
+    // AD2 adversarial court: malformed input (unparseable JSON, non-string
+    // statement) is a typed 400, never an unhandled 500.
+    return new Response(
+      JSON.stringify({ error: "invalid_request", detail: err instanceof Error ? err.message : String(err) }),
+      { status: 400, headers: { "content-type": "application/json" } },
+    );
+  }
 }
 

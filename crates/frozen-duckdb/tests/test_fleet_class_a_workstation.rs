@@ -112,7 +112,9 @@ fn fleet001_class_a_native_workstation_aggregation() {
     .expect("bulk insert");
     let load_secs = t0.elapsed().as_secs_f64();
     let n: i64 = conn
-        .query_row("SELECT count(*) FROM enterprise_telemetry", [], |r| r.get(0))
+        .query_row("SELECT count(*) FROM enterprise_telemetry", [], |r| {
+            r.get(0)
+        })
         .unwrap();
     assert_eq!(n, ROWS, "table must hold exactly {ROWS} rows");
     println!("loaded {n} rows in {load_secs:.3}s");
@@ -155,7 +157,9 @@ fn fleet001_class_a_native_workstation_aggregation() {
     for i in 0..RUNS {
         let t = Instant::now();
         let hits: i64 = conn
-            .query_row(&format!("SELECT count(*) FROM ({agg_sql})"), [], |r| r.get(0))
+            .query_row(&format!("SELECT count(*) FROM ({agg_sql})"), [], |r| {
+                r.get(0)
+            })
             .expect("timed aggregation run");
         assert_eq!(hits, 5, "run {i}: 5 groups");
         samples_ms.push(t.elapsed().as_secs_f64() * 1000.0);

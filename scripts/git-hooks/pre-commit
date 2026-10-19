@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# pre-commit poka-yoke (P8): refuse commit while target-lane*/ exist.
+# Install (operator): cp scripts/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+exec "$(dirname "$0")/../../scripts/check_lane_leases.sh"

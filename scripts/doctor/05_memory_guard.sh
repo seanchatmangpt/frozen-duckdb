@@ -2,6 +2,8 @@
 # Phase 05 — memory guard: doctor_leak_audit + oom_graceful_abort.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Shared doctor build dir: one build paid across all doctor phases (kaizen LSS4).
+export CARGO_TARGET_DIR="${DOCTOR_TARGET_DIR:-$ROOT/doctor-target}"
 names="doctor_leak_audit oom_graceful_abort"
 fail=0
 

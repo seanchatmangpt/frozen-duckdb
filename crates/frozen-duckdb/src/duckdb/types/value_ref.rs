@@ -324,9 +324,17 @@ impl From<ValueRef<'_>> for Value {
                 // (LargeUtf8, non-string), so never panic on the downcast:
                 // map LargeUtf8 too, else degrade to Null.
                 if let Some(payload) = arr.as_any().downcast_ref::<StringArray>() {
-                    Self::Variant(payload.value(idx).to_string())
+                    if payload.is_null(idx) {
+                        Self::Null
+                    } else {
+                        Self::Variant(payload.value(idx).to_string())
+                    }
                 } else if let Some(payload) = arr.as_any().downcast_ref::<LargeStringArray>() {
-                    Self::Variant(payload.value(idx).to_string())
+                    if payload.is_null(idx) {
+                        Self::Null
+                    } else {
+                        Self::Variant(payload.value(idx).to_string())
+                    }
                 } else {
                     // Non-string payload on external input: degrade to Null
                     // rather than panic.

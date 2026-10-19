@@ -127,9 +127,7 @@ fn rev001_trial_balance_10m() {
     }
 
     // Digest: b3sum (BLAKE3) primary; sha256 fallback. State which was used.
-    let out = std::process::Command::new("b3sum")
-        .arg(&dump_path)
-        .output();
+    let out = std::process::Command::new("b3sum").arg(&dump_path).output();
     let (digest, hash_tool) = match out {
         Ok(o) if o.status.success() => (
             String::from_utf8_lossy(&o.stdout)
@@ -140,20 +138,30 @@ fn rev001_trial_balance_10m() {
             "blake3(b3sum)",
         ),
         _ => {
-            let o = std::process::Command::new("shasum").args(["-a", "256"]).arg(&dump_path).output().unwrap();
+            let o = std::process::Command::new("shasum")
+                .args(["-a", "256"])
+                .arg(&dump_path)
+                .output()
+                .unwrap();
             (
-                String::from_utf8_lossy(&o.stdout).split_whitespace().next().unwrap().to_string(),
+                String::from_utf8_lossy(&o.stdout)
+                    .split_whitespace()
+                    .next()
+                    .unwrap()
+                    .to_string(),
                 "sha256(shasum -a 256)",
             )
         }
     };
 
     // Egress/credits: total debits == total credits, nothing leaves the system.
-    let (td, tc, n): (String, String, i64) = conn.query_row(
-        "SELECT sum(debit)::VARCHAR, sum(credit)::VARCHAR, count(*) FROM journal",
-        [],
-        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-    ).unwrap();
+    let (td, tc, n): (String, String, i64) = conn
+        .query_row(
+            "SELECT sum(debit)::VARCHAR, sum(credit)::VARCHAR, count(*) FROM journal",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
 
     // Hard asserts (non-vacuous): row count, variance, balance, egress.
     assert_eq!(n, ROWS as i64, "row count");

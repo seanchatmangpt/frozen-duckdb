@@ -12,6 +12,27 @@ categories.workspace = true
 
 description = "Drop-in replacement for the duckdb (duckdb-rs) crate: same API, backed by pre-compiled DuckDB binaries for fast Rust builds"
 
+# AD8 package audit (docs/sjira/v2.0.0-dev/receipts/AD8-PACKAGE-AUDIT.md):
+# these are machine-local value-audit / fleet-court / rev-court fixtures —
+# they reference hard-coded operator-home absolute paths and /tmp lane
+# fixtures and are meaningless (and leaking) outside this checkout. They
+# remain tracked and runnable in-repo; excluded from the crates.io package.
+exclude = [
+    "tests/gate_v01_latency.rs",
+    "tests/test_fleet_class_a_workstation.rs",
+    "tests/test_fleet_class_b_industrial.rs",
+    "tests/test_fleet_class_c_retail.rs",
+    "tests/test_fleet_class_d_marine.rs",
+    "tests/test_fleet_class_e_telco.rs",
+    "tests/test_rev_clean_room.rs",
+    "tests/test_rev_compliance.rs",
+    "tests/test_rev_edge_autonomy.rs",
+    "tests/test_rev_process_mining.rs",
+    "tests/value_audit_amplitude.rs",
+    "tests/value_audit_celonis.rs",
+    "tests/value_audit_datadog.rs",
+]
+
 [lib]
 # Vendored duckdb-rs doc examples are illustrative pseudo-code written for the
 # upstream `duckdb` crate name (and `?` without a Result main); they are not

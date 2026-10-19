@@ -89,7 +89,7 @@ log "PIN VERIFIED: HEAD == ${SOURCE_PIN}"
 log "CONFIGURE (emcmake)"
 emcmake cmake -S "${DUCKDB_DIR}" -B "${BUILD_ROOT}/build" \
   -DCMAKE_CXX_STANDARD=17 \
-  -DCMAKE_CXX_FLAGS="-O3 -flto" \
+  -DCMAKE_CXX_FLAGS="-O3 -flto -sUSE_PTHREADS=1" \
   -DDUCKDB_EXPLICIT_PLATFORM=wasm_eh \
   -DBUILD_EXTENSIONS="parquet;json" \
   -DENABLE_EXTENSION_AUTOLOADING=OFF \

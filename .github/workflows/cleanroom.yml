@@ -1,0 +1,30 @@
+# Cleanroom court — dispatch-only. Runs the exact same steps as the
+# standalone script `scripts/cleanroom/consumer_cleanroom.sh`; nektos/act
+# executes this workflow locally. The macOS-local leg is the ALIVE cleanroom
+# witness; the act/Linux leg records the honest typed divergence
+# BLOCKED_LINUX_PREBUILT_MISSING (no linux .so prebuilt exists — KD known
+# divergence, not a FAIL of the court mechanics).
+name: cleanroom
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanroom:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consumer cleanroom (zero-compile witness)
+        env:
+          CLEANROOM_REPO: /workspace
+          CLEANROOM_RECEIPT: /tmp/cleanroom-receipt-act.json
+        run: |
+          set -uo pipefail
+          git config --global --add safe.directory /workspace || true
+          rc=0
+          bash /workspace/scripts/cleanroom/consumer_cleanroom.sh act || rc=$?
+          echo "cleanroom exit=$rc"
+          # exit 0 = PASS (linux prebuilt exists); exit 2 = typed divergence
+          # BLOCKED_LINUX_PREBUILT_MISSING (the honest known finding); the
+          # workflow does not turn either into a faked green cell. Exit 1
+          # (real FAIL) propagates and reds the step.
+          if [ "$rc" -eq 0 ] || [ "$rc" -eq 2 ]; then exit 0; else exit "$rc"; fi

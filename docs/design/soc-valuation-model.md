@@ -38,7 +38,8 @@ SOC is deliberately NOT:
   produces a measured cloud-path cost baseline.
 - Not a privacy surface. The SOC event stream records query shape
   metadata (see Measurement basis), never row data; the log is designed
-  so the exported stream cannot leak customer data.
+  to keep the exported stream from carrying customer data — design
+  intent, not a verified guarantee.
 
 ## Measurement basis
 

@@ -165,7 +165,11 @@ fn build_marine_db(dir: &Path, events: i64) -> PathBuf {
 fn write_jsonl(dir: &Path, events: i64) -> PathBuf {
     let out = dir.join("fleet004_baseline.jsonl");
     let st = Command::new(T2_BIN)
-        .args(["jsonl", out.to_str().expect("utf8 out"), &events.to_string()])
+        .args([
+            "jsonl",
+            out.to_str().expect("utf8 out"),
+            &events.to_string(),
+        ])
         .status()
         .expect("spawn t2writer jsonl");
     assert!(st.success(), "jsonl baseline writer exited {st}");

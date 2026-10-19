@@ -28,11 +28,27 @@ const globalRegistry = globalThis as unknown as Record<string, Map<string, numbe
 const submitTimes: Map<string, number> = globalRegistry[GLOBAL_KEY] ?? new Map();
 globalRegistry[GLOBAL_KEY] = submitTimes;
 
+/** AD2 (adversarial court): the registry is BOUNDED. 500-submits-without-polls
+ * (and unbounded fuzz traffic) must not grow the timeline map without limit —
+ * oldest entries (Map insertion order) are evicted at the cap; a polled handle
+ * whose entry was evicted simply restarts its timeline (documented behavior for
+ * un-submitted handles). */
+export const SUBMIT_REGISTRY_CAP = 10_000;
+
+/** Current registry occupancy (bounded-registry assertion surface). */
+export function submitRegistrySize(): number {
+  return submitTimes.size;
+}
+
 /** Record the submit wall-clock for a handle (first write wins — replays of
  * the same handle must not move the timeline). */
 export function recordSubmitTime(handle: string, atMs: number = Date.now()): number {
   const existing = submitTimes.get(handle);
   if (existing !== undefined) return existing;
+  if (submitTimes.size >= SUBMIT_REGISTRY_CAP) {
+    const oldest = submitTimes.keys().next().value;
+    if (oldest !== undefined) submitTimes.delete(oldest);
+  }
   submitTimes.set(handle, atMs);
   return atMs;
 }

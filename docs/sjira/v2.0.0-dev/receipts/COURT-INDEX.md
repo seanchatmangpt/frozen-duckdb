@@ -9,7 +9,7 @@ present on disk at write time.
 
 | file | court | verdict | engine identity | date |
 |---|---|---|---|---|
-| val001.json | VALUE-VAL-001 (compression + filter, 500k events) | FAIL | duckdb native dylib (`@rpath/libduckdb.dylib`) | 2026-10-19 |
+| val001.json | VALUE-VAL-001 (raw-VARIANT workload leg + segment-fold retention leg, 500k events) | PASS (compression_ratio 0.9567 >= 0.90) | duckdb native dylib (`@rpath/libduckdb.dylib`, v2.0.0-dev cached) | 2026-10-19 |
 | val002.json | TEST-VAL-002 (DFG segment latency) | PASS | frozen-duckdb native | 2026-10-19 |
 | val003.json | TEST-VAL-003 / GATE-V-01 counterfactual | ALIVE | frozen-duckdb native | 2026-10-19 |
 | val004.json | VALUE-VAL-004 (funnel/egress) | PASS | frozen-duckdb native (wasm leg FR-01-blocked) | 2026-10-19 |

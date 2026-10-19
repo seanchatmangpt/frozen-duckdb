@@ -119,9 +119,28 @@ export async function GET(
   const url = new URL(request.url);
   const token = url.searchParams.get("pageToken");
   const pageParam = url.searchParams.get("page");
+  // AD2 adversarial court: malformed pagination input is a typed 400, never an
+  // unhandled throw (pageFromToken) or NaN page (Number(pageParam)).
   let page = 1;
-  if (token !== null) page = pageFromToken(token);
-  else if (pageParam !== null) page = Number(pageParam);
+  if (token !== null) {
+    try {
+      page = pageFromToken(token);
+    } catch {
+      return new Response(JSON.stringify({ error: "invalid_request", detail: "malformed pageToken" }), {
+        status: 400,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  } else if (pageParam !== null) {
+    const n = Number(pageParam);
+    if (!Number.isInteger(n) || n < 1) {
+      return new Response(JSON.stringify({ error: "invalid_request", detail: "page must be a positive integer" }), {
+        status: 400,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    page = n;
+  }
   const resultSet = buildPage(handle, page);
   const bodyText = JSON.stringify({ handle, state, elapsedMs, terminal: true, resultSet });
   // LEDGER BRIDGE: terminal observation — charge the real egress bytes of

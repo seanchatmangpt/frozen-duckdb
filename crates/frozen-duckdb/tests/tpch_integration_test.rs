@@ -18,6 +18,7 @@ fn lock_dbgen() -> MutexGuard<'static, ()> {
 }
 
 #[test]
+#[ignore = "tpch extension has no build for the dev pin (b6013f7aa2): install 404s at http://extensions.duckdb.org/b6013f7aa2/osx_arm64/tpch.duckdb_extension.gz; same class as KD-02"]
 fn test_tpch_extension_available() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 
@@ -37,6 +38,7 @@ fn test_tpch_extension_available() -> Result<()> {
 }
 
 #[test]
+#[ignore = "tpch extension has no build for the dev pin (b6013f7aa2): install 404s at http://extensions.duckdb.org/b6013f7aa2/osx_arm64/tpch.duckdb_extension.gz; same class as KD-02"]
 fn test_tpch_data_generation() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 
@@ -77,6 +79,7 @@ fn test_tpch_data_generation() -> Result<()> {
 }
 
 #[test]
+#[ignore = "tpch extension has no build for the dev pin (b6013f7aa2): install 404s at http://extensions.duckdb.org/b6013f7aa2/osx_arm64/tpch.duckdb_extension.gz; same class as KD-02"]
 fn test_tpch_query_execution() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 
@@ -130,6 +133,7 @@ fn test_tpch_query_execution() -> Result<()> {
 }
 
 #[test]
+#[ignore = "tpch extension has no build for the dev pin (b6013f7aa2): install 404s at http://extensions.duckdb.org/b6013f7aa2/osx_arm64/tpch.duckdb_extension.gz; same class as KD-02"]
 fn test_tpch_expected_row_counts() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 
@@ -183,6 +187,7 @@ fn test_tpch_expected_row_counts() -> Result<()> {
 }
 
 #[test]
+#[ignore = "tpch extension has no build for the dev pin (b6013f7aa2): install 404s at http://extensions.duckdb.org/b6013f7aa2/osx_arm64/tpch.duckdb_extension.gz; same class as KD-02"]
 fn test_tpch_relationships() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 
@@ -226,6 +231,7 @@ fn test_tpch_relationships() -> Result<()> {
 }
 
 #[test]
+#[ignore = "tpch extension has no build for the dev pin (b6013f7aa2): install 404s at http://extensions.duckdb.org/b6013f7aa2/osx_arm64/tpch.duckdb_extension.gz; same class as KD-02"]
 fn test_tpch_performance_characteristics() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 

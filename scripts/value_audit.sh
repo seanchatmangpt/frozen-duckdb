@@ -62,14 +62,51 @@ run_court VAL-004/amplitude val004.json \
   -p frozen-duckdb --test value_audit_amplitude -- --nocapture || overall=1
 
 # Doctor pass gate for the Physical System State line.
-echo "== DOCTOR (full fail-closed aggregate)"
-if bash "$ROOT/scripts/doctor.sh" > "$DIR/doctor_out.txt" 2>&1; then
-  DOCTOR=GREEN
-  echo "[PASS] doctor aggregate GREEN"
+# Preference order:
+#   1. GAP15's shared log /tmp/gap15_doctor.log — poll up to 15 min for the
+#      wrapper's DOCTOR_EXIT= verdict (POLL-STEP: read -t, no bare sleeps).
+#   2. Run doctor.sh here — ONLY if no other lane is mid-run (pgrep cargo
+#      must be empty; the doctor compiles the shared workspace).
+#   3. Contended → render without --doctor and say so (loud divergence).
+echo "== DOCTOR (verdict from GAP15 log, else local run, else contended-skip)"
+GAP_LOG=/tmp/gap15_doctor.log
+DOCTOR_LOG=""
+DOCTOR=""
+if [ -f "$GAP_LOG" ] || pgrep -f 'doctor\.sh' >/dev/null 2>&1; then
+  waited=0
+  while [ $waited -lt 900 ]; do
+    verdict_line=$(grep -oE 'DOCTOR_EXIT=[0-9]+' "$GAP_LOG" 2>/dev/null | tail -1)
+    [ -n "$verdict_line" ] && break
+    # No wrapper verdict but the log is stale and no doctor is running: a
+    # finished log still carries per-phase FAILs — treat as conclusive.
+    if ! pgrep -f 'doctor\.sh' >/dev/null 2>&1 && [ -f "$GAP_LOG" ]; then
+      waited=900; break
+    fi
+    read -t 5 < /dev/null || true # POLL-STEP: audited 5s wait primitive
+    waited=$((waited + 5))
+  done
+  DOCTOR_LOG="$GAP_LOG"
+  if [ "${verdict_line:-}" = "DOCTOR_EXIT=0" ]; then
+    DOCTOR=GREEN
+    echo "[PASS] doctor aggregate GREEN (GAP15 log)"
+  else
+    fails=$(grep -E '^\[FAIL\]' "$GAP_LOG" 2>/dev/null | sed 's/^/  /' | head -8)
+    DOCTOR="NOT GREEN — doctor aggregate failed (see $GAP_LOG)"
+    echo "[STANDING] doctor NOT green (GAP15 log)"; [ -n "$fails" ] && printf '%s\n' "$fails"
+  fi
+elif ! pgrep -x cargo >/dev/null 2>&1; then
+  echo "== no shared doctor run; cargo uncontended — running doctor.sh here"
+  if bash "$ROOT/scripts/doctor.sh" > "$DIR/doctor_out.txt" 2>&1; then
+    DOCTOR=GREEN
+    DOCTOR_LOG="$DIR/doctor_out.txt"
+    echo "[PASS] doctor aggregate GREEN"
+  else
+    DOCTOR="NOT GREEN — doctor aggregate failed (see $DIR/doctor_out.txt)"
+    DOCTOR_LOG="$DIR/doctor_out.txt"
+    echo "[STANDING] doctor NOT green"
+  fi
 else
-  DOCTOR=$(grep -oE 'PHASE [0-9]{2}_[a-z_]+.*(FAIL|BLOCKED|NOT-IMPLEMENTED).*' "$DIR/doctor_out.txt" | tail -1)
-  DOCTOR=${DOCTOR:-doctor aggregate nonzero (see $DIR/doctor_out.txt)}
-  echo "[STANDING] doctor NOT green: $DOCTOR"
+  echo "[SKIP] doctor verdict: cargo contended by another lane — rendering WITHOUT --doctor (Physical System State line stays honest not-green)"
 fi
 
 # Render — only if all four receipts exist; a missing receipt is a loud SKIP
@@ -80,7 +117,19 @@ for r in val001.json val002.json val003.json val004.json; do
 done
 if [ $missing -eq 0 ]; then
   B3_BLOCK=$(b3sum "$DIR/val001.json" "$DIR/val002.json" "$DIR/val003.json" "$DIR/val004.json")
-  DOCTOR="$DOCTOR" node "$ROOT/warehouse-sim/economics/render_value_audit.ts" --dir "$DIR"
+  export B3_BLOCK
+  render_args=(--dir "$DIR")
+  if [ -n "$DOCTOR" ]; then
+    render_args+=(--doctor "$DOCTOR")
+    [ -n "$DOCTOR_LOG" ] && render_args+=(--doctor-log "$DOCTOR_LOG")
+  fi
+  # Mint-then-verify: sign the receipts immediately before rendering so no
+  # tamper window opens between mint and render (AD4 integrity law).
+  bash "$ROOT/scripts/value_audit_sign.sh" --dir "$VA_DIR"
+  MANIFEST="$VA_DIR/manifest.b3"
+  test -s "$MANIFEST" || { echo "RENDER-FAIL: manifest missing after sign" >&2; exit 1; }
+  render_args+=("--verify" "$MANIFEST")
+  node "$ROOT/warehouse-sim/economics/render_value_audit.ts" "${render_args[@]}"
   render_rc=$?
   [ $render_rc -ne 0 ] && overall=1
 else

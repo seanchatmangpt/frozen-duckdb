@@ -31,9 +31,10 @@ sovereign engine is deliberately worse (single-writer engine, OPFS
 quota caps, 256MB-class ceilings, no warehouse ecosystem). On the
 underserved metric — $0 marginal cost per exploratory query, offline
 execution, data never leaving the device — it is structurally better,
-because the incumbent's revenue model *is* the meter. A warehouse
-vendor cannot follow without pricing its core product at zero; a
-warehouse also cannot ship inside an application binary. The economic
+because the incumbent's revenue model *is* the meter. **ARGUMENT**: a
+warehouse vendor is argued to be unable to follow without pricing its
+core product at zero, and a warehouse is argued to be unable to ship
+inside an application binary. The economic
 model doc draws the same line ("not a Snowflake killer — a
 workload-class extractor").
 
@@ -59,10 +60,10 @@ organization to maintain C++17/cmake competence — toolchain structure
 replicated N times downstream. The freeze concentrates the compile in
 one publisher workflow (`.github/workflows/build-binaries.yml`, the
 only surface needing cmake) so downstream organizations communicate
-with the artifact, not the toolchain. A moat that requires no
-downstream reorganization to adopt is one incumbents cannot price
-against: the consumer's switching cost is a one-line dependency
-change. The wasm tier pushes this further — collapsing the
+with the artifact, not the toolchain. **ARGUMENT**: a moat that
+requires no downstream reorganization to adopt is argued to be one
+incumbents cannot price against: the consumer's switching cost is a
+one-line dependency change. The wasm tier pushes this further — collapsing the
 (version, arch) matrix to (version), one artifact across macOS arm64,
 x86_64, and Linux.
 

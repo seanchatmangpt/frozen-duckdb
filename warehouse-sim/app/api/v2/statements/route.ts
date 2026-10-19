@@ -20,25 +20,37 @@ import { recordQuery } from "../../../../lib/admin_engine.ts";
 
 export async function POST(request: Request): Promise<Response> {
   const raw = await request.text();
-  const body = JSON.parse(raw) as SnowflakeSubmitRequest;
-  const res = snowflakeSubmit(body);
-  // Persist the submit wall-clock per handle so the poll route's
-  // QUEUED->RUNNING->SUCCEEDED timeline starts at the real submit time.
-  recordSubmitTime(res.statementHandle);
-  // LEDGER BRIDGE: credit the real query on the shared engine (egress lands
-  // later, on the poll route's terminal observation via recordEgress).
-  recordQuery({
-    url: new URL(request.url).pathname,
-    sql: body.sqlText,
-    payloadBytes: Buffer.byteLength(raw),
-    handle: res.statementHandle,
-  });
-  return new Response(JSON.stringify(res), {
-    status: SNOWFLAKE_SUBMIT_STATUS,
-    headers: {
-      "content-type": "application/json",
-      location: res.pollUrl,
-    },
-  });
+  try {
+    const body = JSON.parse(raw) as SnowflakeSubmitRequest;
+    if (typeof body.sqlText !== "string") {
+      throw new Error("sqlText must be a string");
+    }
+    const res = snowflakeSubmit(body);
+    // Persist the submit wall-clock per handle so the poll route's
+    // QUEUED->RUNNING->SUCCEEDED timeline starts at the real submit time.
+    recordSubmitTime(res.statementHandle);
+    // LEDGER BRIDGE: credit the real query on the shared engine (egress lands
+    // later, on the poll route's terminal observation via recordEgress).
+    recordQuery({
+      url: new URL(request.url).pathname,
+      sql: body.sqlText,
+      payloadBytes: Buffer.byteLength(raw),
+      handle: res.statementHandle,
+    });
+    return new Response(JSON.stringify(res), {
+      status: SNOWFLAKE_SUBMIT_STATUS,
+      headers: {
+        "content-type": "application/json",
+        location: res.pollUrl,
+      },
+    });
+  } catch (err) {
+    // AD2 adversarial court: malformed input (unparseable JSON, non-string
+    // sqlText, asyncMode unset) is a typed 400, never an unhandled 500.
+    return new Response(
+      JSON.stringify({ error: "invalid_request", detail: err instanceof Error ? err.message : String(err) }),
+      { status: 400, headers: { "content-type": "application/json" } },
+    );
+  }
 }
 

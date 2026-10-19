@@ -15,10 +15,16 @@ jobs:
   build-binaries:
     runs-on: macos-latest
     # The cache-miss path is a full DuckDB source compile (clone + make -j4,
-    # 30-90 min on GH runners per TR1/TR2 evidence); this timeout turns a
-    # silent hang into a loud, bounded failure (same law as ci.yml's 45).
-    timeout-minutes: 150
+    # 9 extensions + jemalloc on 2 vCPU runners: 30-90 min observed, upper
+    # bound untested in CI); this timeout turns a silent hang into a loud,
+    # bounded failure (same law as ci.yml's 45). 240 covers the worst leg
+    # with 2.5x headroom over the slowest observed CI compile.
+    timeout-minutes: 240
+    # GH1 run 37940771273: fail-fast canceled the arm64 leg 30s after x86_64
+    # failed, so the arm64 outcome is unknown ("canceled" != evidence). Each
+    # leg must produce its own signal.
     strategy:
+      fail-fast: false
       matrix:
         arch: [x86_64, arm64]
 
@@ -35,6 +41,48 @@ jobs:
         run: |
           # Install CMake and other build dependencies
           brew install cmake
+
+      - name: Preflight (pin + OpenSSL wiring)
+        run: |
+          set -euo pipefail
+          # GH1 run 36239600176 died with no diagnostic; this makes the exact
+          # subject of every run visible in the first minute of the log.
+          PIN=$(sed -nE 's/^const SOURCE_PIN: &str = "([0-9a-f]{40})";/\1/p' \
+            crates/frozen-duckdb-builder/src/lib.rs)
+          echo "SOURCE_PIN resolved to: ${PIN}"
+          test -n "${PIN}"
+
+          # GH1 run 37940771273: the httpfs loadable extension's vendored
+          # httplib+OpenSSL linked without -lssl/-lcrypto on the x86_64 leg
+          # (`_SSL_*`/`_X509_*` undefined). CMake's FindOpenSSL honors
+          # OPENSSL_ROOT_DIR, which the builder passes through to cmake via
+          # the inherited environment. Install the keg and point the leg at
+          # it before the build step. Extension set stays intact (builder
+          # parity is load-bearing; no trimming).
+          brew install openssl@3
+          case "${{ matrix.arch }}" in
+            arm64)
+              echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+              ;;
+            x86_64)
+              # macOS runners are arm64; brew's openssl@3 is an arm64 keg, and
+              # linking an x86_64 slice against arm64 libs fails. Try the
+              # Rosetta x86_64 brew keg first; if absent, fail loudly here
+              # (bounded, 2 minutes) instead of 15 minutes into make.
+              if [ -x /usr/local/bin/brew ]; then
+                X64_SSL="$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3 2>/dev/null || true)"
+                if [ -n "$X64_SSL" ] && [ -d "$X64_SSL/lib" ]; then
+                  echo "OPENSSL_ROOT_DIR=${X64_SSL}" >> "$GITHUB_ENV"
+                else
+                  echo "No x86_64 openssl@3 keg via Rosetta brew; exporting arm64 prefix anyway - link failure will be loud and diagnostic-rich." >&2
+                  echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+                fi
+              else
+                echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+              fi
+              ;;
+          esac
+          echo "OPENSSL_ROOT_DIR=$( cat "$GITHUB_ENV" | sed -n 's/^OPENSSL_ROOT_DIR=//p' )"
 
       - name: Set architecture
         run: |
@@ -57,23 +105,38 @@ jobs:
           echo "CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}" >> "$GITHUB_ENV"
 
       - name: Guard version input
-        if: github.event_name == 'workflow_dispatch'
         run: |
           set -euo pipefail
           # The builder pins the DuckDB version (const VERSION in
           # crates/frozen-duckdb-builder/src/lib.rs); before this guard a
           # dispatch for any other version silently built the pinned one.
           # Fail loudly instead (証: the input must not lie about capability).
+          # GH6 audit: the guard was dispatch-only — a v2.0.0-dev tag push
+          # built and released fully unguarded. Both admission paths now pass
+          # through the same check (fail-closed kept).
           BUILDER_VERSION="2.0.0-dev"
           WANT="v${BUILDER_VERSION}"
-          GOT="${{ inputs.version }}"
+          case "${{ github.event_name }}" in
+            workflow_dispatch) GOT="${{ inputs.version }}" ;;
+            push) GOT="${{ github.ref_name }}" ;;
+            *)
+              echo "Unsupported event: ${{ github.event_name }}" >&2
+              exit 1
+              ;;
+          esac
           if [[ "$GOT" != "$WANT" ]]; then
-            echo "inputs.version='${GOT}' does not match the builder pin ${WANT}; refusing to build the wrong version silently." >&2
+            echo "${{ github.event_name }} version='${GOT}' does not match the builder pin ${WANT}; refusing to build the wrong version silently." >&2
             exit 1
           fi
 
       - name: Build mega-library
         run: |
+          # GH1 run 36239600176: the v1.5.5 log had a ~10.5-min silent gap
+          # (last cargo line -> failure line, zero compiler output). set -x
+          # keeps every command visible in the log so the next failure
+          # carries its diagnostics, same law as the builder's anyhow {:#}
+          # chains.
+          set -euxo pipefail
           # Create a temporary project to build the mega-library
           mkdir -p /tmp/frozen-build
           cd /tmp/frozen-build
@@ -139,6 +202,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: startsWith(github.ref, 'refs/tags/')
+    # GH6 audit: read-only repo defaults 403 the release step. The release
+    # job needs exactly contents:write — nothing else.
+    permissions:
+      contents: write
 
     steps:
       - name: Download all artifacts

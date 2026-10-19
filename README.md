@@ -39,7 +39,7 @@ Receipt dir: `docs/sjira/v2.0.0-dev/receipts/` (R) below.
 
 | Metric | Value | Receipt |
 |---|---|---|
-| Dylib size (arm64) | 65.9 / 52.4 MiB unstr. / str. | `prebuilt/README.md`; `~/.frozen-duckdb/` |
+| Dylib size (arm64) | 65.9 / 52.4 MB unstr. / str. | `prebuilt/README.md`; `~/.frozen-duckdb/` |
 | Ingest throughput (release) | 12.16M rows/s | `CAMPAIGN-RECEIPT.md` (DISPATCH-CITED) |
 | Query latency p95 | 10.51 ms (< 15 ms budget) | `R/gate_v01_receipt.json` (10.5088 ms, PASS) |
 | OCEL compression / query | 94.93% / 97.01% | `CAMPAIGN-RECEIPT.md` (DISPATCH-CITED) |
@@ -233,3 +233,30 @@ performance claim receipted.
 MIT — see [LICENSE](LICENSE). A commercial enterprise license exists as a
 DRAFT only (not landed):
 [LICENSE-ENTERPRISE-DRAFT.md](LICENSE-ENTERPRISE-DRAFT.md).
+
+## Final 2.0.0 bump (operator checklist)
+
+When upstream cuts the `v2.0.0-dev` tag, the crate version flips via a
+mechanical, scripted edit set — no hand-editing of pins. Five steps:
+
+1. Run the flip script with the new version + upstream SHA:
+   `scripts/fastfollow_flip.sh OLD_VER NEW_VER NEW_SHA` — it applies the
+   curated edit set (Cargo pins + lock, builder `VERSION`/`SOURCE_PIN`,
+   workflow matrices, ggen.toml, schema TTLs, scripts, GENESIS docs) and
+   fails closed on any missing file or failed sed.
+2. Regenerate projections from their sources (never hand-edit them):
+   `make sync && make gates` — Makefile, verify scripts, and gate shapes
+   re-render via `ggen sync run`.
+3. Run the full gate: `make verify` (verify-gates + ggen receipt verify)
+   plus the test ladder (`cargo test --workspace`, clippy `-D warnings`,
+   `fmt --check`).
+4. Commit per lane and follow the rehearsed cut/publish sequence:
+   `docs/sjira/v2.0.0-dev/TAG-REHEARSAL.md` (tag → release assets →
+   builder → sys → crate publishes, with index-wait polls and an abort
+   doctrine).
+5. Close out with post-publish verification per Step 10 of
+   TAG-REHEARSAL.md and update the window receipts.
+
+Note: the upstream DuckDB 2.0 release calendar (Oct 21) is the upstream
+schedule, not a commitment date for this crate's final release — the flip
+happens when the upstream tag exists and the gates pass.

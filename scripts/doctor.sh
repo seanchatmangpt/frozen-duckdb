@@ -32,31 +32,47 @@ PHASES=(
   12_fleet_hardware
 )
 
+# All output goes through say(): a closed/broken stdout (>&-) is an
+# observation-channel failure, never an aggregate crash — exit standing is
+# computed from phase exit codes only, not from the ability to print.
+say() { echo "$@" || true; }
+
 any_fail=0
 for p in "${PHASES[@]}"; do
   f="$ROOT/scripts/doctor/${p}.sh"
-  echo "=================================================================="
-  echo "== PHASE $p"
-  echo "=================================================================="
-  if [ ! -x "$f" ]; then
-    echo "[FAIL] phase script missing or non-executable: $f"
+  say "=================================================================="
+  say "== PHASE $p"
+  say "=================================================================="
+  if [ ! -e "$f" ]; then
+    say "[MISSING] $p — phase script absent from PHASES coverage: $f"
     any_fail=1
     continue
   fi
+  if [ ! -x "$f" ]; then
+    say "[UNEXECUTABLE] $p — phase script present but not runnable (perm/path): $f"
+    any_fail=1
+    continue
+  fi
+  # TRUST BOUNDARY (documented, not fixable locally): a phase script that
+  # prints garbage but exits 0 is recorded as [PASS] with its own output as
+  # the sole witness. doctor.sh is an AGGREGATOR of exit codes; it cannot
+  # verify phase semantics. Semantic verification lives inside each phase
+  # (and in the shim courts / tests/doctor). A lying pass here is detectable
+  # only by auditing the phase's own output above — never silently.
   if bash "$f"; then
-    echo "[PASS] $p"
+    say "[PASS] $p"
   else
     rc=$?
     case "$rc" in
-      2) echo "[SKIP] $p" ;;
-      3) echo "[NOT-IMPLEMENTED] $p" ;;
-      *) echo "[FAIL] $p (exit $rc)" ;;
+      2) say "[SKIP] $p" ;;
+      3) say "[NOT-IMPLEMENTED] $p" ;;
+      *) say "[FAIL] $p (exit $rc) — unregistered/failed exit code" ;;
     esac
     any_fail=1
   fi
 done
 
-echo "=================================================================="
+say "=================================================================="
 if [ "$any_fail" -eq 0 ]; then
   verdict="ALL 13 PHASES VERIFIED CLEAN"
 else
@@ -68,23 +84,26 @@ fi
 # never cached — the exit contract above is unchanged by this block).
 # ---------------------------------------------------------------------------
 KD_FILE="$ROOT/KNOWN_DIVERGENCES.md"
-echo "== KNOWN DIVERGENCES =="
+say "== KNOWN DIVERGENCES =="
 if [ ! -f "$KD_FILE" ]; then
-  echo "[SKIP] register not found: $KD_FILE"
+  say "[SKIP] register not found: $KD_FILE"
 else
-  # Data rows: table lines starting "| KD-"
-  kd_total=$(grep -cE '^\| KD-[0-9]+' "$KD_FILE")
-  kd_closed=$(grep -E '^\| KD-[0-9]+' "$KD_FILE" | grep -c 'CLOSED —')
+  # Data rows: table lines starting "| KD-". grep exits 1 on zero matches
+  # (e.g. empty register) — that is a 0/0 summary, not a crash: || true
+  # keeps set -e -o pipefail from killing the aggregate.
+  kd_total=$(grep -cE '^\| KD-[0-9]+' "$KD_FILE" || true)
+  kd_closed=$(grep -E '^\| KD-[0-9]+' "$KD_FILE" | grep -c 'CLOSED —' || true)
   kd_open=$((kd_total - kd_closed))
-  echo "total: $kd_total  open: $kd_open  closed: $kd_closed"
+  say "total: $kd_total  open: $kd_open  closed: $kd_closed"
   if [ "$kd_closed" -gt 0 ]; then
     grep -E '^\| KD-[0-9]+' "$KD_FILE" | grep 'CLOSED —' \
-      | sed -E 's/^\| (KD-[0-9]+).*/\1/' | tr '\n' ' ' | sed 's/ $//'
-    echo
+      | sed -E 's/^\| (KD-[0-9]+).*/\1/' | tr '\n' ' ' | sed 's/ $//' > /tmp/.$$kd || true
+    say "$(cat /tmp/.$$kd)"
+    rm -f /tmp/.$$kd
   fi
 fi
 
-echo "$verdict"
+say "$verdict"
 if [ "$any_fail" -eq 0 ]; then
   exit 0
 fi

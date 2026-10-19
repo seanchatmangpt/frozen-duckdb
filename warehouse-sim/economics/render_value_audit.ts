@@ -15,9 +15,26 @@
 //                             252 business days/yr (annualization factor 252)
 //
 // Usage: npx tsx render_value_audit.ts \
-//          [--dir /tmp/value_audit] [--doctor <standing-string>]
+//          [--dir /tmp/value_audit] [--doctor <verdict>]
+//          [--doctor-log <path>] [--verify <manifest>]
+//
+// --verify <manifest>  : integrity anchor. Checks every receipt's BLAKE3
+//                        against the detached manifest minted by
+//                        scripts/value_audit_sign.sh at court-mint time,
+//                        BEFORE rendering; exits 1 on any hash mismatch,
+//                        missing receipt, or unmanifested val*.json. The
+//                        render-time b3 block alone proves nothing (it is
+//                        computed over whatever is on disk).
+//
+// --doctor <verdict>   : doctor aggregate standing (GREEN or the real
+//                        not-green standing string). Passed through verbatim.
+// --doctor-log <path>  : evidence file backing the verdict; its b3sum and a
+//                        tail excerpt are embedded in the signature block.
+// Without --doctor the renderer prints the honest not-green line
+// ("doctor not run/not provided") — never a fake green state.
 
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 
 const RATE = {
   dd_ingest_per_gb_mo: 0.1,
@@ -36,6 +53,60 @@ function fail(msg: string): never {
   throw new RenderFail(msg);
 }
 
+// verifyAgainstManifest: the integrity anchor. The render-time b3 block is
+// computed OVER whatever files are on disk, so it "verifies" an edited
+// receipt (witnessed tamper: val003 12090 -> 1209000 rendered GREEN). This
+// check runs BEFORE any rendering and exits 1 on any mismatch, missing
+// manifest entry, or extra unmanifested receipt in the directory.
+function verifyAgainstManifest(dir: string, manifestPath: string): void {
+  let txt: string;
+  try {
+    txt = readFileSync(manifestPath, "utf8");
+  } catch (e) {
+    return fail(`--verify: manifest ${manifestPath} unreadable: ${e}`);
+  }
+  const entries: Array<[string, string]> = []; // [digest, filename]
+  for (const line of txt.split("\n")) {
+    const t = line.trim();
+    if (t === "" || t.startsWith("#")) continue;
+    const m = t.match(/^([0-9a-f]{64})\s+\*?(.+)$/);
+    if (!m) fail(`--verify: malformed manifest line: ${line}`);
+    entries.push([m[1], m[2]]);
+  }
+  if (entries.length === 0) fail(`--verify: manifest ${manifestPath} has no entries`);
+  const manifested = new Set(entries.map(([, f]) => f));
+
+  // 1. every manifested file exists and its b3 matches (edited/deleted fail here)
+  for (const [digest, name] of entries) {
+    const p = `${dir}/${name}`;
+    let actual: string;
+    try {
+      actual = execFileSync("b3sum", [p], { encoding: "utf8" }).trim().split(/\s+/)[0];
+    } catch {
+      return fail(`--verify: TAMPER — receipt ${name} missing or unreadable (manifest ${manifestPath})`);
+    }
+    if (actual !== digest) {
+      return fail(
+        `--verify: TAMPER — receipt ${name} b3 mismatch (manifest ${digest.slice(0, 12)}… vs actual ${actual.slice(0, 12)}…) — do not trust the numbers below this line: none rendered`,
+      );
+    }
+  }
+
+  // 2. no unmanifested receipt in the directory (extra-file substitution fails here)
+  let listing: string;
+  try {
+    listing = execFileSync("ls", ["-1", dir], { encoding: "utf8" });
+  } catch {
+    return fail(`--verify: cannot list ${dir}`);
+  }
+  const extra = listing
+    .split("\n")
+    .filter((f) => /^val\d+.*\.json$/.test(f) && !manifested.has(f));
+  if (extra.length > 0) {
+    return fail(`--verify: TAMPER — unmanifested receipt(s) in ${dir}: ${extra.join(", ")}`);
+  }
+}
+
 function argv(): string[] {
   return typeof process !== "undefined" ? process.argv.slice(2) : [];
 }
@@ -47,8 +118,21 @@ const argDir = (() => {
 })();
 const doctorStanding = (() => {
   const i = args.indexOf("--doctor");
+  if (i >= 0) return args[i + 1];
+  return process.env.DOCTOR ?? ""; // backward-compat: V6 orchestrator env form
+})();
+const doctorLog = (() => {
+  const i = args.indexOf("--doctor-log");
   return i >= 0 ? args[i + 1] : "";
 })();
+const verifyManifest = (() => {
+  const i = args.indexOf("--verify");
+  if (i < 0) return "";
+  const p = args[i + 1];
+  if (!p) fail("--verify requires a manifest path");
+  return p;
+})();
+if (verifyManifest !== "") verifyAgainstManifest(argDir, verifyManifest);
 
 function readJson(name: string): Record<string, unknown> {
   try {
@@ -81,10 +165,10 @@ const val4 = readJson("val004.json"); // VALUE-VAL-00004 court (Amplitude, V5)
 
 // ---- Section 1: Datadog (storage + filter displacement) -------------------
 const ddBytesRaw = num(val1, "bytes_raw", "val001");
-const ddBytesDb = num(val1, "bytes_db", "val001");
+const ddBytesDb = num(val1, "bytes_segments", "val001");
 const ddEvents = num(val1, "events", "val001");
 const ddFilterMs = num(val1, "filter_latency_ms", "val001");
-const ddComp = num(val1, "compression", "val001");
+const ddComp = num(val1, "compression_ratio", "val001");
 const ddGbRaw = ddBytesRaw / 1e9;
 const ddCostRun =
   ddGbRaw * RATE.dd_ingest_per_gb_mo + (ddEvents / 1e6) * RATE.dd_index_per_m_events_mo;
@@ -134,7 +218,7 @@ ${line}
 SECTION 1 — OBSERVABILITY DISPLACEMENT (Datadog-shaped log court, VAL-001)
 ${rule}
   court verdict: ${verdicts[0]}
-  measured: ${ddEvents.toLocaleString()} events, raw ${ddBytesRaw.toLocaleString()} B -> ${ddBytesDb.toLocaleString()} B on disk
+  measured: ${ddEvents.toLocaleString()} events, raw ${ddBytesRaw.toLocaleString()} B -> ${ddBytesDb.toLocaleString()} B shredded segments on disk
             compression ${(ddComp * 100).toFixed(1)}%, selective filter ${ddFilterMs.toFixed(1)} ms (real engine)
   rate card: $0.10/GB-mo ingestion + $1.70/M-events-mo indexing, x252 runs/yr
   annual equivalence: ${money(ddAnnual)}
@@ -165,19 +249,51 @@ ${line}`);
 }
 
 function renderDoctorLine(): void {
-  // Physical System State — printed ONLY on a full doctor pass; otherwise the
-  // actual standing is printed honestly (never a fake green line).
+  // Physical System State — printed ONLY when a doctor verdict was supplied;
+  // otherwise the honest not-green line (never a fake green state). A verdict
+  // of exactly GREEN prints the full-pass line; anything else is shown
+  // verbatim as the actual standing.
   if (doctorStanding === "GREEN") {
     console.log("PHYSICAL SYSTEM STATE: FULL DOCTOR PASS (11/11 phases, fail-closed aggregate exit 0)");
+  } else if (doctorStanding !== "") {
+    console.log(`PHYSICAL SYSTEM STATE: ${doctorStanding}`);
   } else {
-    console.log(`PHYSICAL SYSTEM STATE: NOT GREEN — actual standing: ${doctorStanding || "doctor not run/not provided"}`);
+    console.log("PHYSICAL SYSTEM STATE: NOT GREEN — actual standing: doctor not run/not provided");
   }
 }
 
 function renderB3Block(): void {
+  const b3 = process.env.B3_BLOCK ?? "";
+  if (doctorStanding !== "" && b3 === "") {
+    // A doctor-backed render must carry the receipt signature — no silent
+    // "(unavailable)" when a verdict is being claimed.
+    fail("B3_BLOCK env missing: --doctor render requires the b3sum block over the four receipts");
+  }
   console.log(`receipt BLAKE3 (b3sum over the four receipt files):
-${process.env.B3_BLOCK ?? "(b3sum block unavailable)"}
+${b3 || "(b3sum block unavailable — no --doctor verdict supplied)"}
+${doctorLogBlock()}
 rate cards: operator-supplied list prices, unaudited`);
+}
+
+function doctorLogBlock(): string {
+  if (doctorLog === "") return "";
+  let digest = "(b3sum unavailable)";
+  let tail = "(log unreadable)";
+  try {
+    const txt = readFileSync(doctorLog, "utf8");
+    tail = txt.trimEnd().split("\n").slice(-6).join("\n  ");
+  } catch {
+    return `doctor log: ${doctorLog} (unreadable)`;
+  }
+  try {
+    digest = execFileSync("b3sum", [doctorLog], { encoding: "utf8" }).trim();
+  } catch {
+    /* keep placeholder */
+  }
+  return `doctor log: ${doctorLog}
+  b3sum: ${digest}
+  tail:
+  ${tail}`;
 }
 
 try {

@@ -2,6 +2,8 @@
 # Phase 03 — types/variant: doctor_types_tests + variant_tests.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Shared doctor build dir: one build paid across all doctor phases (kaizen LSS4).
+export CARGO_TARGET_DIR="${DOCTOR_TARGET_DIR:-$ROOT/doctor-target}"
 names="doctor_types_tests variant_tests"
 fail=0
 

@@ -71,6 +71,11 @@ __pycache__/
 # Lane build roots (leases, not assets — deleted at integration; see
 # same-checkout-fanout cleanup law)
 target-lane*/
+target-gap*/
+target-cg*/
+target-dt*/
+target-fx*/
+target-lane*/
 target-integration/
 
 # Stray linker output
@@ -86,3 +91,4 @@ test-dependency/target-dep-coord/
 
 # Court/fixture scratch is written under /tmp — nothing repo-side to ignore;
 # entries here would be dead patterns. (No /tmp fixture paths are tracked.)
+target-*/

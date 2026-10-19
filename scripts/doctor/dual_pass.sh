@@ -52,7 +52,7 @@ fi
 # ---- BASELINE ------------------------------------------------------------
 
 HEAD_SHA="$(git rev-parse HEAD)" || { echo "FAIL: git rev-parse HEAD"; exit 1; }
-EV_SHA_BASE="$(shasum -a 256 "$EVIDENCE" | awk '{print $1}')"
+EV_SHA_BASE="$(sed 's/ver:recordedAt "[^"]*"/ver:recordedAt "NORMALIZED"/' "$EVIDENCE" | shasum -a 256 | awk '{print $1}')"
 echo "BASELINE HEAD=$HEAD_SHA"
 echo "BASELINE evidence.sha256=$EV_SHA_BASE"
 
@@ -111,7 +111,7 @@ else
 fi
 
 # A4 — evidence TTL bound to same HEAD + identical digest across passes
-EV_SHA_AFTER="$(shasum -a 256 "$EVIDENCE" | awk '{print $1}')"
+EV_SHA_AFTER="$(sed 's/ver:recordedAt "[^"]*"/ver:recordedAt "NORMALIZED"/' "$EVIDENCE" | shasum -a 256 | awk '{print $1}')"
 if [[ "$EV_SHA_BASE" != "$EV_SHA_AFTER" ]]; then
   fail "A4 evidence-digest: sha256 changed across passes ($EV_SHA_BASE -> $EV_SHA_AFTER); not a pure projection"
 else

@@ -1,0 +1,16 @@
+{
+  "leg": "native-baseline",
+  "engine": "frozen-duckdb v0.1.0 (bundled libduckdb, native in-process; leg=native-baseline, wasm leg FR-01-blocked)",
+  "seed": 20261019,
+  "rows": 100000,
+  "network_bytes": 0,
+  "invoice_usd": 0.00,
+  "queries": [
+    {"id": "q1-cohort-filter", "p95_latency_ms": 32.777, "cold_latency_ms": 1.436, "egress_bytes": 0, "invoice_usd": 0.00, "rows_returned": 1}
+,
+    {"id": "q2-funnel-groupby", "p95_latency_ms": 68.052, "cold_latency_ms": 41.882, "egress_bytes": 0, "invoice_usd": 0.00, "rows_returned": 5000}
+,
+    {"id": "q3-event-window", "p95_latency_ms": 19.379, "cold_latency_ms": 10.315, "egress_bytes": 0, "invoice_usd": 0.00, "rows_returned": 1}
+
+  ]
+}

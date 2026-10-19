@@ -110,9 +110,7 @@ fn val004_retention_funnel_amplitude() {
     ";
 
     let t_sql = Instant::now();
-    let (r30, r60, r90, cohort, f1, f2, f3, f4, f5): (
-        i64, i64, i64, i64, i64, i64, i64, i64, i64,
-    ) = {
+    let (r30, r60, r90, cohort, f1, f2, f3, f4, f5): (i64, i64, i64, i64, i64, i64, i64, i64, i64) = {
         let mut stmt = conn.prepare(sql).unwrap();
         let mut rows = stmt.query([]).unwrap();
         let row = rows.next().unwrap().unwrap();
@@ -136,10 +134,17 @@ fn val004_retention_funnel_amplitude() {
     assert_eq!(cohort, 4_918, "step-1 cohort size is seed-deterministic");
     assert_eq!(f1, 5_000, "every seeded user reaches step >= 1");
     assert!(f2 >= f3 && f3 >= f4 && f4 >= f5, "funnel must be monotone");
-    assert!(r30 >= r60 && r60 >= r90, "retention buckets must be monotone");
+    assert!(
+        r30 >= r60 && r60 >= r90,
+        "retention buckets must be monotone"
+    );
 
     let pct = |n: i64, d: i64| -> f64 {
-        if d == 0 { 0.0 } else { (n as f64 / d as f64) * 100.0 }
+        if d == 0 {
+            0.0
+        } else {
+            (n as f64 / d as f64) * 100.0
+        }
     };
     let conversion_rates = serde_json::json!({
         "step_1": pct(f1, 5_000),
@@ -152,9 +157,18 @@ fn val004_retention_funnel_amplitude() {
         "retention_d90": pct(r90, cohort),
     });
 
-    println!("VALUE-VAL-004 rows={} insert_ms={} funnel_latency_ms={}", ROWS, insert_ms, funnel_latency_ms);
-    println!("funnel: {} → {} → {} → {} → {} of 5000 users (step-1 cohort: {})", f1, f2, f3, f4, f5, cohort);
-    println!("retention: d30={}/{} d60={}/{} d90={}/{}", r30, cohort, r60, cohort, r90, cohort);
+    println!(
+        "VALUE-VAL-004 rows={} insert_ms={} funnel_latency_ms={}",
+        ROWS, insert_ms, funnel_latency_ms
+    );
+    println!(
+        "funnel: {} → {} → {} → {} → {} of 5000 users (step-1 cohort: {})",
+        f1, f2, f3, f4, f5, cohort
+    );
+    println!(
+        "retention: d30={}/{} d60={}/{} d90={}/{}",
+        r30, cohort, r60, cohort, r90, cohort
+    );
 
     // Egress: by-construction zero — the native in-memory engine has no
     // network transport. The OPFS/wasm leg that would measure this in a

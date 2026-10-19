@@ -1,0 +1,29 @@
+# act_cleanroom.yml — parameters for the act (nektos/act) leg of the
+# consumer-cleanroom court. Consumed by .github/workflows/cleanroom.yml;
+# kept outside .github/ so `ggen sync run` / genesis-check never sees it.
+#
+# Repo volume:        $PWD -> /workspace (ro for build inputs is NOT
+#                     possible — cargo needs to touch nothing in the repo
+#                     because deps are vendored via the packaged crate; see
+#                     workflow below, which uses the packaged .crate, not
+#                     the repo path dep)
+# Cache volume:       ~/.frozen-duckdb -> /cleanroom-home/.frozen-archived,
+#                     the linux leg reads it, and the typed
+#                     BLOCKED_LINUX_PREBUILT_MISSING divergence fires before
+#                     any compile is attempted.
+
+repo:
+  container_path: /workspace
+  host_path: $PWD
+
+cache:
+  host_path: ~/.frozen-duckdb
+  container_path: /cleanroom-home/.frozen-duckdb
+  versioned_entry: v2.0.0-dev-arm64   # macOS-arm64 entry only; linux entry ABSENT (the finding)
+
+court:
+  script: scripts/cleanroom/consumer_cleanroom.sh
+  act_mode_arg: act
+  linux_gate: CLEANROOM_BLOCK_ON_LINUX=1 (default)
+  expected_act_standing: BLOCKED_LINUX_PREBUILT_MISSING (exit 2, typed — not FAIL)
+  expected_local_standing: PASS (exit 0)

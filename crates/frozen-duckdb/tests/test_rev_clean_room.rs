@@ -39,7 +39,11 @@ fn rss_bytes() -> u64 {
 }
 
 fn snapshot_cwd_files() -> Vec<std::path::PathBuf> {
-    std::fs::read_dir(".").unwrap().filter_map(|e| e.ok()).map(|e| e.path()).collect()
+    std::fs::read_dir(".")
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .collect()
 }
 
 #[test]
@@ -116,10 +120,7 @@ fn rev003_clean_room_dp_join() {
     // warmup (page-cache / JIT-free plan warm, same as other gates)
     {
         let mut stmt = conn.prepare(DP_QUERY).unwrap();
-        let _ = stmt
-            .query_map([], |r| r.get::<_, i64>(0))
-            .unwrap()
-            .count();
+        let _ = stmt.query_map([], |r| r.get::<_, i64>(0)).unwrap().count();
     }
 
     let iters = 10;
@@ -210,8 +211,7 @@ fn rev003_clean_room_dp_join() {
         delta_mb,
         MEM_BUDGET_MB,
         serde_like_json_list(&stray),
-    )
-    ;
+    );
     std::fs::create_dir_all("/tmp/value_audit").ok();
     std::fs::write("/tmp/value_audit/rev003.json", receipt).expect("write receipt");
 

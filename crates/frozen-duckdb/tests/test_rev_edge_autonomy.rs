@@ -96,7 +96,8 @@ fn rss_bytes() -> i64 {
     String::from_utf8_lossy(&out.stdout)
         .trim()
         .parse::<i64>()
-        .expect("rss in KB") * 1024
+        .expect("rss in KB")
+        * 1024
 }
 
 #[test]
@@ -125,8 +126,7 @@ fn rev004_1m_telemetry_windowed_zscore_under_256mb() {
         let mut app = conn.appender("telemetry").expect("appender");
         for chunk in corpus.chunks(10_000) {
             for r in chunk {
-                let row: [&dyn frozen_duckdb::ToSql; 4] =
-                    [&r.id, &r.sensor_id, &r.ts, &r.reading];
+                let row: [&dyn frozen_duckdb::ToSql; 4] = [&r.id, &r.sensor_id, &r.ts, &r.reading];
                 app.append_row(&row).expect("append row");
             }
         }
@@ -249,6 +249,9 @@ fn rev004_1m_telemetry_windowed_zscore_under_256mb() {
         "notes": "spec<800ms is dominated by the 1M-row appender; recorded honestly. recall is the measured fraction of the injected set present in the QUALIFY result."
     });
     std::fs::create_dir_all("/tmp/value_audit").expect("mkdir value_audit");
-    std::fs::write("/tmp/value_audit/rev004.json", serde_json::to_string_pretty(&receipt).unwrap())
-        .expect("write rev004.json");
+    std::fs::write(
+        "/tmp/value_audit/rev004.json",
+        serde_json::to_string_pretty(&receipt).unwrap(),
+    )
+    .expect("write rev004.json");
 }

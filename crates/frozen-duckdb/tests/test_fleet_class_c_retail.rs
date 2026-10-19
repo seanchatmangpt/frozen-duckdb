@@ -264,7 +264,11 @@ fn fleet_class_c_retail_ledger() -> Result<()> {
         "verdict": if latency_ok { "ALIVE" } else { "ALIVE_WITH_SLOW_LEDGER" },
     });
     std::fs::create_dir_all("/tmp/value_audit").ok();
-    std::fs::write(RECEIPT_PATH, serde_json::to_string_pretty(&receipt).unwrap()).unwrap();
+    std::fs::write(
+        RECEIPT_PATH,
+        serde_json::to_string_pretty(&receipt).unwrap(),
+    )
+    .unwrap();
     println!(
         "FLEET-003 receipt: {}",
         serde_json::to_string(&receipt).unwrap()

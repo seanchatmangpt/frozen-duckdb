@@ -64,7 +64,8 @@ fn rss_bytes() -> u64 {
         String::from_utf8_lossy(&out.stdout)
             .trim()
             .parse::<u64>()
-            .expect("parse ps rss") * 1024
+            .expect("parse ps rss")
+            * 1024
     }
 }
 
@@ -233,7 +234,11 @@ fn rev002_native_bottleneck_query() -> Result<(), Box<dyn std::error::Error>> {
     );
     eprintln!(
         "[rev002] PASS line vs spec: median {median_ms:.3} ms vs <{LATENCY_SPEC_MS} ms spec -> {}",
-        if median_ms < LATENCY_SPEC_MS { "WITHIN SPEC" } else { "OVER SPEC (reported real)" }
+        if median_ms < LATENCY_SPEC_MS {
+            "WITHIN SPEC"
+        } else {
+            "OVER SPEC (reported real)"
+        }
     );
 
     // ---- Receipt: /tmp/value_audit/rev002.json ----

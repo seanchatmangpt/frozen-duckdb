@@ -131,7 +131,8 @@ amortized per device); data sovereignty (raw records never leave the
 device; sync-digest design transmits only signed digests — DESIGN);
 latency/offline (p95 <15ms gate target, GATE-V-03 OOM confinement
 witnessed); distribution (builder freeze = zero C++ toolchain for
-consumers — a warehouse cannot ship inside an app binary).
+consumers — ARGUMENT: a warehouse is argued to be unable to ship
+inside an app binary).
 
 Where hyperscalers win structurally: fleet/cross-device aggregation
 (the collection layer is exactly where they bill — the signed-digest

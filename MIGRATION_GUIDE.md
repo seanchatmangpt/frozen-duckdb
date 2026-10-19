@@ -2,6 +2,14 @@
 
 **Migrate from slow duckdb-rs builds to 99% faster frozen-duckdb builds in 2 minutes!**
 
+> **Prerelease note (2.0.0-dev):** this line is a prerelease and is NOT
+> publishable to crates.io (prerelease versions like `2.0.0-dev` cannot be
+> published while the upstream `v2.0.0-dev` tag/release assets do not exist;
+> see `docs/sjira/v2.0.0-dev/TAG-REHEARSAL.md`). Until the final 2.0.0 bump
+> lands, consumers should pin the git/path dependency or wait for the final
+> release. The upstream DuckDB 2.0 calendar (Oct 21) is not a commitment
+> date for this crate.
+
 ## Quick Migration (2 minutes)
 
 ### Step 1: Replace the dependency
