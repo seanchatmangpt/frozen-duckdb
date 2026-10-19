@@ -1,0 +1,21 @@
+{
+  "test": "TEST-VAL-003",
+  "gate": "GATE-V-01",
+  "receipt_source": "/tmp/value_audit/gate_v01_receipt.json",
+  "measured": {
+    "p95_ms": 10.5088,
+    "mean_ms": 9.9472,
+    "iterations": 1000,
+    "queries": 3
+  },
+  "counterfactual": {
+    "queries_per_day": 1000,
+    "warehouse_seconds_per_query": 5,
+    "warehouse_hours_per_day": 1.3889,
+    "credits_per_day": 1.3889,
+    "usd_per_day": 33.12,
+    "usd_per_year": 12090,
+    "sovereign_credits_consumed": 0
+  },
+  "verdict": "ALIVE: p95 10.5088 ms real, $33.12/day avoided, $12090/yr avoided, 0.00 credits consumed"
+}

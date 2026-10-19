@@ -199,3 +199,43 @@ fd:changelog-f10 a rel:ChangeEntry ;
     rel:category rel:catFixed ;
     rel:entryOrder 10 ;
     rel:description """**DuckDB 1.5 `TIME_NS` rows readable**: DuckDB >= 1.5 exports `TIME_NS` columns as arrow `Time64(Nanosecond)`; the vendored arrow row reader only knew `Microsecond` and hit `unreachable!()` on such rows. The symmetric `Time64(Nanosecond)` arm was added (commit 36b180f), so `TIME_NS` columns now read instead of panicking.""" .
+
+# Release 2.0.0-dev (DuckDB 2.0 upgrade wave, 2026-10-19; unreleased dev line)
+# Facts only; the CHANGELOG render is a consequence of ggen sync.
+
+fd:release-v2.0.0-dev a rel:Release ;
+    rel:version "2.0.0-dev" ;
+    rel:date "2026-10-19"^^xsd:date .
+
+# Added
+fd:changelog-a9 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:category rel:catAdded ;
+    rel:entryOrder 1 ;
+    rel:description """**VARIANT type surface**: `Type::Variant` and `LogicalTypeId::Variant` exposed on the main-crate type layer, with a `serde_json::Value` `FromSql` read arm so `VARIANT` columns round-trip into idiomatic Rust values.""" .
+
+# Changed
+fd:changelog-c4 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 1 ;
+    rel:description """**Bundled engine 1.5.5 -> 2.0.0-dev**: upstream pin moved to `duckdb/duckdb@b6013f7aa2f36caabb9466ce1791667ea8a280bb`; crate version tracks the bundled engine per `fd:duckdbVersionLaw` (workspace now 2.0.0-dev across `frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`), and `test-validation`'s version gate is dev-suffix-tolerant so `2.0.0-dev` passes the pinned-version FFI check.""" .
+
+fd:changelog-c5 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 2 ;
+    rel:description """**Builder clone/tag split-brain fixed**: the local-compile fallback clones the pinned upstream SHA (`b6013f7aa2f36caabb9466ce1791667ea8a280bb`) instead of mixing a tag checkout with a SHA pin, so dev-line builds no longer straddle two upstream identities.""" .
+
+# Fixed
+fd:changelog-f11 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 1 ;
+    rel:description """**Dead bindgen snapshots removed**: stale generated bindings for superseded header states (`bindgen_bundled_version.rs`, `bindgen_bundled_version_loadable.rs`) dropped from `frozen-duckdb-sys`.""" .
+
+fd:changelog-f12 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 2 ;
+    rel:description """**Vendored/prebuilt headers re-staged byte-identical**: `crates/frozen-duckdb-builder/vendored-headers/{duckdb.h,duckdb.hpp}` and `prebuilt/{duckdb.h,duckdb.hpp}` refreshed against the 2.0.0-dev upstream snapshot so every acquisition path compiles from the same API surface.""" .

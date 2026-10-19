@@ -1,0 +1,173 @@
+# warehouse_sim.ttl — cloud warehouse endpoint ontology (counterfactual simulator)
+#
+# ASSUMPTION-UNVERIFIED: ALL cost constants in this file (creditCostPerHour,
+# dcuCostPerHour, scanRatePerTB, coldStartLatencyMs, jitter bounds, metering
+# formulas) are the simulator's counterfactual parameters, NOT measured market
+# data. Re-pin against vendor pricing pages before claiming real invoice
+# comparisons.
+#
+# Simulated endpoints (Snowflake SQL API, Databricks SQL Statement Execution)
+# are modeled against sim:SovereignBaseline — the in-process DuckDB path
+# (no network, no egress, no invoice) — anchoring the contrast assertions.
+
+@prefix sim: <https://frozen-duckdb.example/ontology/warehouse-sim#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+#################################################################
+# Classes
+#################################################################
+
+sim:CloudWarehouseEndpoint a rdfs:Class ;
+    rdfs:label "Cloud Warehouse Endpoint" ;
+    rdfs:comment "A remote SQL-over-HTTP warehouse endpoint with cold-start, polling, and metered-cost semantics." .
+
+sim:PollingState a rdfs:Class ;
+    rdfs:label "Polling State" ;
+    rdfs:comment "A statement lifecycle state observed by polling a CloudWarehouseEndpoint." .
+
+sim:CostModel a rdfs:Class ;
+    rdfs:label "Cost Model" ;
+    rdfs:comment "A metering formula and its rate constants. All rates ASSUMPTION-UNVERIFIED." .
+
+#################################################################
+# Datatype properties
+#################################################################
+
+sim:basePath a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:string .
+
+sim:authScheme a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:string .
+
+sim:coldStartLatencyMs a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "ASSUMPTION-UNVERIFIED: mean warehouse-resume latency, ms." .
+
+sim:jitterMsMin a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "ASSUMPTION-UNVERIFIED: lower bound of per-request jitter, ms." .
+
+sim:jitterMsMax a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "ASSUMPTION-UNVERIFIED: upper bound of per-request jitter, ms." .
+
+sim:creditCostPerHour a rdf:Property ;
+    rdfs:domain sim:CostModel ;
+    rdfs:range xsd:decimal .
+
+sim:dcuCostPerHour a rdf:Property ;
+    rdfs:domain sim:CostModel ;
+    rdfs:range xsd:decimal .
+
+sim:scanRatePerTB a rdf:Property ;
+    rdfs:domain sim:CostModel ;
+    rdfs:range xsd:decimal ;
+    rdfs:comment "USD per TB scanned. ASSUMPTION-UNVERIFIED." .
+
+sim:pollIntervalMs a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:integer .
+
+sim:hasState a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range sim:PollingState .
+
+sim:httpStatus a rdf:Property ;
+    rdfs:domain sim:PollingState ;
+    rdfs:range xsd:integer .
+
+sim:latencyBudgetMs a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:integer .
+
+sim:egressBytes a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:integer .
+
+sim:invoiceUsd a rdf:Property ;
+    rdfs:domain sim:CloudWarehouseEndpoint ;
+    rdfs:range xsd:decimal .
+
+#################################################################
+# Individuals — Snowflake SQL API
+#################################################################
+
+sim:SnowflakeSqlApi a sim:CloudWarehouseEndpoint ;
+    rdfs:label "Snowflake SQL API" ;
+    sim:basePath "/api/v2/statements" ;
+    sim:authScheme "Bearer" ;
+    sim:coldStartLatencyMs 4500 ;        # ASSUMPTION-UNVERIFIED
+    sim:jitterMsMin 50 ;                 # ASSUMPTION-UNVERIFIED
+    sim:jitterMsMax 300 ;                # ASSUMPTION-UNVERIFIED
+    sim:pollIntervalMs 500 ;
+    sim:hasState sim:SnowflakeQueued ,
+                 sim:SnowflakeRunning ,
+                 sim:SnowflakeSucceeded ,
+                 sim:SnowflakeFailed .
+
+sim:SnowflakeQueued a sim:PollingState ;
+    rdfs:label "QUEUED" ;
+    sim:httpStatus 202 ;                 # 202 Accepted: statement accepted, poll again
+    rdfs:comment "202 Accepted semantics: response carries no rows; client polls the statement URL at sim:pollIntervalMs." .
+
+sim:SnowflakeRunning a sim:PollingState ;
+    rdfs:label "RUNNING" ;
+    sim:httpStatus 202 .
+
+sim:SnowflakeSucceeded a sim:PollingState ;
+    rdfs:label "SUCCEEDED" ;
+    sim:httpStatus 200 .
+
+sim:SnowflakeFailed a sim:PollingState ;
+    rdfs:label "FAILED" ;
+    sim:httpStatus 422 .
+
+sim:SnowflakeCostModel a sim:CostModel ;
+    rdfs:label "Snowflake Cost Model" ;
+    sim:creditCostPerHour "4.0"^^xsd:decimal ;   # ASSUMPTION-UNVERIFIED
+    sim:scanRatePerTB "5.0"^^xsd:decimal ;       # ASSUMPTION-UNVERIFIED
+    rdfs:comment "Metering formulas (ASSUMPTION-UNVERIFIED): CreditsBurned = QueryExecutionTime x WarehouseSizeMultiplier ; ScanFee = BytesScanned x $5/TB. InvoiceUsd = CreditsBurned x creditCostPerHour + ScanFee." .
+
+#################################################################
+# Individuals — Databricks SQL API
+#################################################################
+
+sim:DatabricksSqlApi a sim:CloudWarehouseEndpoint ;
+    rdfs:label "Databricks SQL Statement Execution API" ;
+    sim:basePath "/api/2.0/sql/statements" ;
+    sim:authScheme "Bearer" ;
+    sim:coldStartLatencyMs 3800 ;        # ASSUMPTION-UNVERIFIED
+    sim:jitterMsMin 50 ;                 # ASSUMPTION-UNVERIFIED
+    sim:jitterMsMax 300 ;                # ASSUMPTION-UNVERIFIED
+    sim:pollIntervalMs 500 ;
+    sim:hasState sim:DatabricksRunning .
+
+sim:DatabricksRunning a sim:PollingState ;
+    rdfs:label "RUNNING" ;
+    rdfs:comment "Polling by response_code + statement_id: while the statement runs, response_code is absent; on completion response_code carries the HTTP-equivalent status. statement_id keys the poll URL." .
+
+sim:DatabricksCostModel a sim:CostModel ;
+    rdfs:label "Databricks Cost Model" ;
+    sim:dcuCostPerHour "0.22"^^xsd:decimal ;      # ASSUMPTION-UNVERIFIED
+    sim:scanRatePerTB "5.0"^^xsd:decimal ;        # ASSUMPTION-UNVERIFIED
+    rdfs:comment "Metering formula (ASSUMPTION-UNVERIFIED): InvoiceUsd = DBUsConsumed x dcuCostPerHour + BytesScanned x $5/TB." .
+
+#################################################################
+# Individual — Sovereign baseline (contrast anchor)
+#################################################################
+
+sim:SovereignBaseline a sim:CloudWarehouseEndpoint ;
+    rdfs:label "Sovereign Baseline (in-process DuckDB)" ;
+    rdfs:comment "Contrast anchor: local embedded engine. No network, no polling states, no metering. Anchors: latencyBudgetMs 15 << cloud cold starts; egressBytes 0; invoiceUsd 0.00." ;
+    sim:basePath "" ;
+    sim:authScheme "none" ;
+    sim:latencyBudgetMs 15 ;             # ASSUMPTION-UNVERIFIED (p95 local query budget)
+    sim:egressBytes 0 ;
+    sim:invoiceUsd "0.00"^^xsd:decimal .

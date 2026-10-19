@@ -1,0 +1,18 @@
+{
+  "court": "TEST-FLEET-002-class-b-proxy",
+  "receipt_chain": "FLEET-004 -> 004B",
+  "standing": "PARTIAL_ALIVE (proxy ceiling; cgroup leg is the Class-B court proper)",
+  "memory_limit": "128MB",
+  "frames": 1000000,
+  "windows": 20,
+  "warmup_windows": 4,
+  "rss_ceiling_bytes": 115343360,
+  "peak_post_warmup_rss_bytes": 85557248,
+  "first_sample_rss_bytes": 45662208,
+  "final_rss_bytes": 85557248,
+  "rss_samples_bytes": [45662208, 50282496, 52559872, 55558144, 58228736, 59719680, 62210048, 65077248, 67862528, 69926912, 71073792, 72237056, 76103680, 77660160, 78495744, 79462400, 79822848, 81248256, 84262912, 85557248],
+  "total_anomaly_rows": 187560,
+  "aborts": 0,
+  "elapsed_secs": 0.496,
+  "host": "macos"
+}

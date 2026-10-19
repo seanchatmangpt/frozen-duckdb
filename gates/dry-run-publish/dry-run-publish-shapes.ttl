@@ -1,4 +1,4 @@
-# dry-run-publish-shapes.ttl — frozen-duckdb v1.5.5 SHACL shapes for a filled
+# dry-run-publish-shapes.ttl — frozen-duckdb v2.0.0-dev SHACL shapes for a filled
 # dry-run publish evidence graph (RENDERED CONSEQUENCE). Adapted from
 # packs/dry-run-publish-pack/templates/dry-run-publish-shapes.ttl.tmpl (same
 # generic shape queries as the pack family: sh:targetClass + sh:path +
@@ -6,7 +6,7 @@
 # target extension). Sources: schema/domain.ttl + the pack ontology via
 # ggen.toml [ontology] imports. Edit the sources, never this file.
 #
-# Subject release candidate: RC-FROZEN-DUCKDB-V155 (schema/domain.ttl fd:gateObject).
+# Subject release candidate: RC-FROZEN-DUCKDB-V200-DEV (schema/domain.ttl fd:gateObject).
 # Fence: the modeled gate's only terminal goal atom is dry-run-verified and
 # no effect atom implies an external mutation — full DRY-RUN-OVERCLAIM FENCE
 # wording lives in gates/dry-run-publish-gates.md.

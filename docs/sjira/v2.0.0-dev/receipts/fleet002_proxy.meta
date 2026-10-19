@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: TEST-FLEET-002-class-b-proxy (cgroup leg proxy ceiling)
+engine: frozen-duckdb native (macos host)
+date: 2026-10-19T14:43:31-0700
+source_path: /tmp/value_audit/fleet002_proxy.json
+sha256: 281761fec087607893d9ed2f7d23e86a6de53893bc48dd33e0e8871cf1b06711
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

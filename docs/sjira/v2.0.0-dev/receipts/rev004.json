@@ -1,0 +1,22 @@
+{
+  "detected_total": 10148,
+  "exact_set_match": false,
+  "ingest_ms": 79.61699999999999,
+  "injected_outliers": 10000,
+  "notes": "spec<800ms is dominated by the 1M-row appender; recorded honestly. recall is the measured fraction of the injected set present in the QUALIFY result.",
+  "query_ms": 69.1665,
+  "recall": 1.0,
+  "recall_floor": 0.98,
+  "receipt": "REV-004",
+  "rows": 1000000,
+  "rss_after_bytes": 250970112,
+  "rss_before_bytes": 121733120,
+  "rss_delta_bytes": 129236992,
+  "rss_tolerance_bytes": 201326592,
+  "sensors": 100,
+  "spec_lt_800ms": true,
+  "standing": "OBSERVED",
+  "subject": "frozen-duckdb in-memory, memory_limit=256MB via Config::with",
+  "test": "TEST-REV-004",
+  "total_ms": 148.7835
+}

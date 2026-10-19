@@ -1,0 +1,20 @@
+{
+  "court": "fleet_d_chaos court",
+  "lane": "T2",
+  "gate": "TEST-FLEET-004 native chaos leg",
+  "engine": "v1.5.5",
+  "binary": "/tmp/t2writer/target/release/t2writer",
+  "binary_sha256": "0d3939e4478c7897e525b81bc92bc066eb7ff0221685d212c37f2013e1952ded",
+  "court_self_sha256_baseline": "679017bcf697859d9d3d0de22cba468476a97dd896d01814a2fc36f5861f5c64",
+  "court_self_sha256_post": "679017bcf697859d9d3d0de22cba468476a97dd896d01814a2fc36f5861f5c64",
+  "writer_src_sha256_baseline": "93490c09f42376cf83e448e570e9f584606050c86a9b5b6562119a26edda1b25",
+  "writer_src_sha256_post": "93490c09f42376cf83e448e570e9f584606050c86a9b5b6562119a26edda1b25",
+  "schema": "ocel_conforming_segments RLE (D8) + closed-form chksum",
+  "legs": [
+    {"leg":"a","kill":"-9","target_events":200000,"rc":0},
+    {"leg":"b","kill":"-9","target_events":260000,"rc":0},
+    {"leg":"c","kill":"-0 (SHIM-COURT)","target_events":200000,"rc":2,"expected":"2 (VACUOUS-GATE DETECTED)"},
+    {"leg":"d","kill":"none (completed)","total_events":300000,"rc":0}
+  ],
+  "no_sleep": "all waits are bounded sentinel/liveness polls"
+}

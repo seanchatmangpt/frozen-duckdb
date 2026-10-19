@@ -1255,7 +1255,6 @@ mod tests {
             eprintln!("SKIP marker round-trip via real dylib: no arm64 cc");
         }
     }
-    }
 
     #[test]
     fn tr7_workflow_exports_both_target_vars_and_full_error_chain() {

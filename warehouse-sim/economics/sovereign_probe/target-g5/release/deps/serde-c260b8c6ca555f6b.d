@@ -1,0 +1,14 @@
+/Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/deps/serde-c260b8c6ca555f6b.d: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/build/serde-b11a5218d3a3fb61/out/private.rs
+
+/Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/deps/libserde-c260b8c6ca555f6b.rlib: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/build/serde-b11a5218d3a3fb61/out/private.rs
+
+/Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/deps/libserde-c260b8c6ca555f6b.rmeta: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/build/serde-b11a5218d3a3fb61/out/private.rs
+
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/build/serde-b11a5218d3a3fb61/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/sac/frozen-duckdb/warehouse-sim/economics/sovereign_probe/target-g5/release/build/serde-b11a5218d3a3fb61/out

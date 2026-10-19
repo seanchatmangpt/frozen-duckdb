@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: TEST-VAL-003 / GATE-V-01 counterfactual
+engine: frozen-duckdb native
+date: 2026-10-19T14:33:34-0700
+source_path: /tmp/value_audit/val003.json
+sha256: 491211e1037380e15c072a50a4b6f877ee8f878fa58e01e598c8355462fc463d
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

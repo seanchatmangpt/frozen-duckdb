@@ -137,7 +137,7 @@ cargo check --all-targets
 ### 3. Environment (nothing to do)
 
 No environment setup is needed: the first `cargo build` acquires the dylib
-via `frozen-duckdb-builder` into `~/.frozen-duckdb/cache/v1.5.5-{arch}/` and
+via `frozen-duckdb-builder` into `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/` and
 the emitted `-Wl,-rpath` loads it at run time. The legacy manual workflow
 (`source prebuilt/setup_env.sh`, setting `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR`)
 is optional and not consumed by the normal build path.

@@ -3,7 +3,7 @@
 > **Historical document (October 2024, DuckDB v1.4.0 era).** This file records the
 > project's origin and early architecture decisions as they stood at creation. For
 > current behavior — prebuilt dylibs downloaded automatically from GitHub Releases,
-> vendored DuckDB 1.5.5 headers, zero `DYLD_*` setup, no local dylibs in the repo —
+> vendored DuckDB 2.0.0-dev headers, zero `DYLD_*` setup, no local dylibs in the repo —
 > see [README.md](README.md), [QUICKSTART.md](QUICKSTART.md), and
 > [prebuilt/README.md](prebuilt/README.md). The narrative below is preserved as
 > history; current-reality corrections are marked in place.
@@ -69,7 +69,7 @@ The `duckdb-rs` crate uses the `bundled` feature by default, which compiles Duck
 
 #### 1. Prebuilt Binaries (`prebuilt/`)
 
-*Current reality (v1.5.5): the dylibs are **not** committed to the repository — they are GitHub Release assets (`libduckdb_{arch}.dylib`) downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()`. `prebuilt/` now carries only `duckdb.h` (244KB), `duckdb.hpp` (2.0MB), `setup_env.sh` (legacy manual workflow), and a README. The listing below is the v1.4.0-era layout, kept for history.*
+*Current reality (v2.0.0-dev): the dylibs are **not** committed to the repository — they are GitHub Release assets (`libduckdb_{arch}.dylib`) downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()`. `prebuilt/` now carries only `duckdb.h` (244KB), `duckdb.hpp` (2.0MB), `setup_env.sh` (legacy manual workflow), and a README. The listing below is the v1.4.0-era layout, kept for history.*
 
 ```
 prebuilt/
@@ -129,7 +129,7 @@ prebuilt/
 
 ## 🔧 Integration Process
 
-*Superseded (v1.5.5): add `frozen-duckdb = "1.5.5"` to `Cargo.toml` and run `cargo build` — the builder downloads the dylib, vendored headers feed bindgen offline, and runtime rpaths are emitted automatically. No `setup_env.sh`, no custom `build.rs`, no environment variables. The steps below are the v1.4.0-era workflow, kept for history.*
+*Superseded (v1.5.5): add `frozen-duckdb = "2.0.0-dev"` to `Cargo.toml` and run `cargo build` — the builder downloads the dylib, vendored headers feed bindgen offline, and runtime rpaths are emitted automatically. No `setup_env.sh`, no custom `build.rs`, no environment variables. The steps below are the v1.4.0-era workflow, kept for history.*
 
 ### For End Users
 1. **Clone repository**: `git clone https://github.com/seanchatmangpt/frozen-duckdb.git`

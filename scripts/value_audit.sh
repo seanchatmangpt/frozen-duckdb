@@ -80,8 +80,7 @@ for r in val001.json val002.json val003.json val004.json; do
 done
 if [ $missing -eq 0 ]; then
   B3_BLOCK=$(b3sum "$DIR/val001.json" "$DIR/val002.json" "$DIR/val003.json" "$DIR/val004.json")
-  DOCTOR="$DOCTOR" deno run --allow-read --allow-env \
-    "$ROOT/warehouse-sim/economics/render_value_audit.ts" --dir "$DIR"
+  DOCTOR="$DOCTOR" node "$ROOT/warehouse-sim/economics/render_value_audit.ts" --dir "$DIR"
   render_rc=$?
   [ $render_rc -ne 0 ] && overall=1
 else

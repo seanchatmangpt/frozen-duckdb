@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: FLEET-005 class E telco (cargo test receipt)
+engine: duckdb native in-process @ head e4cfbd38f9efe55dde549c67d558da9769584fa0
+date: 2026-10-19T14:39:30-0700
+source_path: /tmp/value_audit/fleet005.json
+sha256: 0d1df1f263b69a964e98ad702be81a0da3d50de8b8ae28fb773deca2a70a5ea6
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

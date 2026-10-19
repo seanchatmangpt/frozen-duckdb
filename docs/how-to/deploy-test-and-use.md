@@ -8,12 +8,12 @@
 
 1. Tag the release:
    ```
-   git tag v1.5.5
+   git tag v2.0.0-dev
    ```
 
 2. Push the tag to trigger the release build:
    ```
-   git push origin v1.5.5
+   git push origin v2.0.0-dev
    ```
 
 
@@ -41,7 +41,7 @@ Swap the dependency — no code changes needed; same API as duckdb-rs, 99% faste
 duckdb = "1.10505.0"   # upstream duckdb-rs crate bundling DuckDB 1.5.5
 
 # After (99% faster builds)
-frozen-duckdb = "1.5.5"
+frozen-duckdb = "2.0.0-dev"
 
 ```
 

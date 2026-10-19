@@ -210,12 +210,12 @@ invocation prints nothing and exits 0):
 ```bash
 $ frozen-duckdb-cli -v info
 INFO ... 🦆 Frozen DuckDB Information
-INFO ...   Version: 1.5.5
+INFO ...   Version: 2.0.0-dev
 INFO ...   Build Type: Pre-compiled binary
 INFO ...   Architecture: aarch64        # std::env::consts::ARCH ("aarch64", not "arm64")
 INFO ...   Target: macos
 INFO ...   Available Extensions: autocomplete, avro, aws, ... (full
-            duckdb_extensions() list — 31 entries on the v1.5.5 dylib)
+            duckdb_extensions() list — 31 entries on the 2.0.0-dev dylib)
 ```
 
 **Verbose Output:**
@@ -228,7 +228,7 @@ frozen-duckdb-cli -v info
 same fields print either way, via tracing, or not at all without `-v`.)
 
 The prebuilt dylib behind this command is cached at
-`~/.frozen-duckdb/cache/v1.5.5-{arch}/` (universal binary, arm64 + x86_64).
+`~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/` (universal binary, arm64 + x86_64).
 
 ### `test` Command
 

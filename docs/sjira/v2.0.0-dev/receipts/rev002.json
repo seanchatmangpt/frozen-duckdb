@@ -1,0 +1,1 @@
+{"leg":"native","browser_leg":"BLOCKED FR-01","test":"TEST-REV-002","segments":250000,"p95_fn":"quantile_cont","latency_ms_median":6.329,"latency_ms_min":6.166,"latency_ms_max":6.849,"latency_spec_ms":10,"within_spec":true,"rss_delta_bytes":19595264,"rss_tolerance_bytes":134217728}

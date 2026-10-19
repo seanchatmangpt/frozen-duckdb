@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: REV-003 (two-party isolated-schema join)
+engine: frozen-duckdb native @ head e4cfbd38f9efe55dde549c67d558da9769584fa0
+date: 2026-10-19T14:41:25-0700
+source_path: /tmp/value_audit/rev003.json
+sha256: bdba2d4b5a8dc80dda16e34a5088a9735fc4fbcb38dcfc520a6137bf5954e7db
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

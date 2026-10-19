@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: TEST-REV-002 (p95 latency + RSS, native leg)
+engine: frozen-duckdb native (browser leg BLOCKED FR-01)
+date: 2026-10-19T14:35:24-0700
+source_path: /tmp/value_audit/rev002.json
+sha256: 5080f9d5748e1fd8e54de0901c46f5365345dbccf1e0e38067f73935cf8f2e22
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

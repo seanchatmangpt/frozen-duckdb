@@ -14,7 +14,7 @@
 
 _:phase1
     skos:notation "DRY-RUN-SCOPE" ;
-    dcterms:description "Publish set frozen to the 3 PKG-FROZEN-DUCKDB-* members at 1.5.5; TPUB name/ownership check GO/GO/GO (token identity must be seanchatmangpt); RELEASE_CONTROL docs synced (PUBLISH_RUNBOOK, MILESTONE); git SHA bound via tag v1.5.5 on a clean worktree." ;
+    dcterms:description "Publish set frozen to the 3 PKG-FROZEN-DUCKDB-* members at 2.0.0-dev; TPUB name/ownership check GO/GO/GO (token identity must be seanchatmangpt); RELEASE_CONTROL docs synced (PUBLISH_RUNBOOK, MILESTONE); git SHA bound via tag v2.0.0-dev on a clean worktree." ;
     ceng:pddlDomain """
 (define (domain frozen-duckdb-dry-run-publish-cycle)
   (:requirements :strips)
@@ -114,7 +114,7 @@ _:phase4
 
 _:phase5
     skos:notation "DRY-RUN-CLEANROOM" ;
-    dcterms:description "Manufactured package verified in isolation: TPUB full verification build from unpacked target/package/frozen-duckdb-builder-1.5.5; docs.rs rehearsal (DOCS_RS=1, isolated HOME, bindings from vendored headers, no library linked, exit 0); runbook step 11 clean-machine smoke." ;
+    dcterms:description "Manufactured package verified in isolation: TPUB full verification build from unpacked target/package/frozen-duckdb-builder-2.0.0-dev; docs.rs rehearsal (DOCS_RS=1, isolated HOME, bindings from vendored headers, no library linked, exit 0); runbook step 11 clean-machine smoke." ;
     ceng:pddlDomain """
 (define (domain frozen-duckdb-dry-run-publish-cycle)
   (:requirements :strips)
@@ -164,11 +164,11 @@ _:phase6
 
 _:problem
     skos:notation "FROZEN-DUCKDB-DRY-RUN-PUBLISH-CYCLE-PROBLEM" ;
-    dcterms:description "Merged dry-run publish gate cycle problem for frozen_duckdb_v155: init = phase-1 entry atom scope-engaged; the sole GOAL atom is the phase-6 fence terminal (dry-run-verified), reached only after external_mutation=false is recorded."@en ;
+    dcterms:description "Merged dry-run publish gate cycle problem for frozen_duckdb_v2_0_0_dev: init = phase-1 entry atom scope-engaged; the sole GOAL atom is the phase-6 fence terminal (dry-run-verified), reached only after external_mutation=false is recorded."@en ;
     ceng:pddlProblem """
 (define (problem frozen-duckdb-dry-run-publish-cycle-p)
   (:domain frozen-duckdb-dry-run-publish-cycle)
-  (:objects frozen_duckdb_v155)
-  (:init (scope-engaged frozen_duckdb_v155))
-  (:goal (dry-run-verified frozen_duckdb_v155)))
+  (:objects frozen_duckdb_v2_0_0_dev)
+  (:init (scope-engaged frozen_duckdb_v2_0_0_dev))
+  (:goal (dry-run-verified frozen_duckdb_v2_0_0_dev)))
 """ .

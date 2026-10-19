@@ -1,0 +1,89 @@
+# frozen-duckdb — PRD requirements SHACL shapes (lane P12)
+# Validates the requirements graph (schema/requirements.ttl, lane P11):
+#   - NodeShape prd:RequirementShape on every skos:Concept in the prd:
+#     scheme: exactly one prd:status with sh:in("PROPOSED",
+#     "PARTIAL_ALIVE","ALIVE"), exactly one skos:prefLabel,
+#     sh:closed with an ignore-list for the structural predicates
+#     (rdf:type, skos:inScheme; dcterms/description fields left open
+#     to description cardinality on purpose).
+#   - prd:AliveRequiresCourt forbidding prd:status "ALIVE" without a
+#     prd:court — no standing claim without an owning verification
+#     court, expressed as a SPARQL-targeted conditional mirroring the
+#     AliveRequiresWitness idiom in gates/blueprint/blueprint-shapes.ttl.
+#
+# STATUS: shapes authored, NOT yet wired to a validator run — the
+# validation court is the requirements half of verification-plan V-G1.
+# No conformance claim is made here.
+
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prd:    <http://frozen-duckdb.local/ontology/requirements#> .
+
+prd:RequirementShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            PREFIX prd:  <http://frozen-duckdb.local/ontology/requirements#>
+            SELECT ?this WHERE {
+                ?this skos:inScheme prd: .
+            }
+        """ ;
+    ] ;
+    sh:closed true ;
+    # rdfs:isDefinedBy added (lane R3, 2026-10-19): rev1<->rev2 alias links
+    # on Revision-2 individuals, same open-by-design class as dcterms:description.
+    sh:ignoredProperties ( rdf:type skos:inScheme dcterms:description prd:court rdfs:isDefinedBy ) ;
+    sh:property prd:StatusShape ;
+    sh:property prd:PrefLabelShape .
+
+prd:StatusShape a sh:PropertyShape ;
+    sh:path prd:status ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:in ( "PROPOSED" "PARTIAL_ALIVE" "ALIVE" ) ;
+    sh:message "prd:status must be exactly one of PROPOSED, PARTIAL_ALIVE, ALIVE"@en .
+
+prd:PrefLabelShape a sh:PropertyShape ;
+    sh:path skos:prefLabel ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype rdf:langString ;
+    sh:message "requirement requires exactly one skos:prefLabel (langString)"@en .
+
+# The court linkage: "ALIVE" is an execution claim; execution claims
+# require an owning verification court (prd:court). The conditional is
+# expressed by targeting only requirements that claim ALIVE but lack
+# any court — a targeted node must then fail the property shape's
+# sh:minCount 1 (AliveRequiresCourt pattern, mirrors
+# bp:AliveConditionalShape in gates/blueprint/blueprint-shapes.ttl).
+
+prd:AliveRequiresCourt a sh:PropertyShape ;
+    sh:path prd:court ;
+    sh:minCount 1 ;
+    sh:message "prd:status \"ALIVE\" requires at least one prd:court (owning verification court)"@en .
+
+prd:AliveConditionalShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX prd:  <http://frozen-duckdb.local/ontology/requirements#>
+            SELECT ?this WHERE {
+                ?this prd:status "ALIVE" .
+                FILTER NOT EXISTS { ?this prd:court ?c . }
+            }
+        """ ;
+    ] ;
+    sh:property prd:AliveRequiresCourt .
+
+# Optional hygiene: when prd:court IS present it must be a plain
+# string court identifier (e.g. "V-W1"), never a blank node or IRI.
+prd:CourtKindShape a sh:PropertyShape ;
+    sh:path prd:court ;
+    sh:datatype xsd:string ;
+    sh:message "prd:court must be a string court identifier"@en .

@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: TEST-FLEET-003 (epoch ledger digests)
+engine: frozen-duckdb native (honest native run)
+date: 2026-10-19T14:43:39-0700
+source_path: /tmp/value_audit/fleet003.json
+sha256: 89c0d1eb8a66a719138994332bc380322b66ff8fa4fe4a37836c094d644b82ee
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: fleet_d_chaos court (kill -9 legs + SHIM-COURT vacuity leg)
+engine: v1.5.5 (t2writer binary)
+date: 2026-10-19T14:43:48-0700
+source_path: /tmp/value_audit/fleet004_chaos.json
+sha256: 77206f228f8f5f5aeab58f871264a00ea3b2e372b93032e0bae0892121c97511
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

@@ -6,7 +6,8 @@ Get up and running with frozen DuckDB in under 5 minutes!
 
 - Rust (stable or later)
 - Git
-- macOS (recommended: prebuilt dylib downloads automatically). Linux and Windows build via the pinned local-compile fallback (DuckDB `v1.5.5` source); no prebuilt assets for those platforms yet.
+- macOS (recommended: prebuilt dylib downloads automatically). Linux and Windows build via the pinned local-compile fallback (DuckDB 2.0.0-dev source, upstream SHA
+  `b6013f7a`); no prebuilt assets for those platforms yet.
 
 ## ⚡ Quick Setup
 
@@ -35,7 +36,7 @@ cargo run -- download --dataset tpch --output-dir test_data
 
 No environment setup is required: on first build, `frozen-duckdb-builder::ensure_binary()`
 downloads `libduckdb_{arch}.dylib` from this repository's GitHub Releases into
-`~/.frozen-duckdb/cache/v1.5.5-{arch}/`, vendored 1.5.5 headers make bindgen work
+`~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`, vendored 2.0.0-dev headers make bindgen work
 offline, and the emitted runtime `@rpath` means binaries and tests run without any
 `DYLD_LIBRARY_PATH` setup. `prebuilt/setup_env.sh` remains available for the legacy
 manual-prebuilt workflow only.
@@ -46,12 +47,12 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-frozen-duckdb = "1.5.5"
+frozen-duckdb = "2.0.0-dev"
 ```
 
 That's it — no custom `build.rs`, no environment variables. The `frozen-duckdb-sys`
 build script invokes `frozen-duckdb-builder::ensure_binary()`, which fetches the
-prebuilt dylib (falling back to a local compile pinned at upstream tag `v1.5.5`
+prebuilt dylib (falling back to a local compile pinned at upstream SHA `b6013f73b` (DuckDB 2.0.0-dev, pre-tag)
 only if no release asset is reachable), and the emitted runtime `@rpath` lets your
 binaries and tests run with no `DYLD_LIBRARY_PATH` configuration.
 
@@ -74,7 +75,7 @@ cargo clean && cargo build
 ```
 
 If no release asset is reachable, the builder falls back to compiling DuckDB
-locally, pinned at upstream tag `v1.5.5`.
+locally, pinned at upstream SHA `b6013f73b` (DuckDB 2.0.0-dev, pre-tag).
 
 ### Build Errors
 

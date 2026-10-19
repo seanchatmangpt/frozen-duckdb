@@ -1,0 +1,37 @@
+# frozen-duckdb — PRD Revision-2 shapes: COVERAGE BY INHERITANCE (lane R4)
+#
+# Determination: all Revision-2 individuals (FR-01..05, NFR-01..04,
+# AC-1..4) are typed skos:Concept with skos:inScheme prd: in
+# schema/requirements.ttl. The existing shapes graph
+# gates/blueprint/requirements-shapes.ttl (lane P12) targets them via
+# prd:RequirementShape's SPARQL target (SELECT ?this WHERE { ?this
+# skos:inScheme prd: }), so no parallel shape set is needed here — a
+# second shapes graph over the same target would double-validate and
+# drift. This file is therefore a thin coverage record, NOT a shape set.
+#
+# What inheritance buys (all enforced by requirements-shapes.ttl):
+#   - closed NodeShape with exactly-one prd:status, sh:in("PROPOSED",
+#     "PARTIAL_ALIVE", "ALIVE")
+#   - exactly-one skos:prefLabel (langString)
+#   - prd:AliveConditionalShape: prd:status "ALIVE" without prd:court
+#     violates (AliveRequiresCourt idiom)
+#
+# Validating court (real run, lane R4):
+#   pyshacl -s gates/blueprint/requirements-shapes.ttl \
+#           -e gates/blueprint/requirements-shapes.ttl \
+#           schema/requirements.ttl
+#   -> CONFORMS (see receipt in lane R4 report; evidence graph
+#      validates against its own shapes as both shapes and data graph).
+#
+# Non-vacuity: the flip court (temp-copy mutate FR-01 prd:status to
+# "ALIVE" without prd:court) was executed and VIOLATED as required —
+# the shapes can fail; the pass is not vacuous.
+
+@prefix sh:  <http://www.w3.org/ns/shacl#> .
+@prefix prd: <http://frozen-duckdb.local/ontology/requirements#> .
+
+# Declarative record of the coverage decision (no validation semantics
+# on purpose — the enforcing shapes live in requirements-shapes.ttl).
+prd:Revision2CoverageRecord a sh:NodeShape ;
+    sh:targetClass sh:NodeShape ;
+    sh:message "Revision-2 PRD individuals are validated by gates/blueprint/requirements-shapes.ttl via the skos:inScheme prd: target; this graph adds no constraints by design."@en .

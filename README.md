@@ -4,22 +4,22 @@
 
 **Zero-compilation DuckDB with Builder Sub-Crate Pattern - Fast builds forever!**
 
-Frozen DuckDB revolutionizes Rust database development with a groundbreaking **Builder Sub-Crate Pattern** that eliminates the most painful aspect of using DuckDB: compilation time. No more waiting 10+ minutes for Arrow, Polars, and ICU to compile.
+Frozen DuckDB revolutionizes Rust database development with a groundbreaking **Builder Sub-Crate Pattern** that eliminates the most painful aspect of using DuckDB: compilation time. No more waiting many minutes for Arrow, Polars, and ICU to compile.
 
-## 🆕 DuckDB 1.5 Support
+## 🆕 DuckDB 2.0 (staged)
 
-**DuckDB v1.5.5 is now supported as of this release** (closes [#1](https://github.com/seanchatmangpt/frozen-duckdb/issues/1)). The crate version mirrors the bundled DuckDB version: frozen-duckdb 1.5.5 contains DuckDB 1.5.5. This is a drop-in upgrade — no code changes are needed for existing users.
+**DuckDB v2.0.0-dev is staged from pinned upstream main SHA `b6013f7aa2f36caabb9466ce1791667ea8a280bb`** — no upstream `v2.0.0-dev` tag or release assets exist yet (as of 2026-10-19). The 2.0 work is a drop-in upgrade — no code changes are needed for existing users.
 
-- **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`. Automatic download requires a published GitHub Release — the `v1.5.5` tag is cut (77125ca, 2026-09-26), but the GitHub Release with per-arch assets is still not published as of 2026-10-08 (`gh release view v1.5.5` → `release not found`), so the download still misses and builds compile DuckDB locally from the pinned `v1.5.5` source.
+- **Prebuilt release assets**: `libduckdb_arm64.dylib` and `libduckdb_x86_64.dylib`, downloaded automatically on first build by `frozen-duckdb-builder::ensure_binary()` from this repository's GitHub Releases and cached under `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`. Automatic download requires a published GitHub Release — for the 2.0 line, no `v2.0.0-dev` tag or GitHub Release exists yet as of 2026-10-19 (upstream is pinned at main SHA `b6013f7`), so the download still misses and builds compile DuckDB locally from the pinned source.
 - **Per-architecture macOS assets**: the release workflow publishes one dylib per architecture (arm64 and x86_64); the builder detects your architecture and downloads the matching asset. (The development cache currently carries universal arm64 + x86_64 binaries; asset contents at the first tag are set by `build-binaries.yml`.)
-- **Offline-capable builds**: the DuckDB 1.5.5 headers (`duckdb.h`, `duckdb.hpp`) are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works even when a release download carries only the dylib.
+- **Offline-capable builds**: the DuckDB 2.0.0-dev headers (`duckdb.h`, `duckdb.hpp`) are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works even when a release download carries only the dylib.
 - **No `DYLD_*` environment variables needed**: the frozen dylib carries the neutral install name `@rpath/libduckdb.dylib`, and the `frozen-duckdb` build script emits the matching runtime rpath for binaries, tests, and examples — `cargo build && cargo run` just works.
-- **Self-healing cache layout**: on every acquisition path (cache hit, download, or local-compile fallback pinned at upstream tag `v1.5.5`), the builder normalizes the cache with headers under `duckdb/` and a plain `libduckdb.dylib` link name.
+- **Self-healing cache layout**: on every acquisition path (cache hit, download, or local-compile fallback pinned at upstream SHA `b6013f7`), the builder normalizes the cache with headers under `duckdb/` and a plain `libduckdb.dylib` link name.
 
-## 🖥️ Platform Support (as of v1.5.5)
+## 🖥️ Platform Support (as of v2.0.0-dev)
 
-- **macOS**: prebuilt per-architecture release assets (arm64, x86_64) downloaded automatically on first build. No local compilation, no `DYLD_*` setup. As above, this requires the release to be published — the `v1.5.5` tag is cut, but the GitHub Release is still not published as of 2026-10-08, so builds currently compile DuckDB locally.
-- **Linux**: builds via the pinned local-compile fallback (DuckDB `v1.5.5` source). Prebuilt `.so` release assets are planned.
+- **macOS**: prebuilt per-architecture release assets (arm64, x86_64) downloaded automatically on first build. No local compilation, no `DYLD_*` setup. As above, this requires the release to be published — no `v2.0.0-dev` tag or GitHub Release exists as of 2026-10-19, so builds currently compile DuckDB locally.
+- **Linux**: builds via the pinned local-compile fallback (DuckDB `2.0.0-dev` source at SHA `b6013f7`). Prebuilt `.so` release assets are planned.
 - **Windows**: builds via the pinned local-compile fallback.
 
 ## 🏗️ Revolutionary Architecture
@@ -32,12 +32,11 @@ Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Ru
 
 ## 🚀 Performance Revolution
 
-| Build Type | Before (duckdb-rs) | After (frozen-duckdb) | Improvement |
-|------------|-------------------|----------------------|-------------|
-| **First Build** | 10-15 minutes | 7-10 seconds | **99% faster** |
-| **Subsequent Builds** | 10-15 minutes | 0.1 seconds | **99.9% faster** |
-| **CI/CD Builds** | 10-15 minutes | 7-10 seconds | **99% faster** |
-| **Download Size** | ~200MB | ~117MB dylib | **~40% smaller** |
+Measured build-time and size numbers live with their receipts, not
+here: current standings `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md`,
+known divergences `KNOWN_DIVERGENCES.md`. In short: first build is
+seconds (one-time library compile/download), subsequent builds are
+link-only, and the dylib replaces a full source build.
 
 ## 🎯 How It Works
 
@@ -58,19 +57,19 @@ Frozen DuckDB uses a **three-crate workspace** that completely reimagines how Ru
 
 ```toml
 # Before (slow builds)
-duckdb = "1.10505.0"   # upstream duckdb-rs crate bundling DuckDB 1.5.5
+duckdb = "1.10505.0"   # TODO(2.0): bump when duckdb-rs publishes a 2.0-compatible release
 
-# After (99% faster builds)  
-frozen-duckdb = "1.5.5"
+# After (seconds, not minutes)
+frozen-duckdb = "2.0.0-dev"
 ```
 
-**No code changes needed** - same API, same functionality, 99% faster builds!
+**No code changes needed** - same API, same functionality, dramatically faster builds!
 
 ```rust
 use frozen_duckdb::{Connection, Result};
 
 fn main() -> Result<()> {
-    // Same API as duckdb-rs, but 99% faster builds!
+    // Same API as duckdb-rs, but dramatically faster builds!
     let conn = Connection::open_in_memory()?;
     
     conn.execute_batch(
@@ -160,7 +159,7 @@ graph TD
     E --> K[Link and build]
     H --> K
     J --> K
-    K --> L[99% faster build complete!]
+    K --> L[Link-only incremental build!]
 ```
 
 ## 🔧 Development
@@ -186,8 +185,8 @@ cargo build --workspace --all-features
 
 ```bash
 # Create and push a tag
-git tag v1.5.5
-git push origin v1.5.5
+git tag v2.0.0-dev
+git push origin v2.0.0-dev
 
 # GitHub Actions will automatically:
 # 1. Build mega-libraries for x86_64 and arm64
@@ -300,7 +299,8 @@ We welcome contributions! Please see our [contributing guides](https://github.co
 
 1. **Fork and clone** the repository
 2. **Run tests multiple times** to ensure stability
-3. **Check performance** - builds must remain <10s
+3. **Check performance** - incremental builds must stay in the
+   seconds range (receipts: `docs/sjira/v2.0.0-dev/receipts/`)
 4. **Update documentation** when making changes
 5. **Test on both architectures** (x86_64 and arm64)
 
@@ -327,14 +327,15 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 
 Frozen DuckDB has transformed the Rust database ecosystem:
 
-- **99% faster builds** for thousands of developers
+- **Dramatically faster builds** — measured numbers live in
+  `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md` with receipts
 - **No compilation** — prebuilt dylibs downloaded from GitHub Releases
 - **Zero configuration** eliminating setup friction
 - **Production-ready** with comprehensive testing
 
 ---
 
-**Ready to experience 99% faster DuckDB builds?** 
+**Ready for dramatically faster DuckDB builds?**
 
 ```bash
 cargo add frozen-duckdb
@@ -342,3 +343,35 @@ cargo add frozen-duckdb
 ```
 
 *The future of Rust database development is here.*
+
+## Blueprint (proposed)
+
+> STATUS: PROPOSED. Every layer below is a proposal, not a landed
+> capability. Current standings (including the landed DuckDB
+> 2.0.0-dev upgrade): `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md`;
+> known divergences: `KNOWN_DIVERGENCES.md`.
+
+| Layer | Scope | Proposal doc |
+|---|---|---|
+| Operational | WASM/OPFS run (PROPOSED) | [wasm-opfs](docs/design/wasm-opfs-architecture.md) |
+| Verification | Chrome burn-in court (PROPOSED) | [burnin](docs/design/chrome-burnin-court.md) |
+| Semantic | OCEL2 log compression (PROPOSED) | [ocel2](docs/design/ocel2-compression.md) |
+| Governance | DMADV blueprint charter (PROPOSED) | [dmadv](docs/design/dmadv-charter.md) |
+| Storage | Format v2, memory bounds (PROPOSED) | [storage-v2](docs/design/storage-format-v2.md) |
+| Commercial | Economic model (PROPOSED) | [economic](docs/design/economic-model.md) |
+
+Companions (PROPOSED): [memory-bounds](docs/design/memory-bounds.md),
+[verification-plan](docs/design/verification-plan.md).
+Commercial license (DRAFT, not landed):
+[LICENSE-ENTERPRISE-DRAFT.md](LICENSE-ENTERPRISE-DRAFT.md).
+
+## Product & architecture requirements (proposed)
+
+The v2.0 product/architecture requirements live in
+[prd-ard-v2](docs/design/prd-ard-v2.md) with per-requirement
+traceability in [requirements-traceability.md]
+(docs/design/requirements-traceability.md). Per-requirement standing
+is maintained there and summarized in
+`docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md`; known divergences:
+`KNOWN_DIVERGENCES.md`. No requirement is ALIVE without a court
+receipt per the Blueprint falsifier.

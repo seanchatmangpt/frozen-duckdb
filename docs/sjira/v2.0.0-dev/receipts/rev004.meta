@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: TEST-REV-004 (sensor outlier recall)
+engine: frozen-duckdb in-memory, memory_limit=256MB via Config::with
+date: 2026-10-19T14:30:03-0700
+source_path: /tmp/value_audit/rev004.json
+sha256: 9d5d39ae78755ed77d1bcbbd3dec4442b8c8bf51b83597213b869d86a35a30e7
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

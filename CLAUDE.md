@@ -4,7 +4,7 @@ Zero-compilation DuckDB for Rust via the Builder Sub-Crate Pattern:
 `frozen-duckdb` (ultra-thin drop-in duckdb-rs replacement),
 `frozen-duckdb-builder` (acquires/caches the mega-library in
 `~/.frozen-duckdb/cache/`), `frozen-duckdb-sys` (FFI layer). Crate version
-mirrors the bundled DuckDB version: 1.5.5.
+mirrors the bundled DuckDB version: 2.0.0-dev.
 
 ## Agents
 
@@ -40,7 +40,7 @@ cargo test --workspace            # full workspace tests
 
 - `crates/frozen-duckdb/` — main crate; drop-in `duckdb` replacement
 - `crates/frozen-duckdb-builder/` — release download / local-compile
-  fallback / cache; `vendored-headers/` carries DuckDB 1.5.5
+  fallback / cache; `vendored-headers/` carries DuckDB 2.0.0-dev
   `duckdb.h`/`duckdb.hpp` so bindgen works offline
 - `crates/frozen-duckdb-sys/` — FFI bindings and linking
 - `scripts/` — `build_duckdb_optimized.sh`, `download_duckdb_binaries.sh`,
@@ -60,6 +60,9 @@ cargo test --workspace            # full workspace tests
   dirs at integration before the final commit.
 - Vendored DuckDB headers live in
   `crates/frozen-duckdb-builder/vendored-headers/`.
-- Known open item: the GitHub Release v1.5.5 assets are not published (tag
-  cut, release missing), so builds fall back to compiling DuckDB locally
-  from pinned `v1.5.5` source — see README.md.
+- Current standings: `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md`;
+  known divergences: `KNOWN_DIVERGENCES.md` (single source of truth —
+  do not restate standings or numbers here).
+- Known open item: no git tag or GitHub Release exists yet for 2.0.0-dev
+  (pre-tag staging from upstream main), so builds fall back to compiling
+  DuckDB locally from the pinned upstream source SHA — see README.md.

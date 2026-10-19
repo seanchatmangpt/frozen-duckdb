@@ -1,0 +1,138 @@
+# ggen manifest — warehouse-sim testbed (STANDALONE; not the root manifest).
+# Source of truth: schema/warehouse_sim.ttl. The app/api routes and
+# lib/ledger.ts below are rendered consequences — edit the graph, never the
+# generated files. Run: cd warehouse-sim && ggen sync run.
+# All cost/latency constants in the graph are ASSUMPTION-UNVERIFIED there and
+# propagate verbatim into the generated files.
+[project]
+name = "warehouse-sim"
+version = "0.1.0"
+description = "Warehouse SQL API simulation testbed (Snowflake SQL API + Databricks Statement Execution handlers rendered from RDF)"
+authors = ["Sean Chatman"]
+license = "MIT"
+
+[ontology]
+source = "schema/warehouse_sim.ttl"
+standard_only = true
+
+[generation]
+output_dir = "."
+
+[[generation.rules]]
+name = "snowflake-submit-route"
+query = { inline = '''PREFIX sim: <https://frozen-duckdb.example/ontology/warehouse-sim#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?endpointLabel ?basePath ?authScheme ?coldStartLatencyMs ?jitterMsMin ?jitterMsMax ?pollIntervalMs ?submitStatus WHERE {
+  sim:SnowflakeSqlApi rdfs:label ?endpointLabel ; sim:basePath ?basePath ; sim:authScheme ?authScheme ;
+    sim:coldStartLatencyMs ?coldStartLatencyMs ; sim:jitterMsMin ?jitterMsMin ; sim:jitterMsMax ?jitterMsMax ;
+    sim:pollIntervalMs ?pollIntervalMs ; sim:hasState sim:SnowflakeQueued .
+  sim:SnowflakeQueued sim:httpStatus ?submitStatus .
+} ORDER BY ?endpointLabel
+''' }
+template = { file = "templates/snowflake_submit_route.ts.tera" }
+output_file = "app/api/v2/statements/route.ts"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "snowflake-poll-route"
+query = { inline = '''PREFIX sim: <https://frozen-duckdb.example/ontology/warehouse-sim#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?endpointLabel ?basePath ?coldStartLatencyMs ?jitterMsMin ?jitterMsMax ?pollIntervalMs ?stateLabel ?httpStatus ?stateComment WHERE {
+  sim:SnowflakeSqlApi rdfs:label ?endpointLabel ; sim:basePath ?basePath ;
+    sim:coldStartLatencyMs ?coldStartLatencyMs ; sim:jitterMsMin ?jitterMsMin ; sim:jitterMsMax ?jitterMsMax ;
+    sim:pollIntervalMs ?pollIntervalMs ; sim:hasState ?state .
+  ?state rdfs:label ?stateLabel ; sim:httpStatus ?httpStatus .
+  OPTIONAL { ?state rdfs:comment ?stateComment }
+} ORDER BY ?httpStatus ?stateLabel
+''' }
+template = { file = "templates/snowflake_poll_route.ts.tera" }
+output_file = "app/api/v2/statements/[handle]/route.ts"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "databricks-submit-route"
+query = { inline = '''PREFIX sim: <https://frozen-duckdb.example/ontology/warehouse-sim#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?endpointLabel ?basePath ?authScheme ?coldStartLatencyMs ?jitterMsMin ?jitterMsMax ?pollIntervalMs WHERE {
+  sim:DatabricksSqlApi rdfs:label ?endpointLabel ; sim:basePath ?basePath ; sim:authScheme ?authScheme ;
+    sim:coldStartLatencyMs ?coldStartLatencyMs ; sim:jitterMsMin ?jitterMsMin ; sim:jitterMsMax ?jitterMsMax ;
+    sim:pollIntervalMs ?pollIntervalMs .
+} ORDER BY ?endpointLabel
+''' }
+template = { file = "templates/databricks_submit_route.ts.tera" }
+output_file = "app/api/2.0/sql/statements/route.ts"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "databricks-poll-route"
+query = { inline = '''PREFIX sim: <https://frozen-duckdb.example/ontology/warehouse-sim#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?endpointLabel ?basePath ?coldStartLatencyMs ?jitterMsMin ?jitterMsMax ?pollIntervalMs ?stateLabel ?stateComment WHERE {
+  sim:DatabricksSqlApi rdfs:label ?endpointLabel ; sim:basePath ?basePath ;
+    sim:coldStartLatencyMs ?coldStartLatencyMs ; sim:jitterMsMin ?jitterMsMin ; sim:jitterMsMax ?jitterMsMax ;
+    sim:pollIntervalMs ?pollIntervalMs ; sim:hasState ?state .
+  ?state rdfs:label ?stateLabel .
+  OPTIONAL { ?state rdfs:comment ?stateComment }
+} ORDER BY ?stateLabel
+''' }
+template = { file = "templates/databricks_poll_route.ts.tera" }
+output_file = "app/api/2.0/sql/statements/[statement_id]/route.ts"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "ledger-constants"
+query = { inline = '''PREFIX sim: <https://frozen-duckdb.example/ontology/warehouse-sim#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?sfLabel ?sfScanRatePerTB ?creditCostPerHour ?dcuCostPerHour ?dbScanRatePerTB WHERE {
+  sim:SnowflakeCostModel rdfs:label ?sfLabel ; sim:creditCostPerHour ?creditCostPerHour ;
+    sim:scanRatePerTB ?sfScanRatePerTB .
+  sim:DatabricksCostModel sim:dcuCostPerHour ?dcuCostPerHour ;
+    sim:scanRatePerTB ?dbScanRatePerTB .
+} ORDER BY ?sfLabel
+''' }
+template = { file = "templates/ledger.ts.tera" }
+output_file = "lib/ledger.ts"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "statement-state"
+query = { inline = '''PREFIX sim: <https://frozen-duckdb.example/ontology/warehouse-sim#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?ep ?pollIntervalMs ?coldStartLatencyMs ?jitterMsMin ?jitterMsMax WHERE {
+  VALUES ?api { sim:SnowflakeSqlApi sim:DatabricksSqlApi }
+  ?api sim:pollIntervalMs ?pollIntervalMs ; sim:coldStartLatencyMs ?coldStartLatencyMs ;
+    sim:jitterMsMin ?jitterMsMin ; sim:jitterMsMax ?jitterMsMax .
+  BIND(IF(?api = sim:SnowflakeSqlApi, "SNOWFLAKE", "DATABRICKS") AS ?ep)
+} ORDER BY ?ep
+''' }
+template = { file = "templates/statement_state.ts.tera" }
+output_file = "lib/statement_state.ts"
+mode = "Overwrite"
+
+[[generation.rules]]
+name = "route-helpers"
+query = { inline = '''PREFIX sim: <https://frozen-duckdb.example/ontology/warehouse-sim#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?prefix ?endpointLabel ?basePath ?authScheme ?submitStatus ?coldStartLatencyMs ?jitterMsMin ?jitterMsMax WHERE {
+  VALUES ?api { sim:SnowflakeSqlApi sim:DatabricksSqlApi }
+  ?api rdfs:label ?endpointLabel ; sim:basePath ?basePath ; sim:authScheme ?authScheme ;
+    sim:coldStartLatencyMs ?coldStartLatencyMs ; sim:jitterMsMin ?jitterMsMin ; sim:jitterMsMax ?jitterMsMax .
+  OPTIONAL { sim:SnowflakeQueued sim:httpStatus ?sfSubmitStatus }
+  BIND(IF(?api = sim:SnowflakeSqlApi, ?sfSubmitStatus, 200) AS ?submitStatus)
+  BIND(IF(?api = sim:SnowflakeSqlApi, "Snowflake", "Databricks") AS ?prefix)
+} ORDER BY ?prefix
+''' }
+template = { file = "templates/route_helpers.ts.tera" }
+output_file = "lib/route_helpers.ts"
+mode = "Overwrite"
+
+[sync]
+enabled = true
+on_change = "manual"
+validate_after = true
+conflict_mode = "fail"
+
+[rdf]
+formats = ["turtle"]
+default_format = "turtle"
+strict_validation = false

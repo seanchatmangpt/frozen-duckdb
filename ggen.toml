@@ -8,7 +8,7 @@
 # the operative pack binding; [[packs]] documents registry intent only.
 [project]
 name = "frozen-duckdb"
-version = "1.5.5"
+version = "2.0.0-dev"
 description = "Drop-in replacement for the duckdb (duckdb-rs) crate backed by prebuilt DuckDB binaries"
 authors = ["Sean Chatman"]
 license = "MIT"

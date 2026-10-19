@@ -9,7 +9,7 @@
 # Remove duckdb-rs
 cargo remove duckdb
 
-# Add frozen-duckdb (same version 1.5.5)
+# Add frozen-duckdb (2.0.0-dev)
 cargo add frozen-duckdb
 ```
 
@@ -144,7 +144,7 @@ ls -la ~/.frozen-duckdb/cache/
 
 # On first build the builder downloads libduckdb_{arch}.dylib from
 # this repo's GitHub Releases; if no asset is reachable it falls back
-# to a local compile pinned at upstream tag v1.5.5
+# to a local compile pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag)
 cargo clean && cargo build
 ```
 
@@ -155,7 +155,7 @@ cargo clean && cargo build
 grep "frozen-duckdb" Cargo.toml
 
 # Should show:
-# frozen-duckdb = "1.5.5"
+# frozen-duckdb = "2.0.0-dev"
 ```
 
 ### Issue: Import errors
@@ -177,7 +177,7 @@ If you were using specific duckdb-rs features:
 duckdb = { version = "1.10505.0", features = ["json", "parquet"] }  # upstream crate bundling DuckDB 1.5.5
 
 # After (same features, faster builds)
-frozen-duckdb = "1.5.5"  # All features included by default
+frozen-duckdb = "2.0.0-dev"  # All features included by default
 ```
 
 ### Custom Build Scripts

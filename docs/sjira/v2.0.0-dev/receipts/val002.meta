@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: TEST-VAL-002 (DFG segment latency)
+engine: frozen-duckdb native
+date: 2026-10-19T14:39:11-0700
+source_path: /tmp/value_audit/val002.json
+sha256: fc116ca2169d6be4b8eeb7573d7766adab4b3349f2360fcf2d9f66f49727792b
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

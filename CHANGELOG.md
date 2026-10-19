@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-dev] - 2026-10-19
+
+
+### Added
+
+- **VARIANT type surface**: `Type::Variant` and `LogicalTypeId::Variant` exposed on the main-crate type layer, with a `serde_json::Value` `FromSql` read arm so `VARIANT` columns round-trip into idiomatic Rust values.
+
+
+### Changed
+
+- **Bundled engine 1.5.5 -> 2.0.0-dev**: upstream pin moved to `duckdb/duckdb@b6013f7aa2f36caabb9466ce1791667ea8a280bb`; crate version tracks the bundled engine per `fd:duckdbVersionLaw` (workspace now 2.0.0-dev across `frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`), and `test-validation`'s version gate is dev-suffix-tolerant so `2.0.0-dev` passes the pinned-version FFI check.
+- **Builder clone/tag split-brain fixed**: the local-compile fallback clones the pinned upstream SHA (`b6013f7aa2f36caabb9466ce1791667ea8a280bb`) instead of mixing a tag checkout with a SHA pin, so dev-line builds no longer straddle two upstream identities.
+
+
+### Fixed
+
+- **Dead bindgen snapshots removed**: stale generated bindings for superseded header states (`bindgen_bundled_version.rs`, `bindgen_bundled_version_loadable.rs`) dropped from `frozen-duckdb-sys`.
+- **Vendored/prebuilt headers re-staged byte-identical**: `crates/frozen-duckdb-builder/vendored-headers/{duckdb.h,duckdb.hpp}` and `prebuilt/{duckdb.h,duckdb.hpp}` refreshed against the 2.0.0-dev upstream snapshot so every acquisition path compiles from the same API surface.
+
 ## [1.5.5] - 2026-09-21
 
 

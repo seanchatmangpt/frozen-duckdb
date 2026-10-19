@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: FLEET-001 (quantile latency, native-apple-silicon-proxy)
+engine: @rpath/libduckdb.dylib; rustc 1.97.0 (2d8144b78 2026-07-07)
+date: 2026-10-19T14:43:28-0700
+source_path: /tmp/value_audit/fleet001.json
+sha256: 4611471b62853727f5b7d6d77ebd6da482a09e8ebc4be8808764fc11c660c2d9
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

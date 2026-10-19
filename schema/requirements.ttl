@@ -1,0 +1,237 @@
+# Requirements ontology — DuckDB 2.0 PRD (FR-01..05, NFR-01..04, AC-1..4)
+# Source: docs/design/requirements-traceability.md (canonical tables).
+# Lane P11 (write): owns schema/requirements.ttl only. Not wired into ggen;
+# wiring is a separate admitted transition.
+
+@prefix prd: <http://frozen-duckdb.local/ontology/requirements#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+prd: a skos:ConceptScheme ;
+    skos:prefLabel "frozen-duckdb PRD requirements"@en ;
+    dcterms:description "DuckDB 2.0 upgrade wave: functional requirements, non-functional requirements, and acceptance criteria with standing and owning verification court."@en ;
+    dcterms:created "2026-10-19"^^dcterms:W3CDTF ;
+    skos:hasTopConcept
+        prd:fr-01 , prd:fr-02 , prd:fr-03 , prd:fr-04 , prd:fr-05 ,
+        prd:nfr-01 , prd:nfr-02 , prd:nfr-03 , prd:nfr-04 ,
+        prd:ac-1 , prd:ac-2 , prd:ac-3 , prd:ac-4 .
+
+# ---------- Functional requirements ----------
+
+prd:fr-01 a skos:Concept ;
+    skos:prefLabel "FR-01 WASM compile"@en ;
+    dcterms:description "duckdb_wasm artifact builds via emcmake against vendored headers with a version gate; no scripts/wasm/ or emcmake attempt exists yet."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W1" ;
+    skos:inScheme prd: .
+
+prd:fr-02 a skos:Concept ;
+    skos:prefLabel "FR-02 OPFS persistence + WAL replay after Page.crash"@en ;
+    dcterms:description "OPFS persistence survives Page.crash with WAL replay; no opfs/ module or crash-court script exists on disk."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W2" ;
+    skos:inScheme prd: .
+
+prd:fr-03 a skos:Concept ;
+    skos:prefLabel "FR-03 VARIANT type"@en ;
+    dcterms:description "VARIANT type works on the native engine — 5 tests green this session (crates/frozen-duckdb/tests/variant_tests.rs, real run: 5 passed; 0 failed; 1 test feature-gated out); wasm-side VARIANT unproven."@en ;
+    prd:status "PARTIAL_ALIVE" ;
+    prd:court "V-G2" ;
+    skos:inScheme prd: .
+
+prd:fr-04 a skos:Concept ;
+    skos:prefLabel "FR-04 vectorized view expansion (native + wasm)"@en ;
+    dcterms:description "Vectorized view expansion on both engines; segment-vector rehydration not implemented and the ocel_rehydration_equivalence test does not exist."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-S1" ;
+    skos:inScheme prd: .
+
+prd:fr-05 a skos:Concept ;
+    skos:prefLabel "FR-05 memory cap + graceful abort (256MB wasm / ~192MB memory_limit)"@en ;
+    dcterms:description "Wasm linear-memory cap with graceful abort; native Config::with accepts memory_limit (config.rs:129) but is untested — PARTIAL_ALIVE on native plumbing, wasm court absent."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W3" ;
+    skos:inScheme prd: .
+
+# ---------- Non-functional requirements ----------
+
+prd:nfr-01 a skos:Concept ;
+    skos:prefLabel "NFR-01 p95 < 15ms @ 100k rows"@en ;
+    dcterms:description "p95 latency under 15ms at 100k rows; no benchmark court or harness exists and no baseline has been measured."@en ;
+    prd:status "PROPOSED" ;
+    skos:inScheme prd: .
+
+prd:nfr-02 a skos:Concept ;
+    skos:prefLabel "NFR-02 <=25MB stripped wasm size"@en ;
+    dcterms:description "Stripped wasm artifact at most 25MB; no artifact exists to measure and no size gate is specified in the verification plan."@en ;
+    prd:status "PROPOSED" ;
+    skos:inScheme prd: .
+
+prd:nfr-03 a skos:Concept ;
+    skos:prefLabel "NFR-03 >=90% compression on OCEL corpus"@en ;
+    dcterms:description "At least 90% compression on the OCEL corpus; the V-S2 court has not run and the corpus fixture may be missing — both halves PROPOSED."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-S2" ;
+    skos:inScheme prd: .
+
+prd:nfr-04 a skos:Concept ;
+    skos:prefLabel "NFR-04 zero-panic trap boundary"@en ;
+    dcterms:description "Zero-panic trap boundary at the wasm edge; no trap-boundary test exists and the -sWASM_EH=1 flag is UNVERIFIED."@en ;
+    prd:status "PROPOSED" ;
+    skos:inScheme prd: .
+
+# ---------- Acceptance criteria ----------
+
+prd:ac-1 a skos:Concept ;
+    skos:prefLabel "AC-1 dual-target parity (native vs WASM byte-identical)"@en ;
+    dcterms:description "Native and WASM engines produce byte-identical results; no parity court named in the verification plan and no design-doc owner."@en ;
+    prd:status "PROPOSED" ;
+    skos:inScheme prd: .
+
+prd:ac-2 a skos:Concept ;
+    skos:prefLabel "AC-2 crash-chaos recovery"@en ;
+    dcterms:description "Recovery under crash chaos per the wasm-opfs falsifier and chrome burn-in court; court scripts absent from scripts/."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W2" ;
+    skos:inScheme prd: .
+
+prd:ac-3 a skos:Concept ;
+    skos:prefLabel "AC-3 OOM graceful abort"@en ;
+    dcterms:description "OOM aborts the worker cleanly and the page RPC survives; memory_budget_court.mjs does not exist and worker-OOM behavior is UNVERIFIED."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W3" ;
+    skos:inScheme prd: .
+
+prd:ac-4 a skos:Concept ;
+    skos:prefLabel "AC-4 90% compression proof on 1M events"@en ;
+    dcterms:description "90% compression demonstrated on a 1M-event corpus; court never run and the corpus not built."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-S2" ;
+    skos:inScheme prd: .
+
+# ---------- Revision-2 individuals (lane R3) ----------
+# Second-revision PRD surface: prd2: individuals, kept IN the prd: scheme
+# so requirements-shapes.ttl's SPARQLTarget (?this skos:inScheme prd:)
+# covers them. prd:status/prd:court predicates reused for shape
+# compatibility; rdfs:isDefinedBy links aliased rev1<->rev2 pairs.
+
+@prefix prd2: <http://frozen-duckdb.local/ontology/requirements/rev2#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# ----- Revision-2 functional requirements -----
+
+prd2:fr-01 a skos:Concept ;
+    skos:prefLabel "FR-01/R2 WASM compile (rev 2)"@en ;
+    dcterms:description "Revision 2 of FR-01: duckdb_wasm build via emcmake against vendored headers with version gate; restates rev-1 scope under the rev-2 identifier scheme."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W1" ;
+    rdfs:isDefinedBy prd:fr-01 ;
+    skos:inScheme prd: .
+
+prd2:fr-02 a skos:Concept ;
+    skos:prefLabel "FR-02/R2 OPFS persistence + WAL replay (rev 2)"@en ;
+    dcterms:description "Revision 2 of FR-02: OPFS persistence survives Page.crash with WAL replay; restates rev-1 scope under the rev-2 identifier scheme."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W2" ;
+    rdfs:isDefinedBy prd:fr-02 ;
+    skos:inScheme prd: .
+
+prd2:fr-03 a skos:Concept ;
+    skos:prefLabel "FR-03/R2 VARIANT type (rev 2)"@en ;
+    dcterms:description "Revision 2 of FR-03: VARIANT on the native engine, carrying the rev-1 native receipt (5 passed; 0 failed; 1 test feature-gated out, crates/frozen-duckdb/tests/variant_tests.rs); wasm-side VARIANT still unproven."@en ;
+    prd:status "PARTIAL_ALIVE" ;
+    prd:court "V-G2" ;
+    rdfs:isDefinedBy prd:fr-03 ;
+    skos:inScheme prd: .
+
+prd2:fr-04 a skos:Concept ;
+    skos:prefLabel "FR-04/R2 vectorized view expansion (rev 2)"@en ;
+    dcterms:description "Revision 2 of FR-04: vectorized view expansion on both engines; segment-vector rehydration still not implemented, ocel_rehydration_equivalence test still absent."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-S1" ;
+    rdfs:isDefinedBy prd:fr-04 ;
+    skos:inScheme prd: .
+
+prd2:fr-05 a skos:Concept ;
+    skos:prefLabel "FR-05/R2 memory cap + graceful abort (rev 2)"@en ;
+    dcterms:description "Revision 2 of FR-05: wasm linear-memory cap with graceful abort; native memory_limit plumbing (config.rs:129) remains untested and the wasm court absent."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W3" ;
+    rdfs:isDefinedBy prd:fr-05 ;
+    skos:inScheme prd: .
+
+# ----- Revision-2 SLA requirements -----
+
+prd2:sla-1 a skos:Concept ;
+    skos:prefLabel "SLA-1/R2 p95 < 15ms @ 100k rows (rev 2)"@en ;
+    dcterms:description "Revision-2 SLA restating NFR-01: p95 latency under 15ms at 100k rows; no benchmark court or measured baseline yet."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-S1" ;
+    rdfs:isDefinedBy prd:nfr-01 ;
+    skos:inScheme prd: .
+
+prd2:sla-2 a skos:Concept ;
+    skos:prefLabel "SLA-2/R2 <=25MB stripped wasm size (rev 2)"@en ;
+    dcterms:description "Revision-2 SLA restating NFR-02: stripped wasm artifact at most 25MB; no artifact exists to measure."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W1" ;
+    rdfs:isDefinedBy prd:nfr-02 ;
+    skos:inScheme prd: .
+
+prd2:sla-3 a skos:Concept ;
+    skos:prefLabel "SLA-3/R2 >=90% compression on OCEL corpus (rev 2)"@en ;
+    dcterms:description "Revision-2 SLA restating NFR-03: at least 90% compression on the OCEL corpus; the V-S2 court has not run."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-S2" ;
+    rdfs:isDefinedBy prd:nfr-03 ;
+    skos:inScheme prd: .
+
+prd2:sla-4 a skos:Concept ;
+    skos:prefLabel "SLA-4/R2 zero-panic trap boundary (rev 2)"@en ;
+    dcterms:description "Revision-2 SLA restating NFR-04: zero-panic trap boundary at the wasm edge; no trap-boundary test exists."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W3" ;
+    rdfs:isDefinedBy prd:nfr-04 ;
+    skos:inScheme prd: .
+
+# ----- Revision-2 gate requirements -----
+
+prd2:gate-v01 a skos:Concept ;
+    skos:prefLabel "GATE-V01/R2 WASM compile court gate (rev 2)"@en ;
+    dcterms:description "Revision-2 gate requirement: the owning court V-W1 must run green before FR-01/R2 admits above PROPOSED."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W1" ;
+    rdfs:isDefinedBy prd2:fr-01 ;
+    skos:inScheme prd: .
+
+prd2:gate-v02 a skos:Concept ;
+    skos:prefLabel "GATE-V02/R2 crash-chaos court gate (rev 2)"@en ;
+    dcterms:description "Revision-2 gate requirement: the owning court V-W2 must run green before FR-02/R2 admits above PROPOSED."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W2" ;
+    rdfs:isDefinedBy prd2:fr-02 ;
+    skos:inScheme prd: .
+
+prd2:gate-v03 a skos:Concept ;
+    skos:prefLabel "GATE-V03/R2 VARIANT native court gate (rev 2)"@en ;
+    dcterms:description "Revision-2 gate requirement: the owning court V-G2 holds the native VARIANT receipt (5 passed; 0 failed); wasm half still courts to PROPOSED."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-G2" ;
+    rdfs:isDefinedBy prd2:fr-03 ;
+    skos:inScheme prd: .
+
+prd2:gate-v04 a skos:Concept ;
+    skos:prefLabel "GATE-V04/R2 view-expansion court gate (rev 2)"@en ;
+    dcterms:description "Revision-2 gate requirement: the owning court V-S1 must run green before FR-04/R2 admits above PROPOSED."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-S1" ;
+    rdfs:isDefinedBy prd2:fr-04 ;
+    skos:inScheme prd: .
+
+prd2:gate-v05 a skos:Concept ;
+    skos:prefLabel "GATE-V05/R2 memory-cap court gate (rev 2)"@en ;
+    dcterms:description "Revision-2 gate requirement: the owning court V-W3 must run green before FR-05/R2 and SLA-4/R2 admit above PROPOSED."@en ;
+    prd:status "PROPOSED" ;
+    prd:court "V-W3" ;
+    rdfs:isDefinedBy prd2:fr-05 ;
+    skos:inScheme prd: .

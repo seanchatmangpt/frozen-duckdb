@@ -1,0 +1,45 @@
+{
+  "receipt": "FLEET-005",
+  "leg": "duckdb (native, in-process)",
+  "work_order": "TEST-FLEET-005",
+  "class": "E (telco)",
+  "subject": {
+    "repo": "/Users/sac/frozen-duckdb",
+    "head": "e4cfbd38f9efe55dde549c67d558da9769584fa0",
+    "arch": "arm64 (darwin, Apple Silicon)",
+    "profile": "release",
+    "test_file": "crates/frozen-duckdb/tests/test_fleet_class_e_telco.rs"
+  },
+  "command": "CARGO_TARGET_DIR=target-laneT5 cargo test -p frozen-duckdb --test test_fleet_class_e_telco --release -- --nocapture",
+  "exit_code": 0,
+  "results": {
+    "batch_flush": {
+      "batches": 40,
+      "rows_per_batch": 50000,
+      "total_rows": 2000000,
+      "median_ms": 11.632,
+      "min_ms": 6.434,
+      "max_ms": 142.752,
+      "spec_bound_ms": 45.0,
+      "standing": "PASS",
+      "note": "max outlier 142.752ms on one batch; median is the asserted statistic per spec"
+    },
+    "session_to_queryable": {
+      "measured_us": 1119.0,
+      "spec_bound_us": 1200,
+      "standing": "PASS",
+      "honest_label": "in-process insert+query on one connection (native engine, no network); NOT network-ingress latency — reported as the in-process floor of the ingress-to-queryable bound"
+    }
+  },
+  "blocked_legs": [
+    {
+      "leg": "BEAM :atomics/:ets actor leg",
+      "standing": "BLOCKED-OTHER-REPO",
+      "reason": "actor/scheduler-starvation leg lives in the smalt repo; no BEAM scheduler on this subject, so the scheduler-starvation assertion cannot execute here — recorded loudly, not skipped silently"
+    }
+  ],
+  "environment_notes": [
+    "cargo registry src cache was corrupted on this machine (truncated crate extractions: base64-0.22.1, comfy-table-7.1.2, simdutf8, h2, arrow-array-56.2.1, atoi-2.0.0 emitted E0583/manifest errors); corrupt extractions were removed per-crate and re-extracted — build then completed clean"
+  ],
+  "verdict": "ALIVE (duckdb leg)"
+}

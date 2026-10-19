@@ -1,0 +1,56 @@
+{
+  "court": "warehouse-sim/economics",
+  "runner": "warehouse-sim/economics/run_court.sh",
+  "receiptedAtUtc": "2026-10-19T21:26:01Z",
+  "seed": 20261019,
+  "rows": 100000,
+  "perQuery": [
+    {
+      "id": "q1-cohort-filter",
+      "sovereignP95ms": 2.491,
+      "warehouseP95ms": 5133,
+      "latencyRatio": 0.000485,
+      "sovereignEgressBytes": 0,
+      "warehouseNetworkBytes": 1694,
+      "egressRatio": 0.0,
+      "sovereignInvoiceUsd": 0,
+      "warehouseCredits": 0.005703341036753458
+    },
+    {
+      "id": "q2-funnel-groupby",
+      "sovereignP95ms": 16.486,
+      "warehouseP95ms": 5193,
+      "latencyRatio": 0.003175,
+      "sovereignEgressBytes": 0,
+      "warehouseNetworkBytes": 1981,
+      "egressRatio": 0.0,
+      "sovereignInvoiceUsd": 0,
+      "warehouseCredits": 0.005770009008545021
+    },
+    {
+      "id": "q3-event-window",
+      "sovereignP95ms": 24.915,
+      "warehouseP95ms": 5082,
+      "latencyRatio": 0.004903,
+      "sovereignEgressBytes": 0,
+      "warehouseNetworkBytes": 1902,
+      "egressRatio": 0.0,
+      "sovereignInvoiceUsd": 0,
+      "warehouseCredits": 0.005646675315961281
+    }
+  ],
+  "totals": {
+    "sovereignNetworkBytes": 0,
+    "sovereignInvoiceUsd": 0,
+    "warehouseNetworkBytes": 5577,
+    "warehouseTotalCredits": 0.01712002536125976
+  },
+  "fences": {
+    "latencyRatioLE0.05": true,
+    "egressRatioLE0.01": true,
+    "sovereignInvoiceUsdZero": true,
+    "simBurnNonzero": true,
+    "selftestFlipped": true
+  },
+  "verdict": "PASS"
+}

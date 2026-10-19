@@ -1,0 +1,83 @@
+# frozen-duckdb — blueprint ontology (lane BP7)
+# PROPOSED architecture layers for frozen-duckdb 2.0. Status vocabulary is
+# deliberate: every concept here is bp:status "PROPOSED" — no execution has
+# been observed for any layer. The current repo reality is frozen-duckdb
+# 1.5.5 (zero-compilation DuckDB via Builder Sub-Crate Pattern); the 2.0.0-dev
+# upgrade landed in-tree, but the layers below remain proposals, not receipts.
+
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix bp:     <https://frozen-duckdb.dev/ontology/blueprint#> .
+@prefix fd:     <https://frozen-duckdb.dev/ontology#> .
+
+fd:blueprint a skos:ConceptScheme ;
+    dcterms:title "frozen-duckdb 2.0 blueprint layers"@en ;
+    dcterms:description
+        "Concept scheme organizing the PROPOSED frozen-duckdb 2.0 architecture " ,
+        "into five layers. Grounded in current repo reality: the 2.0.0-dev " ,
+        "upgrade has landed in this tree, but each layer is PROPOSED — none " ,
+        "carries an execution receipt. Wiring into ggen.toml is a separate " ,
+        "admitted transition and is intentionally not done here."@en ;
+    skos:hasTopConcept bp:operational-layer ,
+                       bp:verification-layer ,
+                       bp:semantic-layer ,
+                       bp:governance-layer ,
+                       bp:commercial-layer .
+
+bp:operational-layer a skos:Concept ;
+    skos:inScheme fd:blueprint ;
+    skos:prefLabel "Operational layer"@en ;
+    dcterms:description
+        "PROPOSED: WASM/OPFS-backed columnar storage so frozen-duckdb runs " ,
+        "in-browser. Today's reality is native-only: crates/frozen-duckdb-sys " ,
+        "links the DuckDB 1.5.5 mega-library FFI with vendored headers; no " ,
+        "WASM target, OPFS persistence path, or browser smoke test exists in " ,
+        "the repo."@en ;
+    bp:status "PROPOSED" ;
+    skos:topConceptOf fd:blueprint .
+
+bp:verification-layer a skos:Concept ;
+    skos:prefLabel "Verification layer"@en ;
+    dcterms:description
+        "PROPOSED: headless-Chrome burn-in courts executing the WASM build " ,
+        "under real browser load before admission. Today's verification " ,
+        "surface is native only — bash scripts/verify-gates.sh (generated " ,
+        "by ggen sync run) recording real exit codes into " ,
+        "scripts/verify-evidence.ttl, plus cargo test/clippy; no browser " ,
+        "court exists."@en ;
+    bp:status "PROPOSED" ;
+    skos:topConceptOf fd:blueprint .
+
+bp:semantic-layer a skos:Concept ;
+    skos:prefLabel "Semantic layer"@en ;
+    dcterms:description
+        "PROPOSED: OCEL 2.0 event-log compression of query/storage telemetry " ,
+        "with vectorized rehydration on replay. The repo has no OCEL tap and " ,
+        "no event store today; only gate receipts (ver:Check facts bound to " ,
+        "git HEAD/tree and verifiedGraphHash) are recorded."@en ;
+    bp:status "PROPOSED" ;
+    skos:topConceptOf fd:blueprint .
+
+bp:governance-layer a skos:Concept ;
+    skos:prefLabel "Governance layer"@en ;
+    dcterms:description
+        "PROPOSED: DMADV-defined gates compiled through ggen (schema/verify.ttl " ,
+        "ver:RequiredCheck facts -> scripts/verify-gates.sh projection). " ,
+        "Partially grounded: the ggen compilation path is ALIVE (Makefile " ,
+        "verify/verify-gates targets, dry-run-publish battery with the " ,
+        "structural fence tripwire), but the DMADV gate set itself is a " ,
+        "proposal and this scheme is not yet wired into ggen.toml."@en ;
+    bp:status "PROPOSED" ;
+    skos:topConceptOf fd:blueprint .
+
+bp:commercial-layer a skos:Concept ;
+    skos:prefLabel "Commercial layer"@en ;
+    dcterms:description
+        "PROPOSED: revenue-gated license tier on top of the open core " ,
+        "(Apache-style crate, MIT OR Apache-2.0 dual license in " ,
+        "crates/frozen-duckdb/Cargo.toml). No license server, keying, or " ,
+        "paid-tier enforcement exists in the repo; the dry-run-publish gate " ,
+        "bans published/crates-io-uploaded/release-complete claims, so this " ,
+        "layer must stay PROPOSED until a real cut is operator-authorized."@en ;
+    bp:status "PROPOSED" ;
+    skos:topConceptOf fd:blueprint .

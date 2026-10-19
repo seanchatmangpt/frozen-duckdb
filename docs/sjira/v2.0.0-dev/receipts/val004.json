@@ -1,0 +1,20 @@
+{
+  "context": "native (OPFS wasm leg FR-01-blocked)",
+  "conversion_rates": {
+    "retention_d30": 95.62830418869459,
+    "retention_d60": 85.01423342822285,
+    "retention_d90": 56.8727124847499,
+    "step_1": 100.0,
+    "step_2": 100.0,
+    "step_3": 100.0,
+    "step_4": 100.0,
+    "step_5": 98.38
+  },
+  "egress_basis": "by-construction: native in-memory engine has no network transport",
+  "egress_bytes": 0,
+  "funnel_latency_ms": 45,
+  "insert_latency_ms": 8062,
+  "receipt": "VALUE-VAL-004",
+  "rows": 100000,
+  "verdict": "PASS"
+}

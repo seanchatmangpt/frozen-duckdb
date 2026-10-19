@@ -1,0 +1,74 @@
+{
+  "court_outputs": {
+    "determinism.diff": {
+      "bytes": 0,
+      "hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+    },
+    "determinism.verdict": {
+      "bytes": 38,
+      "hash": "877d4fe3a222e707cedd95e25729a17f79ad1c311d8b70b0f61f08aaaf63677d"
+    },
+    "drift-render.log": {
+      "bytes": 2886,
+      "hash": "feadb74a284b9aa913652ee0f9c902d09667498f26ceb015171a97110078a921"
+    },
+    "hashes.json": {
+      "bytes": 918,
+      "hash": "299fcea5bec3d5753068d4c6dcf8e133d23f6aa9cf8dd3de5a25f260c5ceec3f"
+    },
+    "pass1.sha": {
+      "bytes": 502,
+      "hash": "e531ef3c090f7db5c270d0f828e65fd32530f2b18bbc284383e3f801bc0a06a0"
+    },
+    "pass2.sha": {
+      "bytes": 502,
+      "hash": "e531ef3c090f7db5c270d0f828e65fd32530f2b18bbc284383e3f801bc0a06a0"
+    },
+    "rdflib.out": {
+      "bytes": 92,
+      "hash": "4ba54b949ee556a6df8eefb142cc519e6595d50efa4684c8731b43270376c827"
+    },
+    "render-pass1.log": {
+      "bytes": 3295,
+      "hash": "8a97c35741c9a55087b2522a8d3e7ee4c577b0901f86af0621640719a1f56633"
+    },
+    "render-pass2.log": {
+      "bytes": 3295,
+      "hash": "73ce1cd76bb439811bed15a19b84169fa3d91b6c46c7799895f532a13b05757d"
+    },
+    "schema-drift.verdict": {
+      "bytes": 32,
+      "hash": "f65272ff4ecc1c839be5bcfe55885e9e3ad5af3273a3bbfe9298becf36829f3f"
+    },
+    "tsc.out": {
+      "bytes": 198,
+      "hash": "06ed6bb57c6d647abdf82242b63abffd0f5f5ccd57c0e656919a99300d3855da"
+    }
+  },
+  "date_utc": "2026-10-19T21:16:32Z",
+  "hash_algo": "blake3",
+  "inputs": {
+    "ggen_manifest": "198f1cafbb714f3a5d672188dfc615b225c413dc33d3053c4931ad3559bc5ec3",
+    "lib_ledger_ts": "a51f9bcb64ad9c1ddc1617e99e536852b0e3c41252a59dfeb99e85fd79989a29",
+    "lib_sim_engine_ts": "4852492bc646bff512186b6cc401d2457eea4226fec1e2123c0ee4a20937ad6e",
+    "rendered": {
+      "app/api/2.0/sql/statements/[statement_id]/route.ts": "5f6575f79622c2656884dbb1658d72f7e673e7069337bd640ba2e2ce666549b8",
+      "app/api/2.0/sql/statements/route.ts": "2f2058be6ca881cf082f9f3d954d919a16f5e1dfed7689d6532cd3baa46941ca",
+      "app/api/v2/statements/[handle]/route.ts": "7e0a860ec93a6ce4a29c709a3b4cc0365c7a424ec5d26a4338f289c637919ce9",
+      "app/api/v2/statements/route.ts": "36d93e283e90e8f3243e33d213efeb6784c6c88b19f7c6da8eda015a74297665",
+      "lib/ledger.ts": "a51f9bcb64ad9c1ddc1617e99e536852b0e3c41252a59dfeb99e85fd79989a29"
+    },
+    "schema_ttl": "02046eb0c688a72c8f206683d5ce2fda5079f8084cc1268b4f09501cb168a8a9"
+  },
+  "operator_pin": "b6013f7aa2f36caabb9466ce1791667ea8a280bb",
+  "receipt": "warehouse-sim/g6-courts/v1",
+  "validations": {
+    "rdflib_rc": 0,
+    "rdflib_ttl_parse": "rdflib OK: 110 triples from /Users/sac/frozen-duckdb/warehouse-sim/schema/warehouse_sim.ttl",
+    "tsc_noEmit_rc": 2
+  },
+  "verdicts": {
+    "determinism": "determinism: PASS (5 files identical)",
+    "schema-drift": "schema-drift: PASS (4.0 -> 5.5)"
+  }
+}

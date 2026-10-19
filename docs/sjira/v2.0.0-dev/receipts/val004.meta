@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: VALUE-VAL-004 (funnel/egress, native leg; FR-01 wasm blocked)
+engine: frozen-duckdb native (OPFS wasm leg FR-01-blocked)
+date: 2026-10-19T14:31:10-0700
+source_path: /tmp/value_audit/val004.json
+sha256: f2f42c5cce3c06ea381e029a5e8615218e91f949f03febdf79349ddbcebbe22f
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

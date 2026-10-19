@@ -1,0 +1,94 @@
+# frozen-duckdb — blueprint SHACL shapes (lane BP13)
+# Validates the blueprint graph (schema/blueprint.ttl, lane BP7):
+#   - NodeShape bp:BlueprintLayerConstraint on bp:Layer instances:
+#     exactly one skos:prefLabel, exactly one bp:status with
+#     sh:in("PROPOSED","PARTIAL_ALIVE","ALIVE"), dcterms:description >= 1,
+#     and sh:closed preventing invented statuses.
+#   - PropertyShape bp:AliveRequiresWitness forbidding bp:status "ALIVE"
+#     without a bp:witness IRI — no execution claim without a witness,
+#     expressed mechanically at the graph layer.
+#
+# STATUS: shapes authored, NOT yet wired to a validator run — validation
+# court is verification-plan V-G1. No conformance claim is made here.
+# NOTE: instances carry rdf:type bp:Layer for shape targeting; the BP7
+# graph currently types layers skos:Concept only — targeting uses the
+# skos:topConceptOf fd:blueprint path so validation applies without
+# editing the BP7 source.
+
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix bp:     <https://frozen-duckdb.dev/ontology/blueprint#> .
+@prefix fd:     <https://frozen-duckdb.dev/ontology#> .
+
+bp:BlueprintLayerShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            PREFIX fd:   <https://frozen-duckdb.dev/ontology#>
+            SELECT ?this WHERE {
+                ?this skos:topConceptOf fd:blueprint .
+            }
+        """ ;
+    ] ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type skos:inScheme skos:topConceptOf ) ;
+    sh:property bp:PrefLabelShape ;
+    sh:property bp:StatusShape ;
+    sh:property bp:DescriptionShape .
+
+bp:PrefLabelShape a sh:PropertyShape ;
+    sh:path skos:prefLabel ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype rdf:langString ;
+    sh:message "blueprint layer requires exactly one skos:prefLabel (langString)"@en .
+
+bp:StatusShape a sh:PropertyShape ;
+    sh:path bp:status ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:in ( "PROPOSED" "PARTIAL_ALIVE" "ALIVE" ) ;
+    sh:message "bp:status must be exactly one of PROPOSED, PARTIAL_ALIVE, ALIVE"@en .
+
+bp:DescriptionShape a sh:PropertyShape ;
+    sh:path dcterms:description ;
+    sh:minCount 1 ;
+    sh:message "blueprint layer requires at least one dcterms:description"@en .
+
+# The receipt linkage: "ALIVE" is an execution claim; execution claims
+# require a bp:witness IRI (a receipt). The conditional is expressed by
+# targeting only layers that claim ALIVE but lack any witness — a targeted
+# node must then fail the property shape's sh:minCount 1. Witness values
+# are constrained to IRIs and http(s) form by companion property shapes.
+
+bp:AliveRequiresWitness a sh:PropertyShape ;
+    sh:path bp:witness ;
+    sh:minCount 1 ;
+    sh:message "bp:status \"ALIVE\" requires at least one bp:witness IRI (receipt linkage)"@en .
+
+bp:AliveWitnessKindShape a sh:PropertyShape ;
+    sh:path bp:witness ;
+    sh:nodeKind sh:IRI ;
+    sh:pattern "^https?://" ;
+    sh:message "bp:witness must be an http(s) IRI"@en .
+
+bp:AliveConditionalShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+            PREFIX fd:   <https://frozen-duckdb.dev/ontology#>
+            PREFIX bp:   <https://frozen-duckdb.dev/ontology/blueprint#>
+            SELECT ?this WHERE {
+                ?this skos:topConceptOf fd:blueprint ;
+                      bp:status "ALIVE" .
+                FILTER NOT EXISTS { ?this bp:witness ?w . }
+            }
+        """ ;
+    ] ;
+    sh:property bp:AliveRequiresWitness .

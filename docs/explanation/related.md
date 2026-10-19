@@ -5,5 +5,5 @@
 
 - [DuckDB](https://duckdb.org)
 - [duckdb-rs (upstream Rust bindings)](https://github.com/duckdb/duckdb-rs)
-- [DuckDB v1.5.5 release (bundled upstream)](https://github.com/duckdb/duckdb/releases/tag/v1.5.5)
+- [DuckDB v1.5.5 release (predecessor bundled version)](https://github.com/duckdb/duckdb/releases/tag/v1.5.5)
 - [Contributing guide: coding standards](https://github.com/seanchatmangpt/frozen-duckdb/blob/master/docs/contributing/coding-standards.md)

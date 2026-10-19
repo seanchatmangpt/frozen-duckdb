@@ -206,14 +206,14 @@ fd:receipt-001 a ret:RecertificationReceipt ;
 
 fd:publishGateBindings a skos:ConceptScheme ;
 
-    skos:prefLabel "frozen-duckdb v1.5.5 dry-run publish gate bindings" ;
+    skos:prefLabel "frozen-duckdb v2.0.0-dev dry-run publish gate bindings" ;
 
     skos:notation "FD-DRY-RUN-BINDINGS" ;
 
     dcterms:description "Binds each dry-run-publish-pack gate phase (DRY-RUN-*) to the PUBLISH_RUNBOOK steps it gates, the evidence command that proves it (exit 0 required), and the PDDL8 atom/action chain it renders into gates/dry-run-publish/dry-run-publish-domain.ttl."@en .
 
 
-# The PDDL object every gate action applies to: this workspace's v1.5.5
+# The PDDL object every gate action applies to: this workspace's v2.0.0-dev
 
 # release candidate (mirrors the pack's fictional kestrel object, bound to
 
@@ -225,13 +225,13 @@ fd:gateObject a skos:Concept ;
 
     skos:inScheme fd:publishGateBindings ;
 
-    skos:notation "RC-FROZEN-DUCKDB-V155" ;
+    skos:notation "RC-FROZEN-DUCKDB-V200-DEV" ;
 
-    skos:prefLabel "frozen-duckdb v1.5.5 release candidate" ;
+    skos:prefLabel "frozen-duckdb v2.0.0-dev release candidate" ;
 
-    dcterms:description "The release candidate under dry-run gate: frozen-duckdb workspace at 1.5.5 (crate version mirrors bundled DuckDB v1.5.5 per fd:duckdbVersionLaw)."@en ;
+    dcterms:description "The release candidate under dry-run gate: frozen-duckdb workspace at 2.0.0-dev (crate version mirrors bundled DuckDB v2.0.0-dev per fd:duckdbVersionLaw)."@en ;
 
-    fd:pddlObject "frozen_duckdb_v155" .
+    fd:pddlObject "frozen_duckdb_v2_0_0_dev" .
 
 
 # Publish-set members in dependency order (Phase 4 coverage set). Real crates
@@ -288,13 +288,13 @@ fd:bindScope a skos:Concept ;
 
     skos:prefLabel "Gate 1 — Release Scope & Identity" ;
 
-    dcterms:description "Publish set frozen to the 3 PKG-FROZEN-DUCKDB-* members at 1.5.5; TPUB name/ownership check GO/GO/GO (token identity must be seanchatmangpt); RELEASE_CONTROL docs synced (PUBLISH_RUNBOOK, MILESTONE); git SHA bound via tag v1.5.5 on a clean worktree."@en ;
+    dcterms:description "Publish set frozen to the 3 PKG-FROZEN-DUCKDB-* members at 2.0.0-dev; TPUB name/ownership check GO/GO/GO (token identity must be seanchatmangpt); RELEASE_CONTROL docs synced (PUBLISH_RUNBOOK, MILESTONE); git SHA bound via tag v2.0.0-dev on a clean worktree."@en ;
 
     fd:phaseOrder 1 ;
 
-    fd:runbookSteps "TPUB pre-flight name/ownership check; runbook steps 1-2 (merge PR #3; tag v1.5.5)" ;
+    fd:runbookSteps "TPUB pre-flight name/ownership check; runbook steps 1-2 (merge PR #3; tag v2.0.0-dev)" ;
 
-    fd:evidenceCommand "gh pr view 3 --repo seanchatmangpt/frozen-duckdb (OPEN); git tag --list v1.5.5 (bound); git status --porcelain (empty)" ;
+    fd:evidenceCommand "gh pr view 3 --repo seanchatmangpt/frozen-duckdb (OPEN); git tag --list v2.0.0-dev (bound); git status --porcelain (empty)" ;
 
     fd:entryAtom "scope-engaged" ;
 
@@ -344,7 +344,7 @@ fd:bindVerify a skos:Concept ;
 
     fd:runbookSteps "runbook step 3 (verify CI release assets — do not publish until green)" ;
 
-    fd:evidenceCommand "gh run watch <run-id> --repo seanchatmangpt/frozen-duckdb; gh api repos/seanchatmangpt/frozen-duckdb/releases/tags/v1.5.5 --jq '.assets[].name' (exactly two expected names)" ;
+    fd:evidenceCommand "gh run watch <run-id> --repo seanchatmangpt/frozen-duckdb; gh api repos/seanchatmangpt/frozen-duckdb/releases/tags/v2.0.0-dev --jq '.assets[].name' (exactly two expected names)" ;
 
     fd:entryAtom "generate-complete" ;
 
@@ -388,13 +388,13 @@ fd:bindCleanroom a skos:Concept ;
 
     skos:prefLabel "Gate 5 — Clean-Room Verification" ;
 
-    dcterms:description "Manufactured package verified in isolation: TPUB full verification build from unpacked target/package/frozen-duckdb-builder-1.5.5; docs.rs rehearsal (DOCS_RS=1, isolated HOME, bindings from vendored headers, no library linked, exit 0); runbook step 11 clean-machine smoke."@en ;
+    dcterms:description "Manufactured package verified in isolation: TPUB full verification build from unpacked target/package/frozen-duckdb-builder-2.0.0-dev; docs.rs rehearsal (DOCS_RS=1, isolated HOME, bindings from vendored headers, no library linked, exit 0); runbook step 11 clean-machine smoke."@en ;
 
     fd:phaseOrder 5 ;
 
-    fd:runbookSteps "TPUB unpack-build + docs.rs rehearsal; runbook step 11 clean-machine smoke (cargo new + cargo add frozen-duckdb@1.5.5 + Connection::open)" ;
+    fd:runbookSteps "TPUB unpack-build + docs.rs rehearsal; runbook step 11 clean-machine smoke (cargo new + cargo add frozen-duckdb@2.0.0-dev + Connection::open)" ;
 
-    fd:evidenceCommand "HOME=/tmp/fd-docs-home-tpub DOCS_RS=1 cargo build -p frozen-duckdb-sys (exit 0); cargo new /tmp/smoke + cargo add frozen-duckdb@1.5.5 (query exit 0)" ;
+    fd:evidenceCommand "HOME=/tmp/fd-docs-home-tpub DOCS_RS=1 cargo build -p frozen-duckdb-sys (exit 0); cargo new /tmp/smoke + cargo add frozen-duckdb@2.0.0-dev (query exit 0)" ;
 
     fd:entryAtom "manufacture-complete" ;
 
@@ -419,7 +419,7 @@ fd:bindReceipt a skos:Concept ;
 
     fd:runbookSteps "runbook steps 9-11 (docs.rs builds — observe; post the issue #1 reply; post-publish verification) + History/MILESTONE receipt appends" ;
 
-    fd:evidenceCommand "curl -s https://crates.io/api/v1/crates/frozen-duckdb (max_version 1.5.5); sparse index 200 x3; grep -c dry-run-verified gates/dry-run-publish/dry-run-publish-domain.ttl (>=1)" ;
+    fd:evidenceCommand "curl -s https://crates.io/api/v1/crates/frozen-duckdb (max_version 2.0.0-dev); sparse index 200 x3; grep -c dry-run-verified gates/dry-run-publish/dry-run-publish-domain.ttl (>=1)" ;
 
     fd:entryAtom "cleanroom-complete" ;
 
@@ -441,13 +441,13 @@ fd:bindReceipt a skos:Concept ;
 fd:project a prov:Entity ;
     dcterms:title "frozen-duckdb" ;
     dcterms:description "Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement" ;
-    dcterms:version "1.5.5" ;
-    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v1.5.5> .
+    dcterms:version "2.0.0-dev" ;
+    prov:wasDerivedFrom <https://github.com/duckdb/duckdb/releases/tag/v2.0.0-dev> .
 
 # DuckDB version law: crate version mirrors the bundled upstream release
 fd:duckdbVersionLaw a skos:Concept ;
     skos:prefLabel "crate version mirrors bundled DuckDB release" ;
-    skos:notation "1.5.5" .
+    skos:notation "2.0.0-dev" .
 #################################################################
 # C5 — receipt + supply-chain evidence (v26.9.21 wave 4)
 #

@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: GATE-V-01 (p95 budget court)
+engine: frozen-duckdb native
+date: 2026-10-19T14:26:17-0700
+source_path: /tmp/value_audit/gate_v01_receipt.json
+sha256: c135fbdc897d528ada7fd7a48c593e1bb36dac6cd55c1b3088e7e9ba3cae03fb
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

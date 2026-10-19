@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: VALUE-VAL-001 (500k events compression+filter)
+engine: duckdb native dylib (@rpath/libduckdb.dylib)
+date: 2026-10-19T14:52:37-0700
+source_path: /tmp/value_audit/val001.json
+sha256: 932ea8d548f03d3d8fb7630306c48d1668be8c15f5a8588251ad710a5b889c62
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

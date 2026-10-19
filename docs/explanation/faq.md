@@ -11,15 +11,14 @@ Yes — same API, same functionality, no code changes needed; builds are 99% fas
 
 The builder could not obtain the DuckDB library at all: no cached binary, the
 release-asset download failed (no published release for the pinned version —
-the expected state before the v1.5.5 tag exists), and the local source-compile
+the expected state while no v2.0.0-dev tag has been published), and the local source-compile
 fallback also failed. The panic comes from the sys-crate build script; read the
 error tail for the underlying cause. A normal first-time local compile logs its
 progress instead and only uses this panic when it fails.
 
 #### What if no cached binary is found?
 
-The builder downloads the matching per-arch release asset, or compiles DuckDB
-v1.5.5 locally when the download fails (the supported Linux and pre-release
+The builder downloads the matching per-arch release asset, or compiles the bundled DuckDB 2.0.0-dev source locally when the download fails (the supported Linux and pre-release
 path). Check ~/.frozen-duckdb/cache/ afterwards; try cargo clean followed by a
 rebuild if the state looks stale.
 
@@ -36,7 +35,7 @@ prebuilt/setup_env.sh and the architecture helper module
 
 macOS uses prebuilt per-arch release assets (arm64 and x86_64 dylibs).
 Linux and Windows build via the pinned local-compile fallback of DuckDB
-v1.5.5 source; prebuilt Linux .so assets are planned.
+2.0.0-dev source; prebuilt Linux .so assets are planned.
 
 #### Why is it called frozen?
 

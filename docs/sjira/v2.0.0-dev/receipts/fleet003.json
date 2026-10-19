@@ -1,0 +1,98 @@
+{
+  "arrow_summary": {
+    "cols": 3,
+    "rows": 10
+  },
+  "epochs": [
+    {
+      "blake2b": "cf3a94c030dc7a4489a8126d4026a425a82dee77cc78ad641b422830a9b71ac03286e6e579ac82889fede97026e6f63ee2574f0122bb4dda4c033a160bdbff36",
+      "blake3": "dfbe678452c5a767452f2a54f2285db7250619d85c38d25ca7da45d5c43fb3bb",
+      "epoch": 0,
+      "rows": 10000,
+      "sha256": "0bcb35547ca45a4ecda36d322927cc1ce301bf299c179687ceb1ba6e04632f24"
+    },
+    {
+      "blake2b": "c63fcc9972872cefb7ec607f8bea12a7e1759e3d83a665b7d8330295b1c926904a10902819a0c12edbfccf3aa6b3f54577f04338a25410b0cf0f2ff85c6cb2ea",
+      "blake3": "957a6c1cc0a2504a70f645a980813486d00f54e53e0a77f9528e7d9c609d393f",
+      "epoch": 1,
+      "rows": 20000,
+      "sha256": "dc6f654aafa9a2406681bad0b228373ddc30582a84db744309e839984b307c2d"
+    },
+    {
+      "blake2b": "6948e3818266c81be3326b0d19b103cba771e8ab65175cd67ae45fc5dac5032b5945c8f1e54448b13725060da1d38654b5a69305110474f556840acd9ef61fa4",
+      "blake3": "4f3b0fff99273daeafd2f0bc7ec6628313056ba04a3716b40a120f2c159c3221",
+      "epoch": 2,
+      "rows": 30000,
+      "sha256": "2a3473bc66e290d30dc2aad671a18231bacb3b57b5f064344ac1fd0fde368c09"
+    },
+    {
+      "blake2b": "a236feffecfd435ab52df264979bc3ae7d6928abef93c976596341bfd1b856f37ee1ba6295454800934c0495f107624bcaa1e4599b8bb45df5c72a8a46b1fd8f",
+      "blake3": "f1d3ce5753d55839206066a8c52f61cd20aec1a1ab6912e7b2b6481bb0257b01",
+      "epoch": 3,
+      "rows": 40000,
+      "sha256": "6fae054a6829a2c87c784d64bea0a4c7a6bafb11aa940ff3c3d3af38dec747f9"
+    },
+    {
+      "blake2b": "bf956b65eae4e1014116c8e807bd9c6ac03344e9a062712a7b83eebc0dac5d92661236bdff6fdcea2ff7a3ad2257d74729ea77f60f5f84c16ade2f1882b603f2",
+      "blake3": "74c62f21d7b9ea8a9e302f51ad3bdce17dd747262a8434e0d86a3ad4d87d0e9c",
+      "epoch": 4,
+      "rows": 50000,
+      "sha256": "1c69f0304433c154768f028a5ac7f9c725e404fbea7d8199190b7f0639dc9a9c"
+    },
+    {
+      "blake2b": "7916f9014f1630243cd6a751af7ca16553a85650414b8d64bf4fb9600e95788a6a4b8ecc0527c0e4db6299a4892d8f5fdce72e5683950fa67ba1cf227f1ad5c4",
+      "blake3": "f3db09e82e2c65828f8744d780898d616806b213c5004685570853050ff1648a",
+      "epoch": 5,
+      "rows": 60000,
+      "sha256": "8ec3d2ed339c1212bf79c2289566bd5ab028bd2c343c4343164779f5fa134678"
+    },
+    {
+      "blake2b": "8f4cc485aaf500ee0319877ae65921e0b82469b6e4199c2fd025a2ee02592f815a77fe94062d0de8c2602bb63668fd8d5c65afe3aa0647110201f8d393a887ac",
+      "blake3": "ece8912730f32810acfee949f4b4f33bda5b3e9c6b6e62ffcec2afb7dfac7c07",
+      "epoch": 6,
+      "rows": 70000,
+      "sha256": "b61f04f92034a67f814469835c6086368385bd9abf20f29ff97b317cff4f3919"
+    },
+    {
+      "blake2b": "1c2042f3c957eb384e910ace61987e5ee40c7c8cbe2707d38b5bc407de5c31e53a1ac2e440d762e95b798b8c25cb4e7a53efe94109a941d0751844b7b8337ede",
+      "blake3": "6b297327a7e888ea3c7955ffc9298966d8939fd5e3022a6653614ffa23838bef",
+      "epoch": 7,
+      "rows": 80000,
+      "sha256": "09aa0e8bbdae0d824b3dd089f5fbfa26c242908b8fd872ba66f8f3dc410a2d61"
+    },
+    {
+      "blake2b": "ab6741ba7c97c640a317470101c8cb72a3ad5bc5389376c6ca9e31dcfa471c3a044a36decf0aadce9dbf18248608d04563a7f9e1b8cb3a585daa562f6b9df2cd",
+      "blake3": "3a2c56acd605e1c2bfc6bc1c700f30f24271be45396ccdd251479b0a5e861519",
+      "epoch": 8,
+      "rows": 90000,
+      "sha256": "9ce56bcbefdc0fca7be192c1c604f4fc85a724c24e6a29b0f56552e80f5d3a90"
+    },
+    {
+      "blake2b": "b244b3dac53bfc655b8a8df8c8a51f35db26afef045063d561e3fa032c07ec4ad6b623d0600e749010d9f5b3b3dd69cade2ca7adf5caf49b25eecb7681710754",
+      "blake3": "11708bc37c3b02f45f9d0121bbf0e87438c0583015ccb4c1418cc0b00cca820e",
+      "epoch": 9,
+      "rows": 100000,
+      "sha256": "a7421253899f71e15593950e83ea3c6cd8096616779adfb6f0a777fa940df37a"
+    }
+  ],
+  "host": "native Class-C-capable silicon (this host; honest native run)",
+  "imbalance_rows": 0,
+  "ledger": {
+    "insert_latency_ms": 5170.058,
+    "latency_ok": true,
+    "latency_scope": "per 1000-txn batch (max of 100); total insert also recorded",
+    "latency_spec_ms": 80.0,
+    "max_batch_latency_ms": 54.772166999999996,
+    "registers": 10,
+    "txns": 100000
+  },
+  "payload_bytes": 725,
+  "payload_limit": 4096,
+  "state_digests": {
+    "blake2b": "b244b3dac53bfc655b8a8df8c8a51f35db26afef045063d561e3fa032c07ec4ad6b623d0600e749010d9f5b3b3dd69cade2ca7adf5caf49b25eecb7681710754",
+    "blake3": "11708bc37c3b02f45f9d0121bbf0e87438c0583015ccb4c1418cc0b00cca820e",
+    "sha256": "a7421253899f71e15593950e83ea3c6cd8096616779adfb6f0a777fa940df37a"
+  },
+  "test": "TEST-FLEET-003",
+  "verdict": "ALIVE"
+}

@@ -7,5 +7,5 @@
 |---|---|
 | client | Cargo |
 | client | Rust (three-crate workspace) |
-| server | DuckDB 1.5.5 (embedded engine, all extensions enabled) |
+| server | DuckDB 2.0.0-dev (embedded engine, all extensions enabled) |
 | server | GitHub Releases (prebuilt per-arch dylibs, cached under ~/.frozen-duckdb/) |

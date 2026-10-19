@@ -211,7 +211,7 @@ SELECT llm_embedding(
 > **SUPERSEDED (wave-2, 2026-09-21):** the adopted distribution strategy is
 > **GitHub Release assets** — universal (arm64 + x86_64) macOS dylibs
 > downloaded automatically by `frozen-duckdb-builder::ensure_binary()` and
-> cached under `~/.frozen-duckdb/cache/v1.5.5-{arch}/`. No `.dylib` is
+> cached under `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`. No `.dylib` is
 > committed to the repository (`prebuilt/` carries only the vendored headers
 > and `setup_env.sh`), so the LFS decision below is historical. See
 > `docs/architecture/binary-management.md` for the current mechanism.

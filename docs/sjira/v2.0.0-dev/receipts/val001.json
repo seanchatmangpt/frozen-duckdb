@@ -1,0 +1,1 @@
+{"id":"VALUE-VAL-001","events":500000,"bytes_raw":39594181,"bytes_db":13381632,"compression":0.6620,"filter_latency_ms":20.9,"filter_sql":"SELECT count(*) FROM logs WHERE json_extract_string(payload::VARCHAR, '$.response.code') = '500'","insert_seconds":1640.2,"engine_dylib":"@rpath/libduckdb.dylib (compatibility version 0.0.0, current version 0.0.0)","verdict":"FAIL"}

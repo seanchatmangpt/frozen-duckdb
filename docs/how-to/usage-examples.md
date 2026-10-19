@@ -14,9 +14,8 @@ frozen-duckdb = { git = "https://github.com/seanchatmangpt/frozen-duckdb" }
 
 ```
 
-The crates.io `frozen-duckdb` package is still at the early `0.1.0`; the `1.5.5`
-release line is consumed from this repository until the crates.io publication
-lands.
+The crates.io `frozen-duckdb` package is still at the early `0.1.0`; the `2.0.0-dev`
+line is consumed from this repository until the crates.io publication lands.
 
 Open a connection, create a table, insert rows, and query — the drop-in replacement in action.
 

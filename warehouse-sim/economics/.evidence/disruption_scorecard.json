@@ -1,0 +1,154 @@
+{
+  "scorecard": "warehouse-sim/economics/disruption-scorecard",
+  "seed": 20261019,
+  "rows": 100000,
+  "iterations_path_a": 4,
+  "sovereign": {
+    "leg": "native-baseline",
+    "engine": "frozen-duckdb v0.1.0 (bundled libduckdb, native in-process; leg=native-baseline, wasm leg FR-01-blocked)",
+    "total_network_bytes": 0,
+    "total_invoice_usd": 0
+  },
+  "warehouse": {
+    "engine": "warehouse-sim (Next 14.2.15 local sim; Snowflake SQL API v2 surface)",
+    "total_network_bytes": 38705,
+    "total_credits": 0.11257684267662882
+  },
+  "classes": [
+    {
+      "class_id": "point-filter",
+      "label": "point filter",
+      "warehouse": {
+        "cold_p50_ms": 5301,
+        "amortized_p95_ms": 5301,
+        "poll_requests": 40,
+        "egress_bytes": 7389,
+        "counterfactual_credits": 0.022787811379059535
+      },
+      "sovereign": {
+        "p95_latency_ms": 1.483,
+        "cold_latency_ms": 0.684,
+        "egress_bytes": 0,
+        "invoice_usd": 0
+      },
+      "ratios": {
+        "latency_amortized": 0.0002797585361252594,
+        "latency_cold_vs_cold": 0.00012903225806451613,
+        "egress": 0
+      },
+      "assertions": {
+        "F1_latency_le_0_05x": "CLEAR",
+        "F2_egress_le_0_01x": "CLEAR",
+        "F3_invoice_eq_0": "CLEAR"
+      }
+    },
+    {
+      "class_id": "grouped-aggregation",
+      "label": "grouped aggregation",
+      "warehouse": {
+        "cold_p50_ms": 5065,
+        "amortized_p95_ms": 5065,
+        "poll_requests": 40,
+        "egress_bytes": 8052,
+        "counterfactual_credits": 0.02246781439403447
+      },
+      "sovereign": {
+        "p95_latency_ms": 3.312,
+        "cold_latency_ms": 4.594,
+        "egress_bytes": 0,
+        "invoice_usd": 0
+      },
+      "ratios": {
+        "latency_amortized": 0.0006538993089832181,
+        "latency_cold_vs_cold": 0.0009070088845014808,
+        "egress": 0
+      },
+      "assertions": {
+        "F1_latency_le_0_05x": "CLEAR",
+        "F2_egress_le_0_01x": "CLEAR",
+        "F3_invoice_eq_0": "CLEAR"
+      }
+    },
+    {
+      "class_id": "windowed-rolling-avg",
+      "label": "windowed rolling avg",
+      "warehouse": {
+        "cold_p50_ms": 5054,
+        "amortized_p95_ms": 5054,
+        "poll_requests": 40,
+        "egress_bytes": 7736,
+        "counterfactual_credits": 0.02244670184592173
+      },
+      "sovereign": {
+        "p95_latency_ms": 16.818,
+        "cold_latency_ms": 7.145,
+        "egress_bytes": 0,
+        "invoice_usd": 0
+      },
+      "ratios": {
+        "latency_amortized": 0.003327661258409181,
+        "latency_cold_vs_cold": 0.0014137316976652156,
+        "egress": 0
+      },
+      "assertions": {
+        "F1_latency_le_0_05x": "CLEAR",
+        "F2_egress_le_0_01x": "CLEAR",
+        "F3_invoice_eq_0": "CLEAR"
+      }
+    },
+    {
+      "class_id": "cohort-retention-journey",
+      "label": "cohort retention journey",
+      "warehouse": {
+        "cold_p50_ms": 5050,
+        "amortized_p95_ms": 5054,
+        "poll_requests": 40,
+        "egress_bytes": 8076,
+        "counterfactual_credits": 0.0224444811698405
+      },
+      "sovereign": {
+        "p95_latency_ms": 8.464,
+        "cold_latency_ms": 7.548,
+        "egress_bytes": 0,
+        "invoice_usd": 0
+      },
+      "ratios": {
+        "latency_amortized": 0.0016747130985358134,
+        "latency_cold_vs_cold": 0.0014946534653465346,
+        "egress": 0
+      },
+      "assertions": {
+        "F1_latency_le_0_05x": "CLEAR",
+        "F2_egress_le_0_01x": "CLEAR",
+        "F3_invoice_eq_0": "CLEAR"
+      }
+    },
+    {
+      "class_id": "ocel-rehydration",
+      "label": "OCEL rehydration",
+      "warehouse": {
+        "cold_p50_ms": 5046,
+        "amortized_p95_ms": 5051,
+        "poll_requests": 40,
+        "egress_bytes": 7452,
+        "counterfactual_credits": 0.022430033887772587
+      },
+      "sovereign": {
+        "p95_latency_ms": 9.261,
+        "cold_latency_ms": 7.855,
+        "egress_bytes": 0,
+        "invoice_usd": 0
+      },
+      "ratios": {
+        "latency_amortized": 0.0018334983171649176,
+        "latency_cold_vs_cold": 0.0015566785572730876,
+        "egress": 0
+      },
+      "assertions": {
+        "F1_latency_le_0_05x": "CLEAR",
+        "F2_egress_le_0_01x": "CLEAR",
+        "F3_invoice_eq_0": "CLEAR"
+      }
+    }
+  ]
+}
