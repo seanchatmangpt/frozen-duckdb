@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bundled DuckDB upgraded from 1.4.0 to upstream v1.5.5 (released 2026-07-22); DuckDB pin bumped across the builder, test harnesses, and CI defaults; workspace version bumped to 1.5.5 for all three crates (`frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`); the crate version now tracks the DuckDB release it bundles.
 - `test-dependency` now exercises the upstream `duckdb = "1.5"` line alongside the frozen binary.
+- Download-path architecture detection honors an explicit single-slice `CMAKE_OSX_ARCHITECTURES` or `ARCH` value: detection order is `CMAKE_OSX_ARCHITECTURES` → `ARCH` → `uname -m`, and an explicit single-slice value drives detection, cache placement, and release-asset naming, while multi-arch lists and unknown values fall through to host detection. Root-causes the `v1.5.5` tag run's x86_64 leg failing closed on arch detection (commit abff9bc).
 
 
 ### Fixed
