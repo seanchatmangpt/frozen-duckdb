@@ -23,7 +23,7 @@ mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
 if [ ! -d "duckdb-rs" ]; then
-    echo "Cloning duckdb-rs repository (pinned to v1.10505.0 = DuckDB 1.5.5)..."
+    echo "Cloning duckdb-rs repository (pinned to v1.10505.0 = duckdb-rs crate encoding of DuckDB 1.5.5; TODO(2.0): bump when duckdb-rs publishes a 2.0-compatible release)..."
     git clone --branch v1.10505.0 https://github.com/duckdb/duckdb-rs.git
 fi
 cd duckdb-rs
@@ -119,7 +119,7 @@ This directory contains a pre-compiled, fully-featured DuckDB binary that can be
 
 2. **Update kcura-duck Cargo.toml**:
    ```toml
-   duckdb = { version = "1.10505.0", default-features = false, features = [
+   duckdb = { version = "1.10505.0", default-features = false, features = [ # TODO(2.0): bump when duckdb-rs publishes a 2.0-compatible release
        "json", "parquet", "appender-arrow", "vtab-full", "extensions-full"
    ] }
    ```
@@ -137,7 +137,7 @@ This directory contains a pre-compiled, fully-featured DuckDB binary that can be
 
 ## Maintenance
 
-This frozen binary should work with DuckDB 1.5.5. For newer versions, rebuild using:
+This frozen binary should work with DuckDB 2.0.0-dev. For newer versions, rebuild using:
 ```bash
 ./scripts/build_frozen_duckdb.sh
 ```
@@ -306,7 +306,7 @@ export LD_LIBRARY_PATH="$DUCKDB_LIB_DIR:$LD_LIBRARY_PATH"
 
 ```toml
 [dependencies]
-duckdb = { version = "1.10505.0", default-features = false, features = [
+duckdb = { version = "1.10505.0", default-features = false, features = [ # TODO(2.0): bump when duckdb-rs publishes a 2.0-compatible release
     "json", "parquet", "appender-arrow", "vtab-full", "extensions-full"
 ] }
 ```
@@ -560,7 +560,7 @@ echo "  - Test build: cargo check -p kcura-duck"
 echo ""
 
 echo "💡 MAINTENANCE:"
-echo "  - This binary works with DuckDB 1.5.5"
+echo "  - This binary works with DuckDB 2.0.0-dev"
 echo "  - For updates: ./scripts/build_frozen_duckdb.sh"
 echo "  - Version info in: $PREBUILT_DIR/README.md"
 echo ""

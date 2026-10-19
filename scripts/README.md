@@ -34,7 +34,11 @@ of `run_ffi_validation.sh` fails the same way). The repair is the T6
 ### Release and verification
 `validate_prod_build.sh`, `validate_frozen_approach.sh` (consumer-flow checks
 against the crates.io-published crate — re-verify at TR8 release),
-`release_checklist.sh`, `bench_gate.sh`, `run_bench_suite.sh`,
+`release_checklist.sh`,
+(`bench_gate.sh`/`run_bench_suite.sh` deleted 2026-10-19, ERRC-E1: they
+targeted the nonexistent `benches/`+`kcura-tests`; real perf courts are
+`tests/gate_v01_latency` + `gate_ingest_throughput` and
+`docs/design/latency-bench-plan.md`),
 `verify_golden_traces.py`, `verify_publish_receipt.py`,
 `verify_semantic_coverage.sh`.
 

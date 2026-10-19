@@ -8,8 +8,16 @@ echo "🦆 Downloading Pre-compiled DuckDB Binaries (No Compilation Ever!)"
 echo "=================================================================="
 
 # Configuration
-DUCKDB_VERSION="1.5.5"
+DUCKDB_VERSION="2.0.0-dev"
 PREBUILT_DIR="target/duckdb-prebuilt"
+
+# Degradation doctrine: fail loudly when the pinned upstream tag does not
+# exist yet (pre-tag main pin) — never silently fall back to an older
+# release's assets. Local compile fallback: scripts/build_duckdb_optimized.sh
+if ! git ls-remote --exit-code --tags https://github.com/duckdb/duckdb.git "refs/tags/v${DUCKDB_VERSION}" >/dev/null 2>&1; then
+    echo "v${DUCKDB_VERSION} is pre-tag upstream; no release assets exist; use scripts/build_duckdb_optimized.sh (local compile)" >&2
+    exit 2
+fi
 
 # Create prebuilt directory
 mkdir -p "$PREBUILT_DIR"

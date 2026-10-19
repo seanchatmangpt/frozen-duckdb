@@ -6,6 +6,18 @@ set -e
 
 echo "🚀 Setting up KCura optimized build environment..."
 
+DUCKDB_VERSION="2.0.0-dev"
+export DUCKDB_VERSION
+
+# Probe-first degradation (same law as scripts/download_duckdb_binaries.sh):
+# fail loudly when the pinned upstream tag does not exist yet (pre-tag main
+# pin) — never silently 404-fall back or download an older release's assets.
+# Local compile fallback: scripts/build_duckdb_optimized.sh
+if ! git ls-remote --exit-code --tags https://github.com/duckdb/duckdb.git "refs/tags/v${DUCKDB_VERSION}" >/dev/null 2>&1; then
+    echo "v${DUCKDB_VERSION} is pre-tag upstream; no release assets exist; use scripts/build_duckdb_optimized.sh (local compile)" >&2
+    exit 2
+fi
+
 # Check if we're on macOS
 if [[ "$OSTYPE" == "darwin"* ]]; then
     echo "🍎 Detected macOS - setting up optimized build"
@@ -15,7 +27,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "📦 Installing DuckDB system-wide..."
         
         # Download and install DuckDB
-        DUCKDB_VERSION="1.5.5"
+        DUCKDB_VERSION="2.0.0-dev"
         DUCKDB_URL="https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/duckdb_cli-osx-universal.zip"
         
         mkdir -p /tmp/duckdb-install
@@ -65,7 +77,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
             sudo apt-get install -y wget unzip
         fi
         
-        DUCKDB_VERSION="1.5.5"
+        DUCKDB_VERSION="2.0.0-dev"
         DUCKDB_URL="https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/duckdb_cli-linux-amd64.zip"
         
         mkdir -p /tmp/duckdb-install

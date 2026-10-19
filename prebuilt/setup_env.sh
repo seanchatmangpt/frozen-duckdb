@@ -7,19 +7,19 @@ export DUCKDB_INCLUDE_DIR="$(dirname "$(realpath "$0")")"
 # Asset law (TR7): macOS ships libduckdb_{arch}.dylib, Linux ships
 # libduckdb_{arch}.so (Windows is on the documented local-compile fallback).
 # NOTE: frozen-duckdb release assets for Linux (.so) do not exist until the
-# release AFTER v1.5.5; until then Linux users compile locally
+# release AFTER 2.0.0-dev; until then Linux users compile locally
 # (compile_duckdb_locally) and place libduckdb_{arch}.so in this directory.
 ARCH=${ARCH:-$(uname -m)}
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [[ "$ARCH" == "x86_64" ]]; then
         DUCKDB_LIB="libduckdb_x86_64.dylib"
-        echo "🖥️  Detected x86_64 architecture, using 55MB binary"
+        echo "🖥️  Detected x86_64 architecture, using ${DUCKDB_LIB}"
     elif [[ "$ARCH" == "arm64" ]]; then
         DUCKDB_LIB="libduckdb_arm64.dylib"
-        echo "🍎 Detected Apple Silicon (arm64), using 50MB binary"
+        echo "🍎 Detected Apple Silicon (arm64), using ${DUCKDB_LIB}"
     else
         DUCKDB_LIB="libduckdb.dylib"
-        echo "⚠️  Unknown architecture ($ARCH), using universal binary (105MB)"
+        echo "⚠️  Unknown architecture ($ARCH), using universal binary ${DUCKDB_LIB}"
     fi
 
     # Create symlinks for compatibility. DuckDB >= 1.5 dylibs carry the neutral
@@ -52,6 +52,15 @@ else
     echo "   frozen-duckdb ships macOS (.dylib) and Linux (.so) libraries;" >&2
     echo "   Windows users compile DuckDB locally (see builder docs)." >&2
     exit 1
+fi
+
+# Report the MEASURED size of the actual selected library (never a hardcoded
+# guess — sizes differ per release and per arch; 2.0.0-dev thin arm64 dylib
+# is ~66MB unstripped, 52.4MB stripped)
+if [[ -f "$DUCKDB_LIB_DIR/$DUCKDB_LIB" ]]; then
+    echo "📏 Measured library size: $(du -h "$DUCKDB_LIB_DIR/$DUCKDB_LIB" | awk '{print $1}') ($DUCKDB_LIB)"
+else
+    echo "⚠️  $DUCKDB_LIB not found in $DUCKDB_LIB_DIR (download via frozen-duckdb-builder or scripts/download_duckdb_binaries.sh)"
 fi
 
 # Set library path for runtime and build time

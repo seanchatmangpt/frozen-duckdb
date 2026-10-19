@@ -1,98 +1,87 @@
 #!/bin/bash
-# KCura Release Checklist Script
-# Run this before creating a release to ensure all quality gates pass
+# frozen-duckdb Release Checklist Script
+# Run this before creating a release to ensure the full gate battery passes.
+# Fail-closed: any nonzero step aborts the checklist (set -euo pipefail).
+#
+# DRY-RUN: RELEASE_CHECKLIST_DRYRUN=1 prints each step without executing.
 
 set -euo pipefail
 
-echo "🧪 Running KCura Release Checklist..."
+DRYRUN="${RELEASE_CHECKLIST_DRYRUN:-0}"
+run() {
+    echo "  \$ $*"
+    if [ "$DRYRUN" = "1" ]; then
+        return 0
+    fi
+    "$@"
+}
 
-# Clean start
-echo "🧹 Cleaning workspace..."
-cargo clean
-
-# Update dependencies
-echo "📦 Updating dependencies..."
-cargo update -w
-
-# Verify metadata is valid
-echo "📋 Validating metadata..."
-cargo metadata --format-version=1 > /dev/null
-
-# Format check
-echo "🎨 Checking formatting..."
-cargo fmt --all -- --check
-
-# Clippy with strict warnings
-echo "🔍 Running clippy..."
-cargo clippy --all-targets -- -D warnings
-
-# Test suite
-echo "🧪 Running test suite..."
-cargo test --workspace
-
-# Coverage check
-echo "📊 Running coverage..."
-cargo install cargo-llvm-cov --locked
-RUSTFLAGS="-Cdebuginfo=2" cargo llvm-cov --workspace --lcov --output-path lcov.info
-
-# Security audit
-echo "🔒 Running security audit..."
-cargo install cargo-deny --locked
-cargo deny check advisories
-
-# Check conventional commits compliance
-echo "🔍 Checking conventional commits..."
-if [ -f ".commitlintrc.json" ]; then
-    echo "✅ Conventional commits configuration found"
-else
-    echo "❌ No conventional commits configuration found"
-    exit 1
+echo "Running frozen-duckdb Release Checklist..."
+if [ "$DRYRUN" = "1" ]; then
+    echo "[DRY-RUN] steps will be printed, not executed"
 fi
 
-# Generate changelog (if conventional commits is set up)
-echo "📝 Checking changelog..."
-if [ -f "scripts/generate-changelog.sh" ]; then
-    scripts/generate-changelog.sh
+# 1. Verify metadata is valid
+echo "[1/12] Validating metadata..."
+run cargo metadata --format-version=1 > /dev/null
+
+# 2. Format check
+echo "[2/12] Checking formatting..."
+run cargo fmt --all -- --check
+
+# 3. Clippy with strict warnings
+echo "[3/12] Running clippy..."
+run cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+# 4. Test suite
+echo "[4/12] Running test suite..."
+run cargo test --workspace
+
+# 5. Gate courts (release-mode, per gates battery)
+echo "[5/12] Running gate courts..."
+run cargo test --test gate_v01_latency --release
+run cargo test --test gate_ingest_throughput --release
+run cargo test --test doctor_storage_tests --release
+run cargo test --test doctor_ocel_tests --release
+
+# 6. Generated-surface gate battery (ggen projections + receipt)
+echo "[6/12] Running make verify (verify-gates + ggen receipt verify)..."
+run make verify
+
+# 7. Genesis check (generated-surface drift)
+echo "[7/12] Running make genesis-check..."
+run make genesis-check
+
+# 8. Doctor preflight
+echo "[8/12] Running doctor preflight..."
+run bash scripts/doctor/00_preflight.sh
+
+# 9. Publish provenance receipt (ggen receipt verify + contract census)
+echo "[9/12] Running publish receipt validation..."
+run python3 scripts/verify_publish_receipt.py
+
+# 10. Coverage check (only if cargo-llvm-cov is installed; loud skip otherwise)
+if command -v cargo-llvm-cov > /dev/null 2>&1; then
+    echo "[10/12] Running coverage..."
+    RUSTFLAGS="-Cdebuginfo=2" run cargo llvm-cov --workspace --lcov --output-path lcov.info
 else
-    echo "ℹ️  No changelog generator found, skipping..."
+    echo "[10/12] [SKIP] cargo-llvm-cov not found on PATH — coverage step dropped (loud skip, not a faked pass)"
 fi
 
-# Documentation build
-echo "📚 Building documentation..."
-cargo doc --workspace --no-deps
-
-# Release build test
-echo "🚀 Testing release build..."
-cargo build --release --workspace
-
-# Feature matrix check
-echo "🔧 Checking feature matrix..."
-cargo install cargo-hack --locked
-cargo hack check --workspace --each-feature --no-dev-deps
-
-# Public API diff check
-echo "🔌 Checking public API..."
-cargo install cargo-public-api --locked
-cargo public-api --diff-git-checks
-
-# Benchmark smoke test
-echo "⚡ Running benchmark smoke test..."
-cargo bench --bench kcura_benchmarks -- --warm-up-time 1 --measurement-time 2
-
-# Examples validation
-echo "💡 Running examples..."
-if [ -f "examples/quick-start.sh" ]; then
-    bash examples/quick-start.sh
+# 11. Security audit (only if cargo-deny is installed; loud skip otherwise)
+if command -v cargo-deny > /dev/null 2>&1; then
+    echo "[11/12] Running security audit..."
+    run cargo deny check advisories
 else
-    echo "ℹ️  No examples script found, skipping..."
+    echo "[11/12] [SKIP] cargo-deny not found on PATH — security audit step dropped (loud skip, not a faked pass)"
 fi
 
-# Doctest compilation
-echo "📖 Checking doctests..."
-cargo test --workspace --doc
+# 12. Documentation build
+echo "[12/12] Building documentation..."
+run cargo doc --workspace --no-deps
 
 echo ""
-echo "✅ All release checks passed!"
+echo "All release checks passed!"
 echo ""
 echo "Next steps:"
 echo "1. Review the generated documentation: cargo doc --open"

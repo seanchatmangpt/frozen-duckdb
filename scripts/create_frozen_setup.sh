@@ -18,6 +18,22 @@ echo -e "${BLUE}🦆 Creating Frozen DuckDB Setup for Project${NC}"
 echo "=============================================="
 echo ""
 
+# Degradation doctrine: this script fetches BOTH this repo's release assets
+# (v2.0.0-dev) AND upstream tag assets. Fail loudly when the upstream tag
+# does not exist yet (pre-tag main pin) — never silently fetch an older
+# release. Local compile fallback: scripts/build_duckdb_optimized.sh
+DUCKDB_VERSION="2.0.0-dev"
+if ! git ls-remote --exit-code --tags https://github.com/duckdb/duckdb.git "refs/tags/v${DUCKDB_VERSION}" >/dev/null 2>&1; then
+    echo "v${DUCKDB_VERSION} is pre-tag upstream; no release assets exist; use scripts/build_duckdb_optimized.sh (local compile)" >&2
+    exit 2
+fi
+# Dual degradation: also require THIS repo's release assets to exist (the
+# generated setup embeds our v${DUCKDB_VERSION} dylib URLs — 404 pre-release).
+if ! curl -fsIL "https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v${DUCKDB_VERSION}/libduckdb_arm64.dylib" >/dev/null 2>&1; then
+    echo "this repo has no v${DUCKDB_VERSION} release assets yet (tag cut but release unpublished?); use scripts/build_duckdb_optimized.sh (local compile)" >&2
+    exit 2
+fi
+
 # Check if we're in a Rust project
 if [ ! -f "Cargo.toml" ]; then
     echo -e "${RED}❌ Error: Not in a Rust project directory (no Cargo.toml found)${NC}"
@@ -147,12 +163,12 @@ fn create_frozen_binary() -> Result<(), Box<dyn std::error::Error>> {
         ```bash\n\
         # Download pre-compiled DuckDB binary from frozen-duckdb releases\n\
         curl -L -o prebuilt/libduckdb_{}.dylib \\\n\
-          https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v1.5.5/libduckdb_{}.dylib\n\
+          https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v2.0.0-dev/libduckdb_{}.dylib\n\
         ```\n\n\
         ## Option 2: Compile from source\n\
         ```bash\n\
-        # Clone and compile DuckDB (pinned to v1.5.5)\n\
-        git clone --depth 1 --branch v1.5.5 https://github.com/duckdb/duckdb.git\n\
+        # Clone and compile DuckDB (pinned to v2.0.0-dev)\n\
+        git clone --depth 1 --branch v2.0.0-dev https://github.com/duckdb/duckdb.git\n\
         cd duckdb\n\
         make -j$(nproc)\n\
         cp build/release/src/libduckdb.* ../prebuilt/\n\

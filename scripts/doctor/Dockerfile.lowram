@@ -1,0 +1,40 @@
+# Class-B cgroup leg: compile pinned DuckDB + T4-style workload, run under 128MB kernel limit.
+# Build context: scripts/doctor/  (docker build -f Dockerfile.lowram -t kcura-lowram:latest .)
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential cmake ninja-build git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pinned DuckDB source (matches crates/frozen-duckdb 1.5.5 pin)
+ARG DUCKDB_SHA=b6013f7aa2f36caabb9466ce1791667ea8a280bb
+WORKDIR /src
+RUN git clone --depth 1 https://github.com/duckdb/duckdb.git \
+    && cd duckdb && git fetch --depth 1 origin ${DUCKDB_SHA} \
+    && git checkout --detach ${DUCKDB_SHA}
+
+# Minimal release build (no unittests/shell/extensions beyond core+parquet), low parallelism
+# to stay within the host VM's free disk. Build dir removed after linking libduckdb.
+RUN cd duckdb && cmake -S . -B build -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_UNITTESTS=OFF \
+      -DBUILD_SHELL=OFF \
+      -DBUILD_ICU_EXTENSION=OFF \
+      -DBUILD_PARQUET_EXTENSION=ON \
+      -DBUILD_JSON_EXTENSION=ON \
+      -DENABLE_SANITIZER=OFF \
+      -DENABLE_UBSAN=OFF \
+    && cmake --build build --target duckdb -j2 \
+    && cp build/src/libduckdb*.so /usr/local/lib/ \
+      || cp build/src/*.so /usr/local/lib/ \
+    && cp src/include/duckdb.hpp /usr/local/include/duckdb.hpp \
+    && cp -r src/include/duckdb /usr/local/include/duckdb \
+    && ldconfig \
+    && cd / && rm -rf /src
+
+# T4-replica workload: 1M-frame table + rolling-window anomaly detection
+WORKDIR /work
+COPY lowram_workload.cpp /work/lowram_workload.cpp
+RUN g++ -O2 -std=c++11 lowram_workload.cpp -o lowram_workload -lduckdb -lpthread
+
+ENTRYPOINT ["/work/lowram_workload"]
