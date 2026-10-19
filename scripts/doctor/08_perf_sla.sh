@@ -2,6 +2,8 @@
 # Phase 08 — performance (SLA): gate_v01_latency + gate_ingest_throughput as real cargo tests.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Shared doctor build dir: one build paid across all doctor phases (kaizen LSS4).
+export CARGO_TARGET_DIR="${DOCTOR_TARGET_DIR:-$ROOT/doctor-target}"
 names="gate_v01_latency gate_ingest_throughput"
 fail=0
 

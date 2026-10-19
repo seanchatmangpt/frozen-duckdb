@@ -61,7 +61,7 @@ fn fleet005_batch_flush_latency() {
     )
     .unwrap();
 
-    let mut rng = Rng(0x0045_5435_00C0_ffee);
+    let mut rng = Rng(0x0045_5435_00c0_ffee);
     let mut lat_ms: Vec<f64> = Vec::with_capacity(BATCHES);
 
     for batch in 0..BATCHES {

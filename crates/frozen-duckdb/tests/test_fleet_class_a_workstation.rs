@@ -57,7 +57,6 @@ fn rss_kb() -> u64 {
         .output()
         .expect("ps rss");
     String::from_utf8_lossy(&out.stdout)
-        .trim()
         .split_whitespace()
         .next()
         .and_then(|s| s.parse::<u64>().ok())

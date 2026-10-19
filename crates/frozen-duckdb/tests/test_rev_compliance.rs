@@ -24,7 +24,7 @@ fn seeded_amount(i: u64) -> i128 {
 
 fn account_id(i: u64) -> i64 {
     let prefix = 1 + (i % 4) as i64; // 4 currencies
-    (prefix * 10_000 + (i % 1_000) as i64) as i64
+    prefix * 10_000 + (i % 1_000) as i64
 }
 
 #[test]

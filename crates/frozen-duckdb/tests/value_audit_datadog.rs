@@ -49,14 +49,14 @@ fn engine_identity() -> EngineIdentity {
         .map(str::trim)
         .find(|l| l.contains("duckdb") && l.contains(".dylib"))
         .map(str::to_string)
-        .unwrap_or_else(|| format!("UNKNOWN"));
+        .unwrap_or_else(|| "UNKNOWN".to_string());
     EngineIdentity { dylib }
 }
 
 /// Datadog-log shaped payload (nested `response.code` — the path the
 /// FILTER_SQL exercises), ~120 bytes, no single quotes by construction.
 fn payload(i: usize) -> String {
-    let code = if i % 50 == 0 { 500 } else { 200 };
+    let code = if i.is_multiple_of(50) { 500 } else { 200 };
     let service = ["api", "web", "worker", "db"][i % 4];
     let env = ["prod", "staging"][i % 2];
     format!(
@@ -81,7 +81,7 @@ fn segment(
     i64,
     i64,
 ) {
-    let code = if i % 50 == 0 { 500 } else { 200 };
+    let code = if i.is_multiple_of(50) { 500 } else { 200 };
     let service = ["api", "web", "worker", "db"][i % 4];
     let env = ["prod", "staging"][i % 2];
     let ts = 1_767_225_600_000_000i64 + (i as i64) * 1_000_000; // 1 s cadence

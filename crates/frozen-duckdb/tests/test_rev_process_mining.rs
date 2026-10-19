@@ -180,12 +180,12 @@ fn rev002_native_bottleneck_query() -> Result<(), Box<dyn std::error::Error>> {
     for _ in 0..LATENCY_RUNS {
         let t0 = Instant::now();
         let mut stmt = conn.prepare(&warm_sql).expect("prepare timed run");
-        let mut rows = stmt.query_map([], |r| {
+        let rows = stmt.query_map([], |r| {
             let vol: i64 = r.get(2)?;
             Ok(vol)
         })?;
         let mut first_vol: Option<i64> = None;
-        while let Some(row) = rows.next() {
+        for row in rows {
             let v = row.expect("row read");
             if first_vol.is_none() {
                 first_vol = Some(v);
@@ -208,7 +208,7 @@ fn rev002_native_bottleneck_query() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let rss_after = rss_bytes();
-    let rss_delta = (rss_after as i64 - rss_before as i64) as i64;
+    let rss_delta = rss_after as i64 - rss_before as i64;
     eprintln!(
         "[rev002] RSS delta over 20 query runs = {rss_delta:+} bytes ({:+.1} MiB); tolerance {RSS_TOLERANCE_BYTES} bytes",
         rss_delta as f64 / (1024.0 * 1024.0)

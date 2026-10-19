@@ -12,7 +12,12 @@ fn test_connection_compatibility() -> Result<()> {
     // Test in-memory connection (same API as duckdb-rs)
     let conn = Connection::open_in_memory()?;
     let version: String = conn.query_row("SELECT version()", [], |row| row.get(0))?;
-    assert!(version.starts_with("v"));
+    // AD6 hardening: a wrong-engine cache serve (e.g. v1.5.5 dylib under a
+    // v2.0.0-dev label) must fail here, not just any "v" string.
+    assert!(
+        version.starts_with("v2.0.0-dev"),
+        "engine version mismatch: expected v2.0.0-dev*, got {version}"
+    );
 
     // Test connection with custom config (same API as duckdb-rs)
     let config = Config::default().with("threads", "2")?;

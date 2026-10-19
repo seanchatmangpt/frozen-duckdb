@@ -153,7 +153,8 @@ fn val_002_dfg_cycle_time_250k() {
     const RUNS: usize = 20;
     let mut samples_ms: Vec<f64> = Vec::with_capacity(RUNS);
     let mut dfg_groups: i64 = 0;
-    let mut edge_rows: Vec<(String, String, i64, (i32, i32, i64))> = Vec::new();
+    type EdgeRow = (String, String, i64, (i32, i32, i64));
+    let mut edge_rows: Vec<EdgeRow> = Vec::new();
     for run in 0..RUNS {
         let t0 = Instant::now();
         let mut stmt = conn.prepare(DFG_SQL).expect("prepare DFG SQL");

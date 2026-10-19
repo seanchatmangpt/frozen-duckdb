@@ -92,3 +92,4 @@ test-dependency/target-dep-coord/
 # Court/fixture scratch is written under /tmp — nothing repo-side to ignore;
 # entries here would be dead patterns. (No /tmp fixture paths are tracked.)
 target-*/
+doctor-target/

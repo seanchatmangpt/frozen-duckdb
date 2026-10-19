@@ -685,6 +685,9 @@ fn stage_engine_marker(versioned_cache: &Path) -> Result<()> {
 
 /// Read the ENGINE_VERSION marker. Errors when absent or unreadable; a
 /// present-but-different payload is returned as `Ok(other_label)`.
+/// Test-and-review helper; the production hit path compares the raw label
+/// inline (see `accept_cached_entry`). Kept for the marker courts.
+#[allow(dead_code)]
 fn read_engine_marker(versioned_cache: &Path) -> Result<String> {
     let path = engine_marker_path(versioned_cache);
     // DT1 (AD6 hardening): the marker must be a regular file. A directory
@@ -1998,9 +2001,8 @@ mod tests {
         // pin never staged: the pre-AD1 cache shape. Must demote (real MISS
         // decision), not serve — and must NOT remove the dylib? No: the
         // demote law removes it; assert the decision is MISS.
-        assert_eq!(
-            accept_cached_entry(&cache, &dest, "arm64", 1).unwrap(),
-            false,
+        assert!(
+            !accept_cached_entry(&cache, &dest, "arm64", 1).unwrap(),
             "marker without a pin is not a trusted hit"
         );
         assert!(!dest.exists(), "demoted entry is removed fail-closed");
@@ -2089,7 +2091,8 @@ mod tests {
 
         // (name, expected decision, constructor). Constructors receive the
         // versioned cache dir to poison.
-        let mut table: Vec<(&str, Decision, Box<dyn Fn(&Path)>)> = vec![
+        type PoisonCase<'a> = (&'a str, Decision, Box<dyn Fn(&Path) + 'a>);
+        let mut table: Vec<PoisonCase> = vec![
             (
                 "control: real dylib + exact marker + pins -> SERVE",
                 Decision::Serve,
@@ -2291,7 +2294,7 @@ mod tests {
                     !h.is_null(),
                     "version-poison dylib must load (it slice-verifies) to prove layering"
                 );
-                let sym = dlsym(h, b"duckdb_library_version\0".as_ptr() as *const c_char);
+                let sym = dlsym(h, c"duckdb_library_version".as_ptr());
                 assert!(!sym.is_null(), "probe symbol missing");
                 let f: extern "C" fn() -> *const c_char = std::mem::transmute(sym);
                 let got = CStr::from_ptr(f()).to_string_lossy().into_owned();

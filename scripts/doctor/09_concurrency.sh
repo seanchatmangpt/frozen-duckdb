@@ -2,6 +2,8 @@
 # Phase 09 — concurrency: owner test file per D7: doctor_concurrency_tests.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Shared doctor build dir: one build paid across all doctor phases (kaizen LSS4).
+export CARGO_TARGET_DIR="${DOCTOR_TARGET_DIR:-$ROOT/doctor-target}"
 name="doctor_concurrency_tests"
 test_file="$ROOT/crates/frozen-duckdb/tests/${name}.rs"
 

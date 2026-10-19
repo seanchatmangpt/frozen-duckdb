@@ -213,6 +213,7 @@ fn fleet004_leg1_chaos_court() {
 }
 
 /// Leg 2 + 3 share the 1M-event completed db via OnceLock.
+#[allow(dead_code)] // dir retained for post-court inspection of the staged db
 struct Built {
     dir: PathBuf,
     db: PathBuf,

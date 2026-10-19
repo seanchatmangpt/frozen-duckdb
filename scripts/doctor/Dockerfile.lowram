@@ -37,6 +37,6 @@ RUN cd duckdb && cmake -S . -B build -G Ninja \
 # T4-replica workload: 1M-frame table + rolling-window anomaly detection
 WORKDIR /work
 COPY lowram_workload.cpp /work/lowram_workload.cpp
-RUN g++ -O2 -std=c++11 lowram_workload.cpp -o lowram_workload -lduckdb -lpthread
+RUN g++ -O2 -std=c++17 lowram_workload.cpp -o lowram_workload -lduckdb -lpthread
 
 ENTRYPOINT ["/work/lowram_workload"]

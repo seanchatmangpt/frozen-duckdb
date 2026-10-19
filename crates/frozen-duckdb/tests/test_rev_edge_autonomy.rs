@@ -127,7 +127,7 @@ fn rev004_1m_telemetry_windowed_zscore_under_256mb() {
         for chunk in corpus.chunks(10_000) {
             for r in chunk {
                 let row: [&dyn frozen_duckdb::ToSql; 4] = [&r.id, &r.sensor_id, &r.ts, &r.reading];
-                app.append_row(&row).expect("append row");
+                app.append_row(row).expect("append row");
             }
         }
     }

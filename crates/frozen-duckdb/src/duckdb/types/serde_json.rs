@@ -25,7 +25,12 @@ impl FromSql for Value {
             // VARIANT surfaces as a Utf8 array whose payload is the variant's
             // JSON rendering; parse it directly.
             ValueRef::Variant(arr, idx) => {
-                use arrow::array::{Array as _, LargeStringArray, StringArray};
+                use arrow::array::{LargeStringArray, StringArray};
+                // DT3: a null variant element decodes to Value::Null via the
+                // Option<T> FromSql impl, not a parse error on "".
+                if arr.is_null(idx) {
+                    return Ok(serde_json::Value::Null);
+                }
                 let payload = if let Some(s) = arr.as_any().downcast_ref::<StringArray>() {
                     s.value(idx)
                 } else if let Some(s) = arr.as_any().downcast_ref::<LargeStringArray>() {

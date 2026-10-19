@@ -120,17 +120,17 @@ upstream surface), **LOCAL-FIX** (a lane repairs on this tree), **SPEC**
 
 | KD | Divergence (open) | Reactor | Reaction plan |
 |---|---|---|---|
-| KD-01 | 21 `__Z*` exports breach C-ABI contract | LOCAL+SPEC | Stages 00/01 red per P2; fix export list. Upstream mangling -> SPEC |
-| KD-02 | flock 404 at dev pin; tests ignored | UPSTREAM | Watch upstream publish; then un-ignore `tests/flock_tests.rs` |
-| KD-05 | No `frozen_duckdb.wasm` (FR-01); OPFS blocked | LOCAL-FIX | `scripts/build_wasm_duckdb.sh`; stage 06 stays red-loud till closed |
-| KD-06 | `host-range://` VFS design-only | LOCAL-FIX | Build VFS; `scripts/courts/gate_v05.sh` flips UNVERIFIED |
-| KD-07 | REV-001 wall 4.23-6.05s vs <2.5s loaded | SPEC | C3 detects; operator optimizes or splits idle/loaded clause |
-| KD-08 | Allocator-stats C API absent | LOCAL-FIX | Add C API in `-sys`; `scripts/courts/gate_v01.sh` covers |
-| KD-09 | Class B cgroup leg needs Linux+root | UPSTREAM | Watch `doctor/docker_low_ram_runner.sh` leg, IN FLIGHT |
-| KD-10 | Class E BEAM leg lives in smalt | UPSTREAM | React in smalt; `test_fleet_class_e_telco.rs` holds boundary |
-| KD-11 | Browser courts FR-01/FR-02 blocked | UPSTREAM | Chained on KD-05; activates at wasm closure |
-| KD-12 | Anomaly exact-match false; recall OBSERVED | SPEC | C6: claim as-of-date until matcher fix or descope |
-| KD-13 | Cargo registry corruption by cleanup actor | LOCAL-FIX | Harden cleanup; never touch `~/.cargo/registry`; reopen on repeat |
+| KD-01 | 21 `__Z*` exports breach C-ABI | LOCAL+SPEC | Stages 00/01 red; fix exports |
+| KD-02 | flock 404 at dev pin | UPSTREAM | Watch upstream; un-ignore `flock_tests.rs` |
+| KD-05 | No wasm artifact (FR-01) | LOCAL-FIX | `build_wasm_duckdb.sh`; stage 06 red-loud |
+| KD-06 | `host-range://` VFS design-only | LOCAL-FIX | Build VFS; `courts/gate_v05.sh` flips |
+| KD-07 | REV-001 wall 4.2-6.1s vs <2.5s | SPEC | C3 detects; optimize or split clause |
+| KD-08 | Allocator-stats C API absent | LOCAL-FIX | Add in `-sys`; `courts/gate_v01.sh` covers |
+| KD-09 | Class B cgroup needs Linux+root | UPSTREAM | Watch `docker_low_ram_runner.sh` |
+| KD-10 | Class E BEAM leg lives in smalt | UPSTREAM | React in smalt; telco test holds boundary |
+| KD-11 | Browser courts FR-01/02 blocked | UPSTREAM | Chained on KD-05; opens at wasm closure |
+| KD-12 | Anomaly exact-match false | SPEC | C6: as-of-date till fix or descope |
+| KD-13 | Registry corruption, cleanup actor | LOCAL-FIX | Harden cleanup; spare cargo registry |
 
 Rule: no KD row flips open->closed without a receipt citing the exact
 command and its real output; any standing flip additionally requires
