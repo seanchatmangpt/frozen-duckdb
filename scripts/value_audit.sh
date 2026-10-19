@@ -125,8 +125,8 @@ if [ $missing -eq 0 ]; then
   fi
   # Mint-then-verify: sign the receipts immediately before rendering so no
   # tamper window opens between mint and render (AD4 integrity law).
-  bash "$ROOT/scripts/value_audit_sign.sh" --dir "$VA_DIR"
-  MANIFEST="$VA_DIR/manifest.b3"
+  bash "$ROOT/scripts/value_audit_sign.sh" --dir "$DIR"
+  MANIFEST="$DIR/manifest.b3"
   test -s "$MANIFEST" || { echo "RENDER-FAIL: manifest missing after sign" >&2; exit 1; }
   render_args+=("--verify" "$MANIFEST")
   node "$ROOT/warehouse-sim/economics/render_value_audit.ts" "${render_args[@]}"
