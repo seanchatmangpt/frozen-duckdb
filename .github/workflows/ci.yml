@@ -54,7 +54,7 @@ jobs:
       # frozen_duckdb_builder::ensure_binary() looks FIRST in
       # ~/.frozen-duckdb/cache/v<version>-<arch>/libduckdb_<arch>.<dylib|so>.
       # Its fallbacks are unusable on CI: prebuilt/ ships no binaries, the
-      # project release download 404s until the operator cuts the v1.5.5
+      # project release download 404s until the operator cuts the v2.0.0-dev
       # release (no releases/tags exist as of 2026-09-21), and the post-TR7
       # source-compile fallback — while loud now (cmake/make exits are
       # checked) — is a full ~30-90 min DuckDB build. Pre-seeding the cache
@@ -63,7 +63,7 @@ jobs:
       - name: Provision DuckDB library (pre-seed builder cache)
         run: |
           set -euo pipefail
-          DUCKDB_VERSION="1.5.5"
+          DUCKDB_VERSION="2.0.0-dev"
           ARCH="$(uname -m)"
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             case "$ARCH" in
@@ -129,7 +129,7 @@ jobs:
       - name: Provision DuckDB library (pre-seed builder cache)
         run: |
           set -euo pipefail
-          DUCKDB_VERSION="1.5.5"
+          DUCKDB_VERSION="2.0.0-dev"
           ARCH="$(uname -m)"
           case "$ARCH" in
             x86_64)  ASSET="libduckdb-linux-amd64.zip"; ARCH_TAG="x86_64" ;;
@@ -166,7 +166,7 @@ jobs:
       - name: Provision DuckDB library (pre-seed builder cache)
         run: |
           set -euo pipefail
-          DUCKDB_VERSION="1.5.5"
+          DUCKDB_VERSION="2.0.0-dev"
           ARCH="$(uname -m)"
           case "$ARCH" in
             x86_64)  ASSET="libduckdb-linux-amd64.zip"; ARCH_TAG="x86_64" ;;
