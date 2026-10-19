@@ -2,7 +2,15 @@
 target/
 **/*.rs.bk
 *.pdb
-Cargo.lock
+# Cargo.lock is COMMITTED (both root and test-dependency): the workspace ships
+# binaries (test-validation bin, repo doctor tooling), so the lockfile is
+# required for reproducible builds — cargo's library-only exception does not
+# apply. Decision recorded in docs/sjira/v2.0.0-dev/COMMIT-PLAN.md (Z3 close).
+!Cargo.lock
+!test-dependency/Cargo.lock
+
+# Lane-local CARGO_HOME (T1 lane lease)
+.cargo-laneT1/
 
 # IDE
 .vscode/
@@ -59,3 +67,22 @@ cobertura.xml
 .ggen-v2/
 __pycache__/
 *.pyc
+
+# Lane build roots (leases, not assets — deleted at integration; see
+# same-checkout-fanout cleanup law)
+target-lane*/
+target-integration/
+
+# Stray linker output
+*.rlib
+
+# warehouse-sim (Next.js sim): package-lock.json ignored by decision —
+# reproducible via `npm install`; node_modules/ and .next/ are covered by
+# warehouse-sim/.gitignore
+warehouse-sim/package-lock.json
+
+# Dependency-probe build dirs (test-dependency lane scratch)
+test-dependency/target-dep-coord/
+
+# Court/fixture scratch is written under /tmp — nothing repo-side to ignore;
+# entries here would be dead patterns. (No /tmp fixture paths are tracked.)
