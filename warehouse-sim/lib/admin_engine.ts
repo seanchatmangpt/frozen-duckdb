@@ -60,19 +60,26 @@ export function getAdminEngine(): SimEngine {
 
 // ---------------------------------------------------------------------------
 // Ledger bridge: handle -> its QueryRecord (same object the engine keeps in
-// state.records), plus a per-engine supplemental egress total for bytes that
-// arrive after the submit-time record was minted (terminal polls).
+// state.records), plus a supplemental egress total for bytes that arrive after
+// the submit-time record was minted (terminal polls). BOTH live on globalThis
+// next to the engine pin: Next dev compiles one module instance PER ROUTE, so
+// module-level state diverges across routes (witnessed: submit route credited
+// queries from its copy while the poll route's copy saw an empty registry).
+// globalThis is the one shared heap every compiled route copy observes.
 // ---------------------------------------------------------------------------
-const HANDLE_RECORDS = new WeakMap<SimEngine, Map<string, QueryRecord>>();
-const EGRESS_DELTA = new WeakMap<SimEngine, number>();
+interface BridgeGlobal {
+  __warehouseSimAdminBridge?: {
+    handles: Map<string, QueryRecord>;
+    egressDelta: number;
+  };
+}
+const gBridge = globalThis as typeof globalThis & BridgeGlobal & AdminGlobal;
 
-function registryFor(engine: SimEngine): Map<string, QueryRecord> {
-  let m = HANDLE_RECORDS.get(engine);
-  if (!m) {
-    m = new Map();
-    HANDLE_RECORDS.set(engine, m);
+function bridge(): { handles: Map<string, QueryRecord>; egressDelta: number } {
+  if (!gBridge.__warehouseSimAdminBridge) {
+    gBridge.__warehouseSimAdminBridge = { handles: new Map(), egressDelta: 0 };
   }
-  return m;
+  return gBridge.__warehouseSimAdminBridge;
 }
 
 /** Called by the generated SUBMIT routes after a real POST. Credits the query
@@ -91,7 +98,7 @@ export function recordQuery(input: {
     payloadBytes: input.payloadBytes,
     responseBytes: 0,
   });
-  registryFor(engine).set(input.handle, rec);
+  bridge().handles.set(input.handle, rec);
   return rec;
 }
 
@@ -99,17 +106,16 @@ export function recordQuery(input: {
  * attaches real egress bytes to the submit-time record for this handle. No-op
  * for unknown handles (never fabricates a record). */
 export function recordEgress(handle: string, bytes: number): void {
-  const engine = getAdminEngine();
-  const rec = registryFor(engine).get(handle);
+  const rec = bridge().handles.get(handle);
   if (!rec) return;
   rec.egressBytes += bytes;
-  EGRESS_DELTA.set(engine, (EGRESS_DELTA.get(engine) ?? 0) + bytes);
+  bridge().egressDelta += bytes;
 }
 
 /** Supplemental egress recorded post-submit (terminal polls); the admin ledger
  * route adds this to engine.inspect().ledger.egressBytes for the true total. */
 export function egressDelta(): number {
-  return EGRESS_DELTA.get(getAdminEngine()) ?? 0;
+  return bridge().egressDelta;
 }
 
 export interface AdminLedgerResponse {
@@ -124,8 +130,7 @@ export interface AdminLedgerResponse {
  * route calls, so a reset ledger cannot be re-poisoned by stale handle
  * mappings. */
 export function resetLedger(): void {
-  const engine = getAdminEngine();
-  engine.reset();
-  registryFor(engine).clear();
-  EGRESS_DELTA.set(engine, 0);
+  getAdminEngine().reset();
+  bridge().handles.clear();
+  bridge().egressDelta = 0;
 }

@@ -44,15 +44,13 @@ Witness (real command, Chrome via CDP, no mocks):
 node scripts/wasm/opfs_crash_court.mjs
 ```
 
-The script: opens a DuckDB-WASM OPFS connection, writes a seeded corpus,
-calls `Page.crash` over CDP for a REAL forced crash, relaunches, reopens,
-replays WAL, and asserts content checksums (blake3 or sha256 over each table
-dump) equal pre-crash digests.
-
-Non-vacuity shim: add `// SHIM-COURT` to skip the checkpoint/WAL flush
-(`discard` the connection instead of closing) → recovery checksums diverge →
-court FAILs. A court that recovers even with the shim proves the assert is
-vacuous and is recorded FAIL, not PASS.
+Canonical mechanism: `docs/design/chrome-burnin-court.md` Court 1 —
+forced `Page.crash` mid-transaction, relaunch, WAL replay, checksum
+equality against pre-crash digests. See that doc — canonical; this
+row no longer restates the mechanism (deduped 2026-10-19, lane
+ERRC-E3). Non-vacuity shim inherits Court 1's falsifier (a no-op
+crash / skipped WAL flush must FAIL the court); any court that
+recovers under the shim is recorded FAIL, not PASS.
 
 ## V-W3 — memory budget under CDP polling
 

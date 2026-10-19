@@ -1236,7 +1236,7 @@ mod tests {
         // A successful persist stages the exact pinned marker.
         stage_engine_marker(tmp.path()).unwrap();
         let bytes = fs::read(engine_marker_path(tmp.path())).unwrap();
-        assert_eq!(bytes, expected.into_bytes());
+        assert_eq!(bytes, expected.clone().into_bytes());
         assert_eq!(read_engine_marker(tmp.path()).unwrap(), expected);
 
         // Round-trip through a real persist site too: the download persist

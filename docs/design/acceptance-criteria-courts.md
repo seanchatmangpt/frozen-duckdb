@@ -2,8 +2,11 @@
 
 Executable court specs for PRD §5 AC-1..4 — the AC layer above the
 FR/NFR courts in `docs/design/verification-plan.md` and
-`docs/design/requirements-traceability.md`. Each spec names: witness
-command, artifact, standing-flip rule, non-vacuity mutation.
+`docs/design/requirements-traceability.md`. Each spec names the
+standing-flip rule and runnability; where a GATE-V court doc exists
+(gate-v02/v03), that doc is canonical for witness command, artifact,
+and non-vacuity mutation, and this file points to it rather than
+restating it (deduped 2026-10-19, lane ERRC-E3).
 
 Standing vocabulary follows the traceability matrix: PROPOSED →
 PARTIAL_ALIVE (native reality proves part) → ALIVE (receipt on exact
@@ -80,36 +83,25 @@ no-op crash must FAIL the court).
 error and engine state is preserved for subsequent use — never a
 process kill or silent wrong answer.
 
-- **Probe query** (exact, Cartesian join sized to blow the cap):
-  `SELECT count(*) FROM range(100000) a, range(100000) b;`
-  (10^10 intermediate rows against a small `memory_limit`).
-- **Config call** (exact, native, today):
-  ```rust
-  let cfg = duckdb::Config::default()
-      .with("memory_limit", "64MB")?;
-  let conn = duckdb::Connection::open_in_memory_with_config(&cfg)?;
-  ```
-  (`Config::with` generic passthrough, `config.rs:129`; unknown keys
-  fail at open.)
-- **Witness command**:
-  `cargo test -p frozen-duckdb --test oom_graceful_abort -- --nocapture`
-  asserts: (1) the probe returns `Err` with DuckDB's out-of-memory
-  error (typed, not a panic/abort), (2) the SAME connection afterwards
-  runs `SELECT 42` and a fresh INSERT+SELECT round-trip successfully
-  (state preserved).
-- **Artifact**: `target/court/ac3-receipt.json` (probe query sha256,
-  error string, post-OOM probe result, verdict).
-- **Standing-flip rule**: PROPOSED until first native run;
-  PARTIAL_ALIVE on a native green receipt; ALIVE requires the wasm
+- **Canonical court spec**: `docs/design/gate-v03-memory-ceiling.md` —
+  GATE-V-03 rev2 is the binding spec (materializing CTAS probe,
+  `memory_limit="256MB"`, two-sided non-vacuity, witnessed native
+  receipt). See that doc — canonical. **This section's original
+  example probe (`SELECT count(*) FROM range(100000) a,
+  range(100000) b;`) is superseded and vacuous by construction**:
+  count(*) streams the Cartesian without materializing, so it never
+  trips the cap (witnessed in gate-v03, "Why count(*) is NOT an
+  acceptable probe"). The 2GB non-vacuity mutation is likewise
+  revised there (a cap merely above nominal still trips with spill
+  disabled; the 4GB completion leg is the real flip).
+- **Standing-flip rule** (AC layer): PARTIAL_ALIVE on gate-v03's
+  native green receipt (2026-10-19); ALIVE requires the wasm
   variant (BP2 Court 2, 256MB linear-memory cap + CDP
   `Performance.getMetrics` peak poll, with its 10x-batch falsifier)
   to also run green.
-- **Non-vacuity mutation**: set `memory_limit` to `"2GB"` (marked
-  `SHIM-COURT`) so the probe fits comfortably — the
-  probe must now SUCCEED; a court that still reports OutOfMemory at
-  2GB is testing the query, not the cap, and FAILs.
-- **Runnability**: runnable today on native — `Config::with` exists,
-  the probe is plain SQL, no wasm needed.
+- **Runnability**: runnable today on native — the court lives in
+  `tests/oom_graceful_abort.rs` (per gate-v03's replay path); no
+  wasm needed.
 
 ## AC-4: compression proof court (delegated)
 

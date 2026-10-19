@@ -58,8 +58,34 @@ done
 
 echo "=================================================================="
 if [ "$any_fail" -eq 0 ]; then
-  echo "ALL 13 PHASES VERIFIED CLEAN"
+  verdict="ALL 13 PHASES VERIFIED CLEAN"
+else
+  verdict="DOCTOR VERDICT: FAIL-CLOSED — one or more phases not clean"
+fi
+
+# ---------------------------------------------------------------------------
+# KNOWN DIVERGENCES summary (informational; parsed live from the register,
+# never cached — the exit contract above is unchanged by this block).
+# ---------------------------------------------------------------------------
+KD_FILE="$ROOT/KNOWN_DIVERGENCES.md"
+echo "== KNOWN DIVERGENCES =="
+if [ ! -f "$KD_FILE" ]; then
+  echo "[SKIP] register not found: $KD_FILE"
+else
+  # Data rows: table lines starting "| KD-"
+  kd_total=$(grep -cE '^\| KD-[0-9]+' "$KD_FILE")
+  kd_closed=$(grep -E '^\| KD-[0-9]+' "$KD_FILE" | grep -c 'CLOSED —')
+  kd_open=$((kd_total - kd_closed))
+  echo "total: $kd_total  open: $kd_open  closed: $kd_closed"
+  if [ "$kd_closed" -gt 0 ]; then
+    grep -E '^\| KD-[0-9]+' "$KD_FILE" | grep 'CLOSED —' \
+      | sed -E 's/^\| (KD-[0-9]+).*/\1/' | tr '\n' ' ' | sed 's/ $//'
+    echo
+  fi
+fi
+
+echo "$verdict"
+if [ "$any_fail" -eq 0 ]; then
   exit 0
 fi
-echo "DOCTOR VERDICT: FAIL-CLOSED — one or more phases not clean"
 exit 1
