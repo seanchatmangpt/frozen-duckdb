@@ -57,3 +57,5 @@ cobertura.xml
 # PACK_FEEDBACK.md G4 #2 for the pack-side remedy)
 .ggen/
 .ggen-v2/
+__pycache__/
+*.pyc
