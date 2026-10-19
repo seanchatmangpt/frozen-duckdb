@@ -58,7 +58,7 @@ write_receipt() {
   "prebuilt_log_line": $PREBUILT_LINE_SEEN,
   "rpath_finding": "KD-CLEANROOM-RPATH: cargo 1.97 does not forward cargo:rustc-link-arg from dependency build scripts; downstream binaries lack LC_RPATH and load-time resolution requires DYLD_LIBRARY_PATH/LD_LIBRARY_PATH at the cache dir",
   "run_seconds": $RUN_SECONDS,
-  "quickstart": $QUICKSTART_LINE,
+  "quickstart": "$QUICKSTART_LINE",
   "started": "$TS",
   "finished": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }

@@ -23,6 +23,9 @@ jobs:
           rc=0
           bash /workspace/scripts/cleanroom/consumer_cleanroom.sh act || rc=$?
           echo "cleanroom exit=$rc"
+          # The container /tmp is ephemeral — surface the receipt in the run
+          # log so it survives the container teardown.
+          cat /tmp/cleanroom-receipt-act.json || true
           # exit 0 = PASS (linux prebuilt exists); exit 2 = typed divergence
           # BLOCKED_LINUX_PREBUILT_MISSING (the honest known finding); the
           # workflow does not turn either into a faked green cell. Exit 1

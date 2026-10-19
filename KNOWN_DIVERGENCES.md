@@ -24,3 +24,4 @@ post-close receipt is invalid.
 | KD-14 | shared cache write race | concurrent ensure_binary writers could observe partial dylib (mid-write reads, "stale cached binary does not match its label") | X3/T2/F6 incident receipts | CLOSED — GAP9 atomic temp+rename discipline across all cache-persist sites; 23/23 builder tests |
 
 See Also: docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md
+| KD-15 | downstream consumer linking | cargo 1.97 forwards `rustc-link-search` from dep build scripts but NOT `rustc-link-arg`, so consumer binaries get no LC_RPATH and abort in dyld (`Library not loaded: @rpath/libduckdb.dylib`); workaround = DYLD_LIBRARY_PATH at the cache dir | ACT1 cleanroom court: otool -l repo-bin (rpath present) vs consumer-bin (absent); /tmp/cleanroom-receipt-local-*.json | sys/main build scripts emit a consumer-side rpath mechanism (links-metadata driven, or install_name rewrite at cache staging), or a runtime fallback lookup; ACT1 leg-A court flips to PASS bare |
