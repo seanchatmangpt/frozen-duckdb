@@ -10,15 +10,16 @@
 //! **Replace `duckdb-rs` with `frozen-duckdb` for instant 99% faster builds:**
 //!
 //! ```toml
-//! # Before (slow builds): the duckdb-rs crate version matching this DuckDB
-//! # release. duckdb-rs encodes the bundled DuckDB version as
-//! # 1.MAJOR*10000 + MINOR*100 + PATCH, so DuckDB 1.5.5 = duckdb "1.10505.0".
+//! # Before (slow builds): the duckdb-rs crate version matching the target
+//! # DuckDB release. duckdb-rs encodes the bundled DuckDB version as
+//! # 1.MAJOR*10000 + MINOR*100 + PATCH, so a DuckDB 2.0.0 release would be
+//! # encoded as duckdb "1.20000" once duckdb-rs publishes that series.
 //! # (The legacy plain series — e.g. duckdb "1.4.0" = the DuckDB 1.4.x era —
-//! # predates this encoding and does not cover 1.5.x.)
-//! duckdb = "1.10505.0"
+//! # predates this encoding.)
+//! duckdb = "1.20000"
 //!
 //! # After (99% faster builds)
-//! frozen-duckdb = "1.5.5"
+//! frozen-duckdb = "2.0.0-dev"
 //! ```
 //!
 //! **No code changes needed** - same API, same functionality, 99% faster builds!
@@ -71,7 +72,7 @@
 //! | First Build | 1-2 minutes | 7-10 seconds | 85% faster |
 //! | Incremental | 30 seconds | 0.11 seconds | 99% faster |
 //! | Release | 1-2 minutes | 0.11 seconds | 99% faster |
-//! | Download Size | ~200MB | ~112MB (measured, v1.5.5 dylib) | ~45% smaller |
+//! | Download Size | ~200MB | ~112MB (measured, current dylib) | ~45% smaller |
 //!
 //! ## Integration Examples
 //!

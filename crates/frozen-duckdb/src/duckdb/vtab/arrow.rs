@@ -540,7 +540,34 @@ pub fn flat_vector_to_arrow_array(
         LogicalTypeId::Enum => {
             todo!()
         }
+        // W7 (DuckDB 2.0 wave): VARIANT = 41. The variant payload is the
+        // variant's JSON rendering in a varchar-style duckdb_string_t (probe
+        // fact: extension type `duckdb.variant` over Utf8), so the flat-vector
+        // conversion is identical to the Varchar arm above. Explicit arm, not
+        // a panic: Variant must convert, not crash.
+        LogicalTypeId::Variant => {
+            let data = vector.as_slice_with_len::<duckdb_string_t>(len);
+
+            let duck_strings = data.iter().enumerate().map(|(i, s)| {
+                if vector.row_is_null(i as u64) {
+                    None
+                } else {
+                    let mut ptr = *s;
+                    Some(DuckString::new(&mut ptr).as_str().to_string())
+                }
+            });
+
+            let values = duck_strings.collect::<Vec<_>>();
+
+            Ok(Arc::new(StringArray::from(values)))
+        }
         LogicalTypeId::Uuid => {
+            todo!()
+        }
+        // W4 lane unblock (disclosed): new Geometry/Variant ids from
+        // logical_type.rs; handled as unsupported conversion, same as the
+        // todo!() siblings.
+        _ => {
             todo!()
         }
     }

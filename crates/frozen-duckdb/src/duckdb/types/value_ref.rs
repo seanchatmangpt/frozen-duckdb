@@ -6,8 +6,8 @@ use rust_decimal::prelude::*;
 
 use arrow::{
     array::{
-        Array, ArrayRef, DictionaryArray, FixedSizeListArray, LargeListArray, ListArray, MapArray,
-        StringArray, StructArray, UnionArray,
+        Array, ArrayRef, DictionaryArray, FixedSizeListArray, LargeListArray, LargeStringArray,
+        ListArray, MapArray, StringArray, StructArray, UnionArray,
     },
     datatypes::{UInt16Type, UInt32Type, UInt8Type},
 };
@@ -103,6 +103,11 @@ pub enum ValueRef<'a> {
     Map(&'a MapArray, usize),
     /// The value is a union
     Union(&'a ArrayRef, usize),
+    /// The value is a VARIANT (DuckDB >= 1.5). The C Arrow path surfaces it as
+    /// a Utf8 array whose payload is the variant's JSON rendering; the array
+    /// reference is kept (not downcast at construction) so the row layer can
+    /// hand back whichever string array the extension used.
+    Variant(&'a dyn Array, usize),
 }
 
 /// Wrapper type for different list sizes
@@ -159,6 +164,7 @@ impl ValueRef<'_> {
             },
             ValueRef::Enum(..) => Type::Enum,
             ValueRef::Union(arr, _) => arr.data_type().into(),
+            ValueRef::Variant(..) => Type::Variant,
         }
     }
 
@@ -309,6 +315,24 @@ impl From<ValueRef<'_>> for Value {
                 let tag = Row::value_ref_internal(idx, value_offset, column.child(type_id));
                 Self::Union(Box::new(tag.to_owned()))
             }
+            // VARIANT payload is the variant's JSON rendering as Utf8 text
+            // (probe fact: extension type `duckdb.variant` over Utf8).
+            ValueRef::Variant(arr, idx) => {
+                // Variant payload is the variant's JSON rendering as string
+                // data (probe fact: extension type `duckdb.variant` over
+                // Utf8). External input may carry a different payload array
+                // (LargeUtf8, non-string), so never panic on the downcast:
+                // map LargeUtf8 too, else degrade to Null.
+                if let Some(payload) = arr.as_any().downcast_ref::<StringArray>() {
+                    Self::Variant(payload.value(idx).to_string())
+                } else if let Some(payload) = arr.as_any().downcast_ref::<LargeStringArray>() {
+                    Self::Variant(payload.value(idx).to_string())
+                } else {
+                    // Non-string payload on external input: degrade to Null
+                    // rather than panic.
+                    Self::Null
+                }
+            }
         }
     }
 }
@@ -368,6 +392,11 @@ impl<'a> From<&'a Value> for ValueRef<'a> {
                 nanos,
             },
             Value::Enum(..) => todo!(),
+            // VARIANT binds back as its Utf8/JSON payload (varchar param;
+            // DuckDB casts varchar -> VARIANT implicitly on the write path).
+            // Round-trip loses Variant-ness on the ref side — recorded
+            // passthrough semantics, not a todo!().
+            Value::Variant(ref s) => ValueRef::Text(s.as_bytes()),
             Value::List(..)
             | Value::Struct(..)
             | Value::Map(..)

@@ -12,7 +12,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info, warn};
 
-const VERSION: &str = "1.5.5";
+const VERSION: &str = "2.0.0-dev";
+/// Pinned upstream duckdb/duckdb main commit this dev build stages/compiles
+/// from (dev heads move — load-bearing pin).
+const SOURCE_PIN: &str = "b6013f7aa2f36caabb9466ce1791667ea8a280bb";
 const CACHE_DIR: &str = ".frozen-duckdb";
 const BINARY_NAME: &str = "libduckdb";
 
@@ -68,7 +71,7 @@ fn library_extension() -> &'static str {
 /// at all — probed via the GitHub API and an anonymous asset-URL request
 /// (HTTP 404) — so download attempts return HTTP 404 on EVERY platform and
 /// `ensure_binary` falls back to `compile_duckdb_locally`, which is the
-/// operative path today. The v1.5.5 workflow is planned to ship the macOS
+/// operative path today. The v2.0.0-dev workflow is planned to ship the macOS
 /// asset set first; the Linux asset set lands with a later tag (TR2
 /// coordinates the workflow side).
 fn release_asset_name_for(os: &str, arch: &str) -> String {
@@ -83,7 +86,7 @@ fn release_asset_name(arch: &str) -> String {
 /// Ensure the prebuilt DuckDB binary is available
 ///
 /// This function:
-/// 1. Checks for cached binary in ~/.frozen-duckdb/cache/v1.5.5-{arch}/
+/// 1. Checks for cached binary in ~/.frozen-duckdb/cache/v{VERSION}-{arch}/
 /// 2. If missing, tries to download from GitHub Release
 /// 3. If download fails, compiles locally as fallback
 /// 4. Returns path to the binary
@@ -93,16 +96,42 @@ pub fn ensure_binary() -> Result<PathBuf> {
     let versioned_cache = cache_dir.join(format!("v{}-{}", VERSION, arch));
     let binary_path = get_binary_path(&versioned_cache, &arch);
 
+    // Structural anti-poison (GAP9 follow-on): a versioned cache dir is only
+    // trusted when its ENGINE_VERSION marker carries exactly `v{VERSION}` —
+    // the builder's own pin. A marker written by a different builder version
+    // (or absent, e.g. the 13:22-style poisoning) demotes the cache entry to
+    // a MISS so the download/compile path restages it atomically.
+    let mut cache_hit = false;
     if binary_path.exists() {
-        info!("Using cached DuckDB binary: {}", binary_path.display());
-        // A cache written before TR7 closed may hold the wrong slice under
-        // this label (x86_64 bytes in v{VER}-arm64/libduckdb_arm64.dylib).
-        verify_library_slice(&binary_path, &arch).with_context(|| {
-            format!(
-                "stale cached binary does not match its label; remove {} and rebuild",
-                versioned_cache.display()
-            )
-        })?;
+        match read_engine_marker(&versioned_cache) {
+            Ok(marker) if marker == expected_engine_marker() => {
+                info!("Using cached DuckDB binary: {}", binary_path.display());
+                // A cache written before TR7 closed may hold the wrong slice
+                // under this label (x86_64 bytes in
+                // v{VER}-arm64/libduckdb_arm64.dylib).
+                verify_library_slice(&binary_path, &arch).with_context(|| {
+                    format!(
+                        "stale cached binary does not match its label; remove {} and rebuild",
+                        versioned_cache.display()
+                    )
+                })?;
+                cache_hit = true;
+            }
+            found => {
+                let label = match found {
+                    Ok(marker) => marker,
+                    Err(_) => "<absent>".to_string(),
+                };
+                warn!(
+                    "cache entry labeled v{} carries marker '{}'; restaging",
+                    VERSION, label
+                );
+            }
+        }
+    }
+
+    if cache_hit {
+        // accepted above
     } else if let Ok(prebuilt_path) = check_prebuilt_binary(&arch) {
         verify_library_slice(&prebuilt_path, &arch)?;
         info!(
@@ -170,7 +199,7 @@ fn ensure_headers(versioned_cache: &Path) -> Result<()> {
             anyhow::bail!("Vendored header missing: {}", src.display());
         }
         let dest = headers_dir.join(header_name);
-        fs::copy(&src, &dest)
+        atomic_copy(&src, &dest)
             .with_context(|| format!("Failed to copy vendored header {}", src.display()))?;
         info!("Copied vendored header: {}", dest.display());
     }
@@ -232,7 +261,10 @@ fn copy_prebuilt_to_cache(prebuilt_path: &Path, cache_path: &Path) -> Result<()>
     }
 
     // Copy the binary
-    fs::copy(prebuilt_path, cache_path).context("Failed to copy prebuilt binary to cache")?;
+    atomic_copy(prebuilt_path, cache_path).context("Failed to copy prebuilt binary to cache")?;
+    if let Some(versioned_cache) = cache_path.parent() {
+        stage_engine_marker(versioned_cache)?;
+    }
 
     // Make binary executable on Unix systems
     #[cfg(unix)]
@@ -267,7 +299,7 @@ fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
         let src_path = prebuilt_dir.join(header_name);
         if src_path.exists() {
             let dest_path = headers_dest.join(header_name);
-            fs::copy(&src_path, &dest_path).context("Failed to copy header file")?;
+            atomic_copy(&src_path, &dest_path).context("Failed to copy header file")?;
             info!("Copied header: {}", dest_path.display());
         }
     }
@@ -279,8 +311,8 @@ fn copy_prebuilt_headers(cache_path: &Path) -> Result<()> {
 ///
 /// TR7: on an Apple-silicon CI host, `uname -m` reports the HOST arch even
 /// when the workflow targets the other macOS slice — which is exactly how
-/// the v1.5.5 x86_64 release leg built an x86_64 cmake slice but detected
-/// itself as arm64, placed the artifact under `v1.5.5-arm64/` with an
+/// the v1.5.5 x86_64 release leg (historical, TR7) built an x86_64 cmake slice but detected
+/// itself as arm64, placed the artifact under `v{VERSION}-arm64/` with an
 /// `libduckdb_arm64.dylib` name, and failed closed in the workflow's find
 /// step. The build-binaries workflow exports `CMAKE_OSX_ARCHITECTURES` (and
 /// `ARCH`) per matrix leg, and the same value is what gets handed to cmake,
@@ -445,14 +477,82 @@ fn verify_library_slice(path: &Path, arch: &str) -> Result<()> {
     Ok(())
 }
 
+/// Atomically write `bytes` to `dest`: write to a `.tmp-<pid>-<name>` sibling
+/// in the same directory, then `fs::rename` over the final path. Concurrent
+/// readers (X3) either see the old complete file or the new complete file —
+/// never a partial mid-write binary that fails its Mach-O slice check (T2).
+/// Renames within one directory are atomic on POSIX and Windows.
+fn atomic_write_bytes(dest: &Path, bytes: &[u8]) -> Result<()> {
+    let parent = dest
+        .parent()
+        .context("destination has no parent directory")?;
+    let file_name = dest
+        .file_name()
+        .context("destination has no file name")?
+        .to_string_lossy();
+    let tmp = parent.join(format!(".tmp-{}-{}", std::process::id(), file_name));
+    fs::write(&tmp, bytes).with_context(|| format!("Failed to write {}", tmp.display()))?;
+    fs::rename(&tmp, dest)
+        .with_context(|| format!("Failed to rename {} -> {}", tmp.display(), dest.display()))?;
+    Ok(())
+}
+
+/// Atomic variant of [`fs::copy`] with the same `.tmp-<pid>-<name>` sibling +
+/// `fs::rename` discipline as [`atomic_write_bytes`].
+fn atomic_copy(src: &Path, dest: &Path) -> Result<()> {
+    let parent = dest
+        .parent()
+        .context("destination has no parent directory")?;
+    let file_name = dest
+        .file_name()
+        .context("destination has no file name")?
+        .to_string_lossy();
+    let tmp = parent.join(format!(".tmp-{}-{}", std::process::id(), file_name));
+    fs::copy(src, &tmp).with_context(|| format!("Failed to copy to {}", tmp.display()))?;
+    fs::rename(&tmp, dest)
+        .with_context(|| format!("Failed to rename {} -> {}", tmp.display(), dest.display()))?;
+    Ok(())
+}
+
+/// Expected ENGINE_VERSION marker payload: exactly `v{VERSION}` (the
+/// builder's own pin; no trailing newline).
+fn expected_engine_marker() -> String {
+    format!("v{}", VERSION)
+}
+
+/// Marker file path inside a versioned cache directory.
+fn engine_marker_path(versioned_cache: &Path) -> PathBuf {
+    versioned_cache.join("ENGINE_VERSION")
+}
+
+/// Write the ENGINE_VERSION marker (atomically) after a successful cache
+/// persist. Called at every GAP9 atomic cache-persist site.
+fn stage_engine_marker(versioned_cache: &Path) -> Result<()> {
+    let bytes = expected_engine_marker().into_bytes();
+    atomic_write_bytes(&engine_marker_path(versioned_cache), &bytes)
+        .context("Failed to write ENGINE_VERSION cache marker")
+}
+
+/// Read the ENGINE_VERSION marker. Errors when absent or unreadable; a
+/// present-but-different payload is returned as `Ok(other_label)`.
+fn read_engine_marker(versioned_cache: &Path) -> Result<String> {
+    let bytes = fs::read(engine_marker_path(versioned_cache))
+        .context("ENGINE_VERSION marker missing from cache entry")?;
+    let label = String::from_utf8_lossy(&bytes).trim().to_string();
+    Ok(label)
+}
+
 /// Write `bytes` to `dest` only if they carry the labeled slice: a
 /// mismatched or malformed payload is removed again, so a bad download can
 /// never poison the versioned cache for later runs.
 fn persist_verified_for(os: &str, bytes: &[u8], dest: &Path, arch: &str) -> Result<()> {
-    fs::write(dest, bytes).context("Failed to write downloaded binary")?;
+    atomic_write_bytes(dest, bytes).context("Failed to write downloaded binary")?;
     if let Err(e) = verify_library_slice_for(os, dest, arch) {
         let _ = fs::remove_file(dest);
         return Err(e.context("refusing to cache downloaded binary"));
+    }
+    if let Some(versioned_cache) = dest.parent() {
+        stage_engine_marker(versioned_cache)?;
     }
     Ok(())
 }
@@ -532,15 +632,11 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     info!("Cloning DuckDB source...");
     let duckdb_dir = temp_path.join("duckdb");
 
+    // Dev builds clone the default branch, then check out the load-bearing
+    // SOURCE_PIN commit. Nothing here is derived from VERSION (which is
+    // "2.0.0-dev"); the release-download path stays keyed to VERSION.
     let clone_out = Command::new("git")
-        .args([
-            "clone",
-            "--depth",
-            "1",
-            "--branch",
-            "v1.5.5",
-            "https://github.com/duckdb/duckdb.git",
-        ])
+        .args(["clone", "https://github.com/duckdb/duckdb.git"])
         .arg(&duckdb_dir)
         .current_dir(temp_path)
         .output()
@@ -552,6 +648,22 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
             String::from_utf8_lossy(&clone_out.stderr)
         );
     }
+
+    let checkout_out = Command::new("git")
+        .args(["-C"])
+        .arg(&duckdb_dir)
+        .args(["checkout", SOURCE_PIN])
+        .output()
+        .context("Failed to run git checkout of pinned DuckDB commit")?;
+    if !checkout_out.status.success() {
+        anyhow::bail!(
+            "Failed to check out pinned DuckDB commit {} (exit {:?}):\n{}",
+            SOURCE_PIN,
+            checkout_out.status.code(),
+            String::from_utf8_lossy(&checkout_out.stderr)
+        );
+    }
+    info!("Checked out DuckDB at pinned commit {}", SOURCE_PIN);
 
     // Build DuckDB with all features
     info!("Building DuckDB with all features...");
@@ -620,7 +732,7 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
 
     // Copy library to cache directory with proper name
     let binary_path = get_binary_path(cache_dir, arch);
-    fs::copy(&built_lib, &binary_path).context("Failed to copy built library to cache")?;
+    atomic_copy(&built_lib, &binary_path).context("Failed to copy built library to cache")?;
 
     // Also copy header files for FFI bindings generation
     let headers_dir = cache_dir.join("duckdb");
@@ -635,12 +747,13 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     for header in &duckdb_headers {
         if header.exists() {
             let dest = headers_dir.join(header.file_name().unwrap());
-            fs::copy(header, dest)?;
+            atomic_copy(header, &dest)?;
             info!("Copied header: {}", header.display());
         }
     }
 
     info!("Compiled DuckDB binary to: {}", binary_path.display());
+    stage_engine_marker(cache_dir)?;
     Ok(binary_path)
 }
 
@@ -1022,8 +1135,8 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn tr7_stale_pre_fix_cache_layout_is_detected() {
-        // Reproduce the exact pre-fix TR7 artifact: x86_64 bytes placed at
-        // v1.5.5-arm64/libduckdb_arm64.dylib. The cached-path check must
+        // Reproduce the exact pre-fix TR7 artifact (historical v1.5.5 leg): x86_64 bytes placed at
+        // v{VERSION}-arm64/libduckdb_arm64.dylib. The cached-path check must
         // refuse it rather than link a foreign slice.
         let tmp = tempfile::tempdir().unwrap();
         let versioned = tmp.path().join(format!("v{}-arm64", VERSION));
@@ -1039,6 +1152,33 @@ mod tests {
             verify_library_slice_for("macos", &poisoned, "x86_64").unwrap(),
             SliceCheck::Verified
         );
+    }
+
+    #[test]
+    fn gap9_atomic_persist_renames_through_tmp_sibling_without_residue() {
+        // X3/T2 court: cache writes go through a .tmp-<pid>-<name> sibling and
+        // an atomic fs::rename — the final path is only ever a complete file,
+        // and no temp sibling survives the write.
+        let tmp = tempfile::tempdir().unwrap();
+        let dest = tmp.path().join("libduckdb_arm64.dylib");
+
+        atomic_write_bytes(&dest, b"old-complete-payload").unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), b"old-complete-payload");
+
+        atomic_write_bytes(&dest, b"new-complete-payload").unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), b"new-complete-payload");
+
+        let src = tmp.path().join("src.dylib");
+        fs::write(&src, b"copied-complete-payload").unwrap();
+        atomic_copy(&src, &dest).unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), b"copied-complete-payload");
+
+        let residue: Vec<_> = fs::read_dir(tmp.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with(".tmp-"))
+            .collect();
+        assert!(residue.is_empty(), "leftover temp siblings: {:?}", residue);
     }
 
     #[cfg(target_os = "macos")]
@@ -1067,6 +1207,54 @@ mod tests {
         let html = get_binary_path(tmp.path(), "arm64-html");
         assert!(persist_verified_for("macos", b"<html>404</html>", &html, "arm64").is_err());
         assert!(!html.exists());
+    }
+
+    /// Structural anti-poison: a cache entry whose ENGINE_VERSION marker is
+    /// absent or carries a foreign label must read as a cache MISS (restage),
+    /// and a successful persist stages exactly `v{VERSION}`.
+    #[test]
+    fn engine_marker_mismatch_or_absence_demotes_cache_to_miss() {
+        let tmp = tempfile::tempdir().unwrap();
+        let expected = expected_engine_marker();
+        assert_eq!(expected, format!("v{}", VERSION));
+
+        // Absent marker: reads as MISS (error), never as a trusted hit.
+        let err = read_engine_marker(tmp.path()).unwrap_err();
+        assert!(format!("{:#}", err).contains("missing from cache entry"));
+
+        // Wrong label (a foreign builder version staged this cache): MISS,
+        // and the demotion message carries the foreign marker.
+        let foreign = format!("v{}.poison", VERSION);
+        fs::write(engine_marker_path(tmp.path()), &foreign).unwrap();
+        let found = read_engine_marker(tmp.path()).unwrap();
+        assert_ne!(found, expected);
+        assert_eq!(
+            found, foreign,
+            "mismatched marker must surface its foreign label for the restage warn"
+        );
+
+        // A successful persist stages the exact pinned marker.
+        stage_engine_marker(tmp.path()).unwrap();
+        let bytes = fs::read(engine_marker_path(tmp.path())).unwrap();
+        assert_eq!(bytes, expected.into_bytes());
+        assert_eq!(read_engine_marker(tmp.path()).unwrap(), expected);
+
+        // Round-trip through a real persist site too: the download persist
+        // path writes the marker after the slice check passes.
+        #[cfg(target_os = "macos")]
+        if let Some(arm) = real_dylib(tmp.path(), "marker.dylib", &["arm64"]) {
+            let bytes = fs::read(&arm).unwrap();
+            let dest = get_binary_path(tmp.path(), "arm64");
+            persist_verified_for("macos", &bytes, &dest, "arm64").unwrap();
+            assert_eq!(
+                read_engine_marker(tmp.path()).unwrap(),
+                expected,
+                "persist_verified_for must stage ENGINE_VERSION after a verified persist"
+            );
+        } else {
+            eprintln!("SKIP marker round-trip via real dylib: no arm64 cc");
+        }
+    }
     }
 
     #[test]

@@ -24,6 +24,7 @@ fn ollama_available() -> bool {
 
 /// Test Flock extension loading and basic setup
 #[test]
+#[ignore = "flock community extension has no build for the pinned dev engine (b6013f7aa2): upstream serves HTTP 404 for osx_arm64; re-enable when the extension publishes a 2.0-dev-compatible build"]
 fn test_flock_extension_loading() {
     let conn = Connection::open_in_memory().unwrap();
 
@@ -529,6 +530,7 @@ fn test_llm_aggregate_functions() {
 
 /// Test fusion functions for hybrid scoring
 #[test]
+#[ignore = "flock community extension has no build for the pinned dev engine (b6013f7aa2): upstream serves HTTP 404 for osx_arm64; re-enable when the extension publishes a 2.0-dev-compatible build"]
 fn test_fusion_functions() {
     let conn = Connection::open_in_memory().unwrap();
     conn.execute_batch("INSTALL flock FROM community; LOAD flock;")

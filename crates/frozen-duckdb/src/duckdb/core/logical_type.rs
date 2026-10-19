@@ -68,6 +68,10 @@ pub enum LogicalTypeId {
     Union = DUCKDB_TYPE_DUCKDB_TYPE_UNION,
     /// Timestamp TZ
     TimestampTZ = DUCKDB_TYPE_DUCKDB_TYPE_TIMESTAMP_TZ,
+    /// Geometry (WKB blob)
+    Geometry = DUCKDB_TYPE_DUCKDB_TYPE_GEOMETRY,
+    /// Variant
+    Variant = DUCKDB_TYPE_DUCKDB_TYPE_VARIANT,
 }
 
 impl From<u32> for LogicalTypeId {
@@ -103,6 +107,8 @@ impl From<u32> for LogicalTypeId {
             DUCKDB_TYPE_DUCKDB_TYPE_UUID => Self::Uuid,
             DUCKDB_TYPE_DUCKDB_TYPE_UNION => Self::Union,
             DUCKDB_TYPE_DUCKDB_TYPE_TIMESTAMP_TZ => Self::TimestampTZ,
+            DUCKDB_TYPE_DUCKDB_TYPE_GEOMETRY => Self::Geometry,
+            DUCKDB_TYPE_DUCKDB_TYPE_VARIANT => Self::Variant,
             _ => panic!(),
         }
     }

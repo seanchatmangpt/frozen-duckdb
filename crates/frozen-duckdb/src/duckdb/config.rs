@@ -42,6 +42,16 @@ pub enum DefaultNullOrder {
 
 /// duckdb configuration
 /// Refer to <https://github.com/duckdb/duckdb/blob/master/src/main/config.cpp>
+///
+/// # 2.0-dev status
+///
+/// This workspace pins a DuckDB 2.0 development build whose runtime is not
+/// available yet (no prebuilt asset; the dylib compiles in a later wave), so
+/// new 2.0 knob names cannot be probed empirically this wave. Typed builder
+/// methods for unverified 2.0 knobs (async I/O, etc.) are therefore deferred
+/// to the fast-follow. New knobs remain accessible via the existing
+/// [`Config::with`] key/value passthrough; unknown keys fail at open (see
+/// `test_invalid_setting` below).
 #[derive(Default)]
 pub struct Config {
     config: Option<ffi::duckdb_config>,

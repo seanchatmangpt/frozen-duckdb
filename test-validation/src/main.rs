@@ -113,7 +113,8 @@ fn main() -> ExitCode {
     }
 
     // Gate 6: load the staged dylib via FFI; its self-reported version must
-    // equal the builder-derived expectation.
+    // equal the builder-derived expectation, or (dev builds) carry the
+    // expectation as a prefix with a dev suffix (e.g. "v2.0.0-dev-<sha>").
     match ffi_library_version(&binary_path, &format!("v{version}")) {
         Ok(reported) => println!("✅ dylib duckdb_library_version() = {reported}"),
         Err(e) => failures.push(e),
@@ -194,7 +195,9 @@ fn detect_architecture() -> Option<String> {
 }
 
 /// dlopen the staged dylib and call duckdb_library_version(), asserting it
-/// equals `expected` (e.g. "v1.5.5").
+/// equals `expected` (e.g. "v2.0.0-dev") exactly, or extends it with a dev
+/// suffix (starts with `expected` and is strictly longer). Fail-closed on
+/// mismatch: reports both strings and fails the gate.
 fn ffi_library_version(binary_path: &Path, expected: &str) -> Result<String, String> {
     unsafe {
         let lib = libloading::Library::new(binary_path)
@@ -211,7 +214,9 @@ fn ffi_library_version(binary_path: &Path, expected: &str) -> Result<String, Str
             return Err("duckdb_library_version() returned NULL".to_string());
         }
         let reported = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-        if reported != expected {
+        let matches = reported == expected
+            || (reported.starts_with(expected) && reported.len() > expected.len());
+        if !matches {
             return Err(format!(
                 "version mismatch: staged dylib reports '{reported}' but builder expects '{expected}'"
             ));

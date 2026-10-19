@@ -42,11 +42,17 @@ rust_decimal = "1.14"
 strum = { version = "0.27", features = ["derive"] }
 
 # Use our FFI crate instead of duckdb-rs
-frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "1.5.5" }
+frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.0-dev" }
+
+[features]
+# Gates the FromSql/ToSql impls for serde_json::Value (src/duckdb/types/serde_json.rs)
+serde_json = []
 
 [dev-dependencies]
 # Used by vendored cfg(test) modules ported from duckdb-rs (do not churn)
 pretty_assertions = "1"
+# variant_tests.rs: FromSql<serde_json::Value> round trip against VARIANT
+serde_json = "1"
 
 [[example]]
 name = "dropin_replacement"

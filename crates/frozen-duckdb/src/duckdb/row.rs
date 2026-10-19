@@ -390,6 +390,14 @@ impl<'stmt> Row<'stmt> {
         // https://github.com/duckdb/duckdb/blob/71f1c7a7e4b8737cff5e78d1f090c54f5e78e17b/src/main/query_result.cpp#L148
         match column.data_type() {
             DataType::Utf8 => {
+                // VARIANT columns surface as Utf8 with the extension name
+                // `duckdb.variant` in the *field* metadata. That metadata is
+                // not reachable from the &ArrayRef this dispatch sees (arrow
+                // 56 has no Extension DataType), so a VARIANT column reads as
+                // ValueRef::Text carrying the variant's JSON payload. Use the
+                // serde_json FromSql impl (or get::<serde_json::Value>) to
+                // decode it; ValueRef::Variant is constructed by callers that
+                // hold the field metadata.
                 let array = column
                     .as_any()
                     .downcast_ref::<array::StringArray>()

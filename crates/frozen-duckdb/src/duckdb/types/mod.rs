@@ -99,6 +99,10 @@ pub enum Type {
     Array(Box<Type>, u32),
     /// UNION
     Union,
+    /// VARIANT (DuckDB >= 1.5, DUCKDB_TYPE_VARIANT = 41). Surfaces through the
+    /// C Arrow path as a Utf8 payload carrying the variant's JSON rendering
+    /// (extension name `duckdb.variant` in field metadata).
+    Variant,
     /// Any
     Any,
 }
@@ -129,6 +133,12 @@ impl From<&DataType> for Type {
             DataType::Binary => Self::Blob,
             // DataType::FixedSizeBinary(_) => Self::FixedSizeBinary,
             // DataType::LargeBinary => Self::LargeBinary,
+            // A VARIANT column arrives as Utf8/LargeUtf8 with the extension
+            // name `duckdb.variant` in the *field* metadata; arrow 56 has no
+            // Extension DataType, so the payload type alone is
+            // indistinguishable from plain text. Conservative mapping: Text.
+            // Variant-ness is recovered at the value layer for readers that
+            // ask for it (see serde_json's FromSql Variant arm).
             DataType::LargeUtf8 | DataType::Utf8 => Self::Text,
             DataType::List(inner) => Self::List(Box::new(Self::from(inner.data_type()))),
             DataType::FixedSizeList(field, size) => Self::Array(
@@ -190,6 +200,7 @@ impl fmt::Display for Type {
             Self::Map(..) => f.pad("Map"),
             Self::Array(..) => f.pad("Array"),
             Self::Union => f.pad("Union"),
+            Self::Variant => f.pad("Variant"),
             Self::Any => f.pad("Any"),
         }
     }
@@ -316,12 +327,9 @@ mod test {
         let mut stmt = db.prepare("SELECT b, t, i, f, n FROM foo")?;
         let mut rows = stmt.query([])?;
         let row = rows.next()?.unwrap();
-        // NOTE: this is different from SQLite
-        // assert_eq!(Value::Blob(vec![1, 2]), row.get::<_, Value>(0)?);
-        assert_eq!(
-            Value::Blob(vec![120, 48, 49, 48, 50]),
-            row.get::<_, Value>(0)?
-        );
+        // DuckDB 2.x round-trips X'0102' as raw bytes (1.x returned the text
+        // rendering "x0102"; the old SQLite-difference note is obsolete).
+        assert_eq!(Value::Blob(vec![1, 2]), row.get::<_, Value>(0)?);
         assert_eq!(Value::Text(String::from("text")), row.get::<_, Value>(1)?);
         assert_eq!(Value::Int(1), row.get::<_, Value>(2)?);
         match row.get::<_, Value>(3)? {

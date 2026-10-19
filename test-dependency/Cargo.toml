@@ -4,12 +4,20 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-frozen-duckdb = { path = "../" }
-# crates.io encodes DuckDB 1.5.5 as 1.10505.0 — no "1.5" release exists
-duckdb = "1.10505"
+frozen-duckdb = { path = "../crates/frozen-duckdb" }
+# Upstream duckdb-rs, opt-in only for migration testing against the real
+# upstream crate. Default off: frozen-duckdb-sys and libduckdb-sys both declare
+# `links = "duckdb"`, so both engines cannot be linked into one binary.
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+
+[features]
+# The upstream `duckdb` crate cannot be a dependency even behind a feature:
+# cargo's links-conflict check fires at resolution time for declared optional
+# deps, so `upstream-compat` broke `cargo check` entirely (A27). Dual-engine
+# coexistence is structurally blocked by links="duckdb" — migration testing
+# against the upstream crate happens out-of-tree (its own isolated checkout).
 
 # standalone consumer simulation — not part of the root workspace
 [workspace]

@@ -71,6 +71,9 @@ pub enum Value {
     Map(OrderedMap<Value, Value>),
     /// The value is a union
     Union(Box<Value>),
+    /// The value is a VARIANT: the variant's JSON rendering as text (Utf8
+    /// payload semantics of the C Arrow path).
+    Variant(String),
 }
 
 impl From<Null> for Value {
@@ -244,6 +247,7 @@ impl Value {
             | Self::Array(..)
             | Self::Map(..) => todo!(),
             Self::Enum(..) => Type::Enum,
+            Self::Variant(_) => Type::Variant,
         }
     }
 }

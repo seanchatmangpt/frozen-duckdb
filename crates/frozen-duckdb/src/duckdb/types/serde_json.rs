@@ -22,6 +22,19 @@ impl FromSql for Value {
         match value {
             ValueRef::Text(s) => serde_json::from_slice(s),
             ValueRef::Blob(b) => serde_json::from_slice(b),
+            // VARIANT surfaces as a Utf8 array whose payload is the variant's
+            // JSON rendering; parse it directly.
+            ValueRef::Variant(arr, idx) => {
+                use arrow::array::{Array as _, LargeStringArray, StringArray};
+                let payload = if let Some(s) = arr.as_any().downcast_ref::<StringArray>() {
+                    s.value(idx)
+                } else if let Some(s) = arr.as_any().downcast_ref::<LargeStringArray>() {
+                    s.value(idx)
+                } else {
+                    return Err(FromSqlError::InvalidType);
+                };
+                serde_json::from_str(payload)
+            }
             _ => return Err(FromSqlError::InvalidType),
         }
         .map_err(|err| FromSqlError::Other(Box::new(err)))

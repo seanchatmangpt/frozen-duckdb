@@ -595,6 +595,34 @@ impl Statement<'_> {
                     },
                 )
             },
+            // VARIANT binds as its JSON-text payload (varchar → VARIANT cast on
+            // write); a non-string payload is a typed error, not a panic.
+            ValueRef::Variant(arr, idx) => {
+                let payload = arr
+                    .as_any()
+                    .downcast_ref::<arrow::array::StringArray>()
+                    .map(|a| a.value(idx))
+                    .or_else(|| {
+                        arr.as_any()
+                            .downcast_ref::<arrow::array::LargeStringArray>()
+                            .map(|a| a.value(idx))
+                    });
+                let Some(s) = payload else {
+                    return Err(Error::InvalidColumnType(
+                        col,
+                        String::from("variant"),
+                        crate::duckdb::types::Type::Variant,
+                    ));
+                };
+                unsafe {
+                    ffi::duckdb_bind_varchar_length(
+                        ptr,
+                        col as u64,
+                        s.as_ptr() as *const std::os::raw::c_char,
+                        s.len() as u64,
+                    )
+                }
+            }
             _ => unreachable!("not supported: {}", value.data_type()),
         };
         result_from_duckdb_prepare(rc, ptr)

@@ -5,7 +5,7 @@
 //! when using frozen-duckdb as a dependency.
 
 use anyhow::Result;
-use duckdb::{Connection, Result as DuckResult};
+use frozen_duckdb::{Connection, Result as DuckResult};
 use tracing::{info, warn};
 
 fn main() -> Result<()> {
