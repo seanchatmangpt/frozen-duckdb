@@ -47,8 +47,7 @@ if true; then
     -DBUILD_HTTPFS=OFF \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_HAVE_LIBC_PTHREAD=1 \
-    -DDUCKDB_NO_THREADS=1 \
-    -DDUCKDB_NO_THREADS_DEPENDENCY_MANAGEMENT=1 \
+    -DDISABLE_THREADS=ON \
     2>&1 | tail -25 || fail "emcmake configure failed"
 else
   log "reusing configured ${BUILD}"

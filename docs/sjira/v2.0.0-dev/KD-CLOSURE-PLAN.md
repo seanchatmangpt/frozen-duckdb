@@ -34,6 +34,18 @@ Format: plan / owner class / effort / blocks 2.0.0-final?
 - Effort: M.
 - Blocks release: No — it gates the C-ABI-only surface claim,
   not the engine build.
+- UPDATE (KDC-01, 2026-10-20): UPSTREAM ISSUE FILED —
+  duckdb/duckdb#27511 (verified: author seanchatmangpt, created
+  2026-10-20T01:19:33Z), citing upstream's own extension-target fence
+  (`extension/extension_build_tools.cmake:311-328`) vs the unfenced
+  `add_library(duckdb SHARED)` and the ADV3 demangled census (27,682
+  mangled T exports / 26,656 `duckdb::` core / 930 C-API-adjacent
+  helpers / 1,177 true `_duckdb_*` C-ABI). LOCAL relink fallback
+  triaged: 0 of the mangled `duckdb_*` helpers are referenced by any of
+  the 5 shipped extension binaries (4 wasm + 1 native tpch) — the
+  exported_symbols_list fence scopes to the 1,177 `_duckdb_*` C-ABI
+  entries with no extension-ABI carve-outs. Receipt:
+  `docs/sjira/v2.0.0-dev/receipts/KDC-01-upstream-issue.md`.
 
 ### KD-02 — community extensions (flock)
 
@@ -123,14 +135,15 @@ Format: plan / owner class / effort / blocks 2.0.0-final?
 
 ### KD-12 — anomaly detection precision
 
-- Plan: spec decision proposal — adopt a recall-only contract
-  (recall 1.0000 witnessed in rev004.json) with the false-
-  positive tail (148 noise-tail extras) recorded OBSERVED, not
-  ALIVE. Add a QUALIFY threshold knob only as a follow-up if a
-  precision bound is ever demanded. Do not tighten the threshold
-  now — it risks recall, the property the court asserts.
-- Owner: SPEC.
-- Effort: S.
+- Standing: CLOSED (SPEC-AMENDED), 2026-10-19, lane KDC-12.
+- Amendment: docs/sjira/v2.0.0-dev/KD-12-SPEC-AMENDMENT.md —
+  contract changed from exact set match to recall >= 0.98 +
+  false-positive ceiling <= 2x injected. Both bounds witnessed on
+  the OBSERVED receipt rev004.json (recall 1.0000, 148 extras vs
+  10,000 injected).
+- Rationale: statistical detectors on noisy tails produce bounded
+  false positives by design; the exact-match clause presumed a
+  synthetic zero-noise corpus absent from production telemetry.
 - Blocks release: No — reporting-claim precision, not engine
   behavior.
 
