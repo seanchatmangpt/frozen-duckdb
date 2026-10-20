@@ -7,7 +7,8 @@
 # Build + verify happen in linux/arm64 containers (colima, 4GB VM).
 #
 # Notes:
-# - -j2 not -j16: 4GB colima VM OOM-killed cc1plus at -j16 (witnessed).
+# - -j1: 3.84GiB effective VM RAM OOM-killed cc1plus at -j16, -j4 (unity),
+#   and -j4 (non-unity, join_order_optimizer.cpp). Witnessed 4x.
 # - src persists at $OUT_DIR/src so a failed make resumes incrementally.
 #
 # Usage: scripts/build_linux_prebuilt.sh [output-dir]   (default /tmp/rel6)
@@ -43,7 +44,7 @@ docker run --name "$CTR" --platform linux/arm64 \
                -DDISABLE_UNITY=ON
     fi
     cd /out/src/build
-    make -j4 duckdb
+    make -j1 duckdb
     find /out/src/build -name "libduckdb*.so" -print
     cp -v "$(find /out/src/build -name "libduckdb*.so" | head -1)" /out/libduckdb.so
     rm -rf /out/duckdb && mkdir -p /out/duckdb

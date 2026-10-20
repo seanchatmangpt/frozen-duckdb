@@ -5,7 +5,7 @@
 //!
 //! Crate law: unwrap/expect on external input at the boundary is banned.
 
-use frozen_duckdb::{Connection, Config, Result, Value};
+use frozen_duckdb::{Config, Connection, Result, Value};
 
 /// Assert the call does NOT panic; Ok or typed Err are both fine.
 /// Each attack is its own #[test] so a panic isolates to a named cell.
@@ -187,7 +187,14 @@ no_panic!(f64_nan_inf_binds, {
     let conn = Connection::open_in_memory()?;
     conn.execute_batch("CREATE TABLE t(x DOUBLE)")?;
     let mut stmt = conn.prepare("INSERT INTO t VALUES (?)")?;
-    for v in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -0.0f64, f64::MIN, f64::MAX] {
+    for v in [
+        f64::NAN,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        -0.0f64,
+        f64::MIN,
+        f64::MAX,
+    ] {
         stmt.execute([&v])?;
     }
     let n: i64 = conn.query_row("SELECT count(*) FROM t", [], |r| r.get(0))?;
@@ -231,11 +238,9 @@ no_panic!(varchar_embedded_nul_bind, {
 
 no_panic!(negative_interval, {
     let conn = Connection::open_in_memory()?;
-    let v: String = conn.query_row(
-        "SELECT (DATE '2026-01-01' - DATE '2026-06-01')",
-        [],
-        |r| r.get(0),
-    )?;
+    let v: String = conn.query_row("SELECT (DATE '2026-01-01' - DATE '2026-06-01')", [], |r| {
+        r.get(0)
+    })?;
     let _ = v;
     Ok(())
 });

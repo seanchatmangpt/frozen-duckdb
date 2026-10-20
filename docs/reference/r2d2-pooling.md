@@ -33,7 +33,27 @@ happens once on that connection:
 
 ## When not to pool
 
-DuckDB allows a single read/write process per database file. If you need
-multi-process access, use `DuckdbConnectionManager::file` with
-`AccessMode.READ_ONLY` via `file_with_flags`, or give each process its own
-copy of the file.
+DuckDB allows a single process per database file — full stop, readers
+included. The file lock is exclusive: while any process holds the file open
+(read/write OR `AccessMode::ReadOnly`), every other process's
+`Connection::open` fails IMMEDIATELY (~4 ms; no blocking, no timeout) with:
+
+```text
+IO Error: Could not set lock on file "<db>": Conflicting lock is held in
+"<holder>" (PID <n>) ... See also
+https://duckdb.org/docs/current/connect/concurrency
+```
+
+Witnessed against the frozen 2.0.0-dev engine with two real OS processes
+(receipt: `docs/sjira/v2.0.0-dev/receipts/USER-FINDINGS-U10.md`): a
+READ_ONLY open is rejected while a writer holds the file, two READ_ONLY
+processes with no writer open fine concurrently, `kill -9` mid-transaction
+recovers cleanly on next open (WAL replay, uncommitted work lost, no stale
+lock), and concurrent reopen churn succeeds exactly when the opener wins the
+lock.
+
+The only multi-process mode is multiple readers with NO writer: open every
+process with `AccessMode::ReadOnly` via `file_with_flags`. For read/write
+multi-process workloads, either give each process its own copy of the file,
+or have non-holders treat the lock error above as a retryable signal and
+poll until the holder exits.

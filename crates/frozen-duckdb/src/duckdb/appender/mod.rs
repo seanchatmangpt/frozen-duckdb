@@ -1,5 +1,5 @@
 use super::{ffi, AppenderParams, Connection, Result, ValueRef};
-use std::{ffi::c_void, fmt, os::raw::c_char};
+use std::{ffi::c_void, ffi::CStr, fmt, os::raw::c_char};
 
 use crate::duckdb::{
     error::result_from_duckdb_appender,
@@ -156,7 +156,12 @@ impl Appender<'_> {
             _ => unreachable!("not supported"),
         };
         if rc != 0 {
-            return Err(Error::AppendError);
+            // SHIM-COURT lane U8: surface the engine's real per-row message
+            // instead of the bare, message-less Error::AppendError.
+            return Err(Error::DuckDBFailure(
+                ffi::Error::new(ffi::DuckDBError),
+                appender_error_message(self.app),
+            ));
         }
         Ok(())
     }
@@ -182,6 +187,23 @@ impl Drop for Appender<'_> {
             unsafe {
                 ffi::duckdb_appender_destroy(&mut self.app);
             }
+        }
+    }
+}
+
+/// SHIM-COURT lane U8: read the engine's last appender error without
+/// destroying the appender (the shared error helper destroys on read).
+#[cold]
+fn appender_error_message(app: ffi::duckdb_appender) -> Option<String> {
+    if app.is_null() {
+        return Some("appender is null".to_string());
+    }
+    unsafe {
+        let c_err = ffi::duckdb_appender_error(app);
+        if c_err.is_null() {
+            None
+        } else {
+            Some(CStr::from_ptr(c_err).to_string_lossy().into_owned())
         }
     }
 }
@@ -327,6 +349,26 @@ mod test {
             Ok(_) => panic!("expected an error but got Ok"),
         }
         Ok(())
+    }
+
+    #[test]
+    fn test_append_type_mismatch_has_real_message() {
+        // SHIM-COURT lane U8 regression: a failed per-column append used to
+        // return the bare, message-less Error::AppendError.
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("CREATE TABLE t(a INTEGER)").unwrap();
+        let mut app = conn.appender("t").unwrap();
+        match app.append_row(params!["abc"]) {
+            Err(Error::DuckDBFailure(_, Some(msg))) => {
+                assert!(
+                    !msg.is_empty(),
+                    "per-row append failure must carry the engine message, got empty"
+                );
+                eprintln!("SHIM-COURT lane U8: per-row message = {msg:?}");
+            }
+            Err(err) => panic!("unexpected error shape: {err:?}"),
+            Ok(_) => panic!("expected per-row append failure, got Ok"),
+        }
     }
 
     #[test]

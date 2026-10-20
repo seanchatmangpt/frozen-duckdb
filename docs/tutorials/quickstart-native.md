@@ -95,26 +95,33 @@ dependency tree, not DuckDB. With an unloaded machine and a warm cargo
 cache this is materially faster; the "7-10s first build" figure refers to
 the DuckDB acquisition step specifically.
 
-## Caveat: first-run dyld error for external consumers (known-open)
+## Linkage note: first-run dyld error (KD-15) — fixed, verified from a fresh consumer seat
 
-If your binary aborts with `Library not loaded: @rpath/libduckdb.dylib`,
-the engine dylib resolved at link time but no rpath reached your binary:
-`cargo:rustc-link-arg` emitted by a *library* build script
-(`crates/frozen-duckdb/build.rs`) does not propagate to a downstream
-crate's binary on stable cargo. This affected this tutorial's scratch crate
-and was fixed in place, verified:
+Earlier builds of the cached engine dylib carried a Mach-O install ID of
+`@rpath/libduckdb.dylib`, so consumer binaries aborted with
+`Library not loaded: @rpath/libduckdb.dylib` and needed a manual
+`install_name_tool -add_rpath` workaround. That defect is **fixed** at the
+cache persist layer (install-ID stamp; see
+`docs/sjira/v2.0.0-dev/receipts/ADV9-rpath.md`). A fresh out-of-tree path-dep
+consumer (lane U2, 2026-10-19, warm cache) now runs bare, no rpath, no env:
 
 ```text
-$ install_name_tool -add_rpath ~/.frozen-duckdb/cache/v2.0.0-dev-arm64 \
-    target/debug/fd-qs-native
-$ ./target/debug/fd-qs-native; echo "exit=$?"
+$ otool -L target/debug/u2-probe | grep duckdb
+	/Users/sac/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib
+  (absolute-path LC_LOAD_DYLIB, zero LC_RPATH entries; run exit=0)
+$ ./target/debug/u2-probe
 User: Alice
 exit=0
 ```
 
-Wait for it: this is a consumer-linkage gap, known-open upstream of the
-tutorials. A cleaner fix (consumer build script or runtime lookup in the
-builder) belongs in the builder, not your app.
+If you still hit `Library not loaded: @rpath/libduckdb.dylib` on a cache
+persisted before the fix, self-heal restamps it on the next builder run; the
+one-shot manual workaround remains:
+
+```bash
+install_name_tool -add_rpath ~/.frozen-duckdb/cache/v2.0.0-dev-arm64 \
+    target/debug/<your-binary>
+```
 
 ## Where to next
 

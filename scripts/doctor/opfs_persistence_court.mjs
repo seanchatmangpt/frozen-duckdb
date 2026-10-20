@@ -69,7 +69,7 @@ const kdc11_sql_args = ["-noinput", "-c",
   "SELECT count(*) AS n, md5('kdc11-marker') AS marker_md5 FROM t;"];
 
 self.Module = {
-  arguments: SQL_ARGS,
+  arguments: kdc11_sql_args,
   print: (s) => kdc11_out.push(s),
   printErr: (s) => kdc11_out.push("E:" + s),
   onRuntimeInitialized: () => stage("runtime-initialized"),

@@ -18,7 +18,12 @@
 cargo remove duckdb
 
 # Add frozen-duckdb (2.0.0-dev)
-cargo add frozen-duckdb
+#
+# DO NOT `cargo add frozen-duckdb` yet: crates.io's `frozen-duckdb` is an
+# unrelated 0.1.0, and 2.0.0-dev is an unpublished prerelease. Until the
+# final 2.0.0 lands, pin the path/git dependency:
+cargo add --path /path/to/frozen-duckdb/crates/frozen-duckdb
+# (or) frozen-duckdb = { git = "https://github.com/seanchatmangpt/frozen-duckdb" }
 ```
 
 ### Step 2: Update imports (if needed)
@@ -162,8 +167,10 @@ cargo clean && cargo build
 # Check Cargo.toml
 grep "frozen-duckdb" Cargo.toml
 
-# Should show:
-# frozen-duckdb = "2.0.0-dev"
+# Should show your path/git pin, e.g.:
+# frozen-duckdb = { path = ".../crates/frozen-duckdb" }
+# (the crate version is 2.0.0-dev; the engine reports
+#  `SELECT version()` -> `v2.0.0-dev88595`, NOT 1.5.5)
 ```
 
 ### Issue: Import errors
@@ -182,11 +189,24 @@ use frozen_duckdb::{Connection, Result};
 If you were using specific duckdb-rs features:
 ```toml
 # Before
-duckdb = { version = "1.10505.0", features = ["json", "parquet"] }  # upstream crate bundling DuckDB 1.5.5
+duckdb = { version = "1.10505.0", features = ["json", "parquet"] }  # duckdb-rs crate version; NOT the engine version (engine: 1.x line)
 
-# After (same features, faster builds)
-frozen-duckdb = "2.0.0-dev"  # All features included by default
-```
+# After (same core features, faster builds)
+frozen-duckdb = "2.0.0-dev"  # core features built in; `serde_json` is OPT-IN
+# (serde_json Value FromSql/ToSql — incl. VARIANT round-trip — needs
+#  `features = ["serde_json"]`)
+
+#### Behavior changes to know about (1.5.5 -> 2.0.0-dev)
+
+- **BLOB round-trip**: `X'0102'` inserted and read back now yields raw bytes
+  `[1, 2]`; DuckDB 1.x returned the text rendering `"x0102"`. If you parsed
+  the text form, switch to `Vec<u8>`/`Value::Blob`.
+- **Extensions**: on this 2.0.0-dev pin, `INSTALL flock` (community) returns
+  HTTP 404 and `LOAD tpch` fails signature/unsigned checks; the `tpch(1)`
+  helper table function is also gone. Don't rely on community/tpch
+  extensions until the final 2.0.0 extension builds publish.
+- **VARIANT DDL** (`CREATE TABLE t(v VARIANT)`) is now accepted; raw VARIANT
+  columns project as `Struct(metadata BLOB, value BLOB)` through this FFI.
 
 ### Custom Build Scripts
 If you have custom build.rs files:
@@ -221,6 +241,9 @@ cargo run
 ## Rollback Plan
 
 If you need to rollback (not recommended):
+> Storage caveat: databases created/written by the 2.0.0-dev engine carry a
+> `v2.0.0-dev88595` banner and are not guaranteed to open with a 1.x engine.
+> Export to CSV/Parquet before rolling back.
 ```bash
 # Remove frozen-duckdb
 cargo remove frozen-duckdb

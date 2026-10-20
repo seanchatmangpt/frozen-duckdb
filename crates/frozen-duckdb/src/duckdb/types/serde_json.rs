@@ -19,6 +19,25 @@ impl ToSql for Value {
 impl FromSql for Value {
     #[inline]
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        // U5 court finding: a raw VARIANT column read through the FFI
+        // Arrow bridge projects as the engine's shredded internal
+        // representation Struct(metadata Binary, value Binary) — never as
+        // ValueRef::Variant (the registered FR-03 open gap). Falling
+        // through to InvalidType here surfaced as the opaque
+        // InvalidColumnType(0, "v", Struct([("metadata", Blob), ("value",
+        // Blob)])), which hides VARIANT-ness and the documented ::VARCHAR
+        // workaround. Name both instead.
+        if let ValueRef::Struct(arr, _) = &value {
+            if is_shredded_variant(arr) {
+                return Err(FromSqlError::Other(
+                    "cannot read a raw VARIANT column as serde_json::Value: it \
+                     projects as the shredded Struct(metadata, value) buffers \
+                     (FR-03 open gap); read it with an explicit cast instead, \
+                     e.g. SELECT v::VARCHAR FROM t, then parse the JSON text"
+                        .into(),
+                ));
+            }
+        }
         match value {
             ValueRef::Text(s) => serde_json::from_slice(s),
             ValueRef::Blob(b) => serde_json::from_slice(b),
@@ -46,9 +65,22 @@ impl FromSql for Value {
     }
 }
 
+/// True when the struct is the engine's shredded VARIANT projection: exactly
+/// the fields `metadata` (Binary) and `value` (Binary). See
+/// `docs/reference/variant-types.md` ("Open gap") and
+/// `docs/design/variant-shredding-design.md` FR-03.
+fn is_shredded_variant(arr: &arrow::array::StructArray) -> bool {
+    let fields = arr.fields();
+    fields.len() == 2
+        && fields[0].name() == "metadata"
+        && fields[1].name() == "value"
+        && fields[0].data_type() == &arrow::datatypes::DataType::Binary
+        && fields[1].data_type() == &arrow::datatypes::DataType::Binary
+}
+
 #[cfg(test)]
 mod test {
-    use crate::duckdb::{types::ToSql, Connection, Result};
+    use crate::duckdb::{types::ToSql, types::Value, Connection, Result};
 
     fn checked_memory_handle() -> Result<Connection> {
         let db = Connection::open_in_memory()?;
@@ -71,6 +103,46 @@ mod test {
         assert_eq!(data, t);
         let b: serde_json::Value = db.query_row("SELECT b FROM foo", [], |r| r.get(0))?;
         assert_eq!(data, b);
+        Ok(())
+    }
+
+    /// U5 court: reading a live raw VARIANT column as serde_json::Value must
+    /// name the shredded-VARIANT projection and the ::VARCHAR workaround, not
+    /// the opaque InvalidColumnType(Struct(metadata, value)).
+    #[test]
+    fn test_raw_variant_read_is_actionable() -> Result<()> {
+        let db = Connection::open_in_memory()?;
+        db.execute_batch(
+            "CREATE TABLE t (v VARIANT); INSERT INTO t VALUES ('{\"a\":1}'), (NULL);",
+        )?;
+        let mut stmt = db.prepare("SELECT v FROM t")?;
+        let mut rows = stmt.query([])?;
+        let mut saw_payload = false;
+        let mut saw_null = false;
+        while let Some(row) = rows.next()? {
+            let got: Result<Option<serde_json::Value>> = row.get(0);
+            match got {
+                // DT3 guard: NULL variant reads as Ok(None) via Option<T>.
+                Ok(None) => saw_null = true,
+                Err(crate::duckdb::Error::FromSqlConversionFailure(_, _, ref err)) => {
+                    let msg = err.to_string();
+                    assert!(
+                        msg.contains("shredded Struct(metadata, value)")
+                            && msg.contains("::VARCHAR"),
+                        "error not actionable: {msg}"
+                    );
+                    saw_payload = true;
+                }
+                other => panic!("unexpected result for raw VARIANT read: {other:?}"),
+            }
+        }
+        assert!(saw_payload && saw_null);
+        // The documented workaround still round-trips.
+        let text: String =
+            db.query_row("SELECT v::VARCHAR FROM t WHERE v IS NOT NULL", [], |r| {
+                r.get(0)
+            })?;
+        assert_eq!(text, r#"{"a":1}"#);
         Ok(())
     }
 }

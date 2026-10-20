@@ -38,7 +38,7 @@ if [ ! -f "$OUT/libduckdb.so" ]; then
   # low-RAM cmake build, shared lib only
   apt-get update -qq && apt-get install -y -qq cmake >/dev/null
   cmake -S . -B build \
-    -DCMAKE_BUILD_TYPE=Release -DBUILD_SHELL=0 -DBUILD_UNITTESTS=0 \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG" -DBUILD_SHELL=0 -DBUILD_UNITTESTS=0 \
     -DBUILD_PARQUET_EXTENSION=0 -DBUILD_TPCH_EXTENSION=0 \
     -DBUILD_TPCDS_EXTENSION=0 -DBUILD_JSON_EXTENSION=0 \
     -DENABLE_SANITIZER=0 -DENABLE_UBSAN=0 -DDISABLE_UNITY=1 \
