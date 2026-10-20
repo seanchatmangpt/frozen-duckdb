@@ -440,3 +440,105 @@ itself this pass.
   CI/checklist diffs landed; Linux .so candidate and the remaining
   REL lanes IN-FLIGHT; three KD standing corrections on record with
   receipts cited.
+
+## Final reconciliation (lane CL7, 2026-10-19) — closing append
+
+Method: re-read from disk this pass, not recalled. Sources:
+`KNOWN_DIVERGENCES.md` (15 rows), `receipts/` (ADV9, ADV12, ADV13,
+KDC-05, PB8, REL1/2/3/10/11), `GO-NOGO-RECEIPT.md` (2026-10-20T02:07Z),
+existing roll-up above. `git rev-parse HEAD` -> `3de539ee82cc9474…`
+(latest wave commit landed). Tag `v2.0.0-dev` exists (`git tag -l`
+witnessed). All lines <=100 chars.
+
+### 1. KD register — current state (as found; brief said 8/2/5, disk differs)
+
+Actual tally: 15 rows -> **6 CLOSED / 2 PARTIAL / 6 open / 1
+BLOCKED-OTHER-REPO**. The task brief's "8 CLOSED / 5 open" is not borne
+out by the register; reported as found.
+
+| id | state | basis |
+|---|---|---|
+| KD-01 | open | 27,682 `__Z*` exports (ADV3); upstream fence or wrapper |
+| KD-02 | open | flock 404 at pin; watcher ADV12 active |
+| KD-03 | CLOSED | POLL stateful; journeys 4/4 SUCCEEDED |
+| KD-04 | CLOSED | helpers to lib; tsc clean |
+| KD-05 | PARTIAL | see wasm note below |
+| KD-06 | open | host-VFS design-only; GATE-V-05 UNVERIFIED |
+| KD-07 | open (SPEC-AMENDED) | rev001.json UNMET-BY-MEASURED |
+| KD-08 | open (UPSTREAM-DRAFTED) | D6 RSS-deceleration proxy |
+| KD-09 | PARTIAL | docker leg HELD @128m; cgroup needs Linux+root |
+| KD-10 | BLOCKED-OTHER-REPO | BEAM leg lives in smalt |
+| KD-11 | open | browser/OPFS gated on KD-05 first |
+| KD-12 | CLOSED (SPEC-AMENDED) | rev004.json recall 1.0000 |
+| KD-13 | CLOSED | GAP16 default-CARGO_HOME green |
+| KD-14 | CLOSED | GAP9 atomic temp+rename |
+| KD-15 | CLOSED (macOS) | ADV9 stamp + self-heal; Linux UNVERIFIED |
+
+KD-05 detail: GAP1b full link 39.2MiB + unittest red; KDC-05 min slice
+24.69MiB under ceiling (`KDC-05-wasm-min.md`); size court on the full
+artifact FAIL non-vacuous (`ADV13-wasm-size.md`; gzip rung 9.46MiB
+PASS). KD-15 detail: builder 43/43, live cache stamped in place; Linux
+remains UNVERIFIED (ELF has no LC_ID_DYLIB; stamp is a no-op there).
+
+Flips verified this pass: KDC-05 (wasm min slice), KD-09 (docker leg,
+PARTIAL not full close), KD-12 (spec-amended close), KD-15 (macOS close
+per `ADV9-rpath.md`; the KD-15 table row does not yet carry the CLOSED
+marker — row edit is the coordinator's, not this lane's).
+
+### 2. Standing roll-up (final)
+
+| surface | standing | basis |
+|---|---|---|
+| engine v2.0.0-dev88595 dylib | ALIVE | WITNESSED (strings probe, Wave 14) |
+| VARIANT / types stage 03 | PASS 3/3 | DISPATCH-CITED |
+| native courts (see note A) | PASS / PARTIAL_ALIVE | DISPATCH-CITED, artifacts on disk |
+| revenue packs REV-001..004 | PASS / OBSERVED | WITNESSED (rev001-004.json) |
+| fleet classes A-E stage 12 | PASS + loud blocks | DISPATCH-CITED (T6 EXIT=3) |
+| cache law (KD-14 + KD-15) | PASS | WITNESSED (ADV9: 43/43, live stamp) |
+| wasm full (GAP1b) | PARTIAL_ALIVE | WITNESSED (ADV13 court FAIL honest) |
+| wasm min slice (KDC-05) | ALIVE | WITNESSED (24.69MiB, node probes) |
+| value-audit REV-001 clause | SPEC-AMENDED | WITNESSED (rev001.json) |
+| publish prep (PB/REL lanes) | PARTIAL_ALIVE | WITNESSED (PB8 exit 0; REL6 IN-FLIGHT) |
+| LSS (Pareto/kaizen) | ALIVE (analysis) | WITNESSED (lss-pareto-analysis.md) |
+| cleanroom (ACT1) | PASS (macOS leg) | WITNESSED (ADV9 consumer link) |
+| doctor ladder | mixed + loud blocks | DISPATCH-CITED (stages 00-12 wired) |
+| warehouse-sim | PASS courts; params UNVERIFIED | mixed WITNESSED/DISPATCH-CITED |
+| blueprint layer | PROPOSED | no court flipped (BP16) |
+| browser/OPFS FR-01/02 | BLOCKED | loud, never faked |
+| `make verify` at GO/NO-GO | B1 RESOLVED (CL12) | WITNESSED (GO-NOGO run 2 4/5) |
+| genesis + receipt chain | PASS | WITNESSED (GENESIS_EXIT=0, chain 2ab552b7) |
+
+Note A: storage/leak/concurrency/OCEL/latency/throughput/OOM green;
+crash-chaos PARTIAL_ALIVE (Z2).
+
+### 3. Operator handoff — v2.0.0-dev
+
+GO/NO-GO verdict on record: **HOLD** (DOD-18) — superseded en route:
+B1 (latency gate) and B5 (u2-probe) resolved by CL12 per the blocker
+table strike-throughs; remaining blockers B2 (KD-01), B3 (assets
+chicken-and-egg), B4 (token).
+
+1. **Token**: export `CARGO_REGISTRY_TOKEN` (operator-held;
+   publish_chain checks existence only).
+2. **Tag**: `v2.0.0-dev` tag already exists locally. Verify it points
+   at the intended final head before push (`git tag --points-at` —
+   coordinator-owned git transition).
+3. **Confirm**: idle machine, re-run `make verify` (expect 5/5 GREEN
+   post-CL12); `make genesis-check` (expect GENESIS_EXIT=0); run
+   doctor battery and re-witness stage 00/01 (KD-01 census) on the
+   final dylib.
+4. **Release assets**: cut GitHub Release `v2.0.0-dev` with built
+   assets (macOS dylib witnessed; Windows feasible per REL5; Linux .so
+   IN-FLIGHT via REL6); then `bash scripts/verify_release_assets.sh
+   v2.0.0-dev` must exit 0 (chicken-and-egg: release first, check
+   second).
+5. **Publish**: `bash scripts/publish_chain.sh REAL=1`
+   (builder -> wait -> sys -> wait -> main), then chained
+   `verify_publish_receipt.py` + sparse-index check. PB8 rehearsal ran
+   the full mechanical sequence at exit 0 on a scratch subject.
+6. Open KDs at handoff: KD-01/02/06/07/08/11 open, KD-05/09 PARTIAL,
+   KD-10 other-repo — all loud and named, none faked.
+
+Falsifier for this append: any claim above traceable to a receipt file
+listed; a receipt found absent or contradicting on re-read voids the
+corresponding row and the append standing drops to SUSPECT.

@@ -19,7 +19,7 @@ for name in $names; do
     fail=1
     continue
   fi
-  if ! cargo test --release -p frozen-duckdb --test "$name" --quiet; then
+  if ! cargo test --release -p frozen-duckdb --test "$name" --quiet -- --include-ignored; then
     fail=1
   fi
 done

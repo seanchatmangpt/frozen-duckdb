@@ -3,7 +3,7 @@ members = [
   "crates/frozen-duckdb",
   "crates/frozen-duckdb-builder",
   "crates/frozen-duckdb-sys",
-  "test-validation", "u2-probe",
+  "test-validation",
 ]
 resolver = "2"
 

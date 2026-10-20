@@ -154,6 +154,7 @@ fn measure_round(round: usize) -> (f64, f64) {
     (p95, mean)
 }
 
+#[ignore = "perf court: timing-sensitive — doctor stage 08 runs it release-profile (ADV14/F8: debug-under-load cannot hold 15ms)"]
 #[test]
 fn gate_v01_p95_under_15ms() {
     machine_specs();

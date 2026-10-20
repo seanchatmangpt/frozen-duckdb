@@ -35,6 +35,11 @@ in status.
 
 ## 2. BLOCKERS — do not commit yet
 
+> STATUS 2026-10-19 (CL12): B1 RESOLVED — `optional = true` landed on the
+> serde_json dep, manifest parses, ADV8 witnessed. B2 SETTLED — all lanes
+> reported handoff. B3 REGENERATED — `make verify` ran 5/5 green post-fixes,
+> `scripts/verify-evidence.ttl` re-stamped from the green battery.
+
 ### B1. Workspace manifest is BROKEN (compile freeze)
 
 `crates/frozen-duckdb/Cargo.toml` sets `serde_json = ["dep:serde_json"]` but the
