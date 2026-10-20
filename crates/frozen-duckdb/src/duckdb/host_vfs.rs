@@ -143,7 +143,6 @@ impl VTab for ReadLocalRangeVTab {
         Ok(ReadLocalRangeBindData {
             data,
             resolved_offset: offset,
-            at_eof: false,
         })
     }
 

@@ -63,7 +63,7 @@ const WORKER_SRC = String.raw`
 self.stage = (name) => self.postMessage({ kind: "stage", name });
 stage("boot");
 
-const kdc11_out = [];
+const kdc11_out = []; const kdc11_err = [];
 const kdc11_sql_args = ["-noinput", "-c",
   "CREATE TABLE t AS SELECT range(i) AS i, md5(i::VARCHAR) AS h FROM range(1000) tbl(i);" +
   "SELECT count(*) AS n, md5('kdc11-marker') AS marker_md5 FROM t;"];
@@ -71,7 +71,7 @@ const kdc11_sql_args = ["-noinput", "-c",
 self.Module = {
   arguments: kdc11_sql_args,
   print: (s) => kdc11_out.push(s),
-  printErr: (s) => kdc11_out.push("E:" + s),
+  printErr: (s) => kdc11_err.push(s),
   onRuntimeInitialized: () => stage("runtime-initialized"),
 };
 const kdc11_main = async () => {
@@ -91,6 +91,7 @@ const result = {
   crossOriginIsolated: self.crossOriginIsolated,
   sab: typeof SharedArrayBuffer,
   captured: kdc11_out.slice(0, 40),
+  capturedErr: kdc11_err.slice(0, 40),
   exportedFns: exportedFns.slice(0, 40),
   exportedFnCount: exportedFns.length,
   hasModuleFS: typeof self.Module.FS,
@@ -233,6 +234,8 @@ async function poll(fn, ms, what) {
 const wasmJs = readFileSync(WASM_JS);
 const wasmBin = readFileSync(WASM_BIN);
 const server = http.createServer((req, res) => {
+  receipts.serverHits = receipts.serverHits || [];
+  receipts.serverHits.push(req.url);
   const url = new URL(req.url, "http://127.0.0.1");
   const headers = {
     "Cross-Origin-Opener-Policy": "same-origin",
@@ -282,9 +285,13 @@ try {
   receipts.legs.write = w;
 
   // Crash exactly at the flush boundary: Page.crash the renderer, then
-  // SIGKILL the browser process — no graceful teardown anywhere.
-  await b1.cdp.send("Page.crash", {}, sessionId);
-  receipts.legs.crash = { fired: true };
+  // SIGKILL the browser process — no graceful teardown anywhere. Page.crash
+  // tears the session down without a CDP reply; the 15s send timeout below
+  // is the EXPECTED signature, not an error.
+  try {
+    await b1.cdp.send("Page.crash", {}, sessionId);
+  } catch { /* expected: session died with the crash, no reply */ }
+  receipts.legs.crash = { fired: true, signature: "Page.crash (session dies without reply, expected)" };
   await sleep(1000);
   b1.child.kill("SIGKILL");
 } catch (e) {

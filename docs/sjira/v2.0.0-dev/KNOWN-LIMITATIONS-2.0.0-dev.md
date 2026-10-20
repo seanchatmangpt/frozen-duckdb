@@ -25,7 +25,16 @@ ignore-gated, not failing.
   prints the exact un-ignore line.
 - Close: watcher prints `AVAILABLE`; run the printed sed + test line.
 
-## 3. WASM artifact exceeds the 25 MiB raw-size SLA
+## 3. flock `INSTALL` fails at the dev pin
+
+`INSTALL flock` fails at this pin — unsupported until upstream publishes a
+2.0-compatible build (2.0 AST changes; `parse_function_t` API migration).
+Tests are ignore-gated, not failing.
+- Receipt: `docs/sjira/v2.0.0-dev/receipts/ADV12-extension-watch.md`
+- Close: upstream 2.0-compatible flock build; re-run
+  `crates/frozen-duckdb/tests/flock_tests.rs` with `-- --ignored`.
+
+## 4. WASM artifact exceeds the 25 MiB raw-size SLA
 
 `target/wasm/duckdb.wasm` is 41,099,303 bytes (39.20 MiB) vs the 25 MiB
 SLA. The gzip -9 wire size (9.46 MiB) passes its 10 MiB SLA. The Code
