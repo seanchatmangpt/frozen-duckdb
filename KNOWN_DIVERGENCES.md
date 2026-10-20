@@ -8,7 +8,7 @@ post-close receipt is invalid.
 
 | id | surface | divergence | evidence | close condition |
 |---|---|---|---|---|
-| KD-01 | native dylib symbol table | 21 C++-mangled `__Z*` exports present in the pinned dev dylib (C-ABI-only contract breached; upstream visibility flags) | scripts/doctor/checks/bin_audit.sh FAIL receipt (Z7/F7 runs); stage 00/01 red | upstream fences exports at v2.0.0, or an export-filter wrapper ships |
+| KD-01 | native dylib symbol table | 27,682 C++-mangled `__Z*` T exports present (ADV3-corrected; earlier count of 21 matched only `__ZZ` function-local statics) in the pinned dev dylib (C-ABI-only contract breached; upstream visibility flags) | scripts/doctor/checks/bin_audit.sh FAIL receipt (Z7/F7 runs); stage 00/01 red | upstream fences exports at v2.0.0, or an export-filter wrapper ships |
 | KD-02 | community extensions | `flock` extension has no build for the dev pin (HTTP 404 at community-extensions.duckdb.org/b6013f7aa2) | flock_tests 2 tests `#[ignore]`ed with the 404 verbatim | upstream publishes a 2.0-dev-compatible flock build; un-ignore + rerun. Watcher: `bash scripts/extension_watch.sh` (one-shot CDN probe of flock+tpch at pin b6013f7aa2; exit 0+AVAILABLE = close now, exit 1 = still absent) |
 | KD-03 | warehouse-sim poll routes | rendered GET handlers returned static QUEUED (state machine dead code server-side) | G5/S4/S3 independent findings; journeys J1 stalled | CLOSED — POLL re-rendered stateful routes; journeys 4/4 settle SUCCEEDED over real HTTP |
 | KD-04 | warehouse-sim route modules | generated routes exported helpers, violating Next route index-signature (.next/types errors) | S4 finding; .next/types output | CLOSED — POLL/GAP3 moved helpers to lib via templates; tsc scoped-clean |

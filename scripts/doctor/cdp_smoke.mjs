@@ -10,14 +10,11 @@
 // Env: CDP_SMOKE_BIN  — explicit chrome-headless-shell binary path.
 //      CDP_SMOKE_PORT — fixed debug port (default: OS-assigned via port 0).
 
-import { spawn, execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-
-const REPO = "/Users/sac/frozen-duckdb";
-const MARKER = "SHIM-COURT"; // court-owned artifact namespace
 
 // --- locate browser --------------------------------------------------------
 function findBrowser() {

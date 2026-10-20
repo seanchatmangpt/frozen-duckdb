@@ -28,8 +28,9 @@ docker run --name "$CTR" --platform linux/arm64 \
   "$IMG" bash -c '
     set -euo pipefail
     export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y -qq git cmake make g++ libssl-dev >/dev/null
     if [ ! -d /out/src/.git ]; then
-      apt-get update -qq && apt-get install -y -qq git >/dev/null
       git clone https://github.com/duckdb/duckdb.git /out/src
     fi
     cd /out/src && git checkout '"$PIN"'

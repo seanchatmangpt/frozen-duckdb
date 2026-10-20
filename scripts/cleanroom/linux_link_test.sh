@@ -44,7 +44,7 @@ if [ ! -f "$OUT/libduckdb.so" ]; then
     -DENABLE_SANITIZER=0 -DENABLE_UBSAN=0 -DDISABLE_UNITY=1 \
     -DCMAKE_EXE_LINKER_FLAGS="-latomic" \
     -DCMAKE_SHARED_LINKER_FLAGS="-latomic"
-  cmake --build build --target duckdb -j 2
+  cmake --build build --target duckdb -j "${REL4_JOBS:-2}"
   find build -name 'libduckdb.so' -exec cp {} "$OUT/" \;
 fi
 ls -l "$OUT/libduckdb.so"

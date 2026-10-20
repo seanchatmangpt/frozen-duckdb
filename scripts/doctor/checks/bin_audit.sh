@@ -53,21 +53,26 @@ else
 fi
 
 # --- (2) symbol contract: C ABI only, no C++-mangled exports ---
+# ADV3 correction: the true breach is ALL `__Z*`-mangled T exports
+# (~27k on the pinned dev dylib), not only `__ZZ` function-local statics
+# (~21). Count mangled `^[0-9a-f]+ T __Z` vs C-ABI `^[0-9a-f]+ T _duckdb_`
+# separately; breach = mangled_count > 0.
 nm_out="$(nm -gU "$DYLIB" 2>/dev/null)"
 if [[ -z "$nm_out" && $? -ne 0 ]]; then
     echo "[FAIL] nm -gU failed" >&2
     exit 1
 fi
 total_exports="$(printf '%s\n' "$nm_out" | grep -c '[[:space:]]T[[:space:]]*_')"
-mangled="$(printf '%s\n' "$nm_out" | grep -cE '[[:space:]]__[Z][Z]' )"
-duckdb_exports="$(printf '%s\n' "$nm_out" | grep -cE '[[:space:]]_duckdb_' )"
+mangled="$(printf '%s\n' "$nm_out" | grep -cE '^[0-9a-f]+ T __Z')"
+duckdb_exports="$(printf '%s\n' "$nm_out" | grep -cE '^[0-9a-f]+ T _duckdb_')"
+c_abi_count="$duckdb_exports"
 
 echo "exported symbols (T, leading underscore): ${total_exports}"
 echo "C++-mangled (__Z...) exports: ${mangled}"
-echo "duckdb_* exports: ${duckdb_exports}"
+echo "duckdb_* C-ABI exports: ${duckdb_exports}"
 
 if (( mangled != 0 )); then
-    echo "[FAIL] C++-mangled exports present (C ABI contract breached)" >&2
+    echo "[FAIL] ${mangled} C++-mangled exports present (C ABI contract breached; ADV3-corrected count)" >&2
     fail=1
 else
     echo "[PASS] zero C++-mangled exports"

@@ -99,7 +99,14 @@ if (!exports.includes('duckdb_library_version')) {
   console.error('[smoke] FAIL: duckdb_library_version missing from exports');
   process.exit(1);
 }
-const inst = new WebAssembly.Instance(mod, {});
+// STANDALONE_WASM carries WASI imports; stub them all (no-ops suffice for
+// the version + open/close probes; undefined coerces to 0 for i32 results).
+const imports = {};
+for (const im of WebAssembly.Module.imports(mod)) {
+  imports[im.module] = imports[im.module] || {};
+  imports[im.module][im.name] = () => {};
+}
+const inst = new WebAssembly.Instance(mod, imports);
 const e = inst.exports;
 const decoder = new TextDecoder();
 const readCStr = (ptr) => {
@@ -122,18 +129,22 @@ if (version !== EXPECT) {
 // Check 3+4: open/close cycle, heap ceiling <=128MB, delta <=64MB.
 let after = before;
 if (e.duckdb_open && e.duckdb_close) {
-  const openPtr = e.duckdb_open(BigInt(0));
-  const dbPtr = Number(readU64(e, openPtr));
-  console.log('[smoke] duckdb_open ->', dbPtr);
-  e.duckdb_close(openPtr);
+  // duckdb_open(const char *path, duckdb_database *out) — allocate scratch
+  // at the end of linear memory (one fresh page): path = "" at base,
+  // out-handle at base+8.
+  const pages = e.memory.grow(1);
+  const base = pages * 65536;
+  const dv = new DataView(e.memory.buffer);
+  new Uint8Array(e.memory.buffer)[base] = 0; // empty path -> in-memory db
+  const rc = e.duckdb_open(base, base + 8);
+  const dbPtr = dv.getBigUint64(base + 8, true);
+  console.log('[smoke] duckdb_open rc=', rc, 'db handle=', dbPtr);
+  if (dbPtr === 0n) { console.error('[smoke] FAIL: duckdb_open returned null database'); process.exit(1); }
+  e.duckdb_close(base + 8);
   after = e.memory.buffer.byteLength;
 } else {
   after = e.memory.buffer.byteLength;
   console.log('[smoke] open/close not exported; heap after version call only');
-}
-function readU64(e, ptr) {
-  const view = new DataView(e.memory.buffer);
-  return view.getBigUint64(Number(ptr), true);
 }
 const MB = 1024 * 1024;
 console.log(`[smoke] heap before=${before} after=${after}`);

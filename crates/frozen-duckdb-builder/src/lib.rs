@@ -686,11 +686,16 @@ fn check_local_compile_target(os: &str, arch: &str, host: &str) -> Result<()> {
 /// Outcome of a slice check that did not find a mismatch.
 #[derive(Debug, PartialEq, Eq)]
 enum SliceCheck {
-    /// `lipo -archs` listed the labeled slice.
+    /// `lipo -archs` listed the labeled slice (macOS) or the platform magic
+    /// matched (Linux ELF / Windows PE) (REL5).
     Verified,
-    /// No checker available on this host (non-macOS, or lipo absent); the
+    /// No checker available on this host (e.g. `lipo` absent on macOS); the
     /// label is UNVERIFIED, not admitted.
     Unverifiable(String),
+    /// The file exists but structurally contradicts its platform label
+    /// (wrong magic, truncated below the engine floor). Hard refusal, never
+    /// a silent pass (REL5: a PE/ELF served on a non-macOS leg must fail).
+    Fail(String),
 }
 
 /// True when whitespace-separated `lipo -archs` output lists exactly `arch`
@@ -730,10 +735,58 @@ fn verify_library_slice_for(
     min_bytes: u64,
 ) -> Result<SliceCheck> {
     if os != "macos" {
-        return Ok(SliceCheck::Unverifiable(format!(
-            "slice check is macOS-only (os={})",
-            os
-        )));
+        // REL5: on a non-macOS leg the previously-silent `Unverifiable`
+        // return would serve an unverified (possibly wrong-platform) binary.
+        // Read the leading magic and demand the platform expectation:
+        //   linux   -> ELF    7f 45 4c 46
+        //   windows -> PE      'M' 'Z'
+        // Wrong/short magic or a below-floor payload is a hard
+        // `SliceCheck::Fail`, not a silent pass.
+        let expected = match os {
+            "linux" => ("ELF", [0x7f, b'E', b'L', b'F']),
+            "windows" => ("PE", [b'M', b'Z', 0, 0]),
+            other => {
+                return Ok(SliceCheck::Unverifiable(format!(
+                    "no slice checker for os={}",
+                    other
+                )))
+            }
+        };
+        let len = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+        if len < min_bytes {
+            return Ok(SliceCheck::Fail(format!(
+                "{} is {} bytes, below the {} byte engine size floor (truncated download?): \
+                 refusing to serve {}",
+                path.display(),
+                len,
+                min_bytes,
+                expected.0
+            )));
+        }
+        let mut magic = [0u8; 4];
+        if let Err(e) = fs::File::open(path).and_then(|mut f| f.read_exact(&mut magic)) {
+            return Ok(SliceCheck::Fail(format!(
+                "{} unreadable while reading {} magic: {}",
+                path.display(),
+                expected.0,
+                e
+            )));
+        }
+        let matched = match expected.0 {
+            "ELF" => magic == [0x7f, b'E', b'L', b'F'],
+            "PE" => magic[..2] == [b'M', b'Z'],
+            _ => false,
+        };
+        if !matched {
+            return Ok(SliceCheck::Fail(format!(
+                "{} lacks the {} magic (first bytes {:02x?}); wrong-platform or corrupt \
+                 download (REL5): refusing to serve",
+                path.display(),
+                expected.0,
+                magic
+            )));
+        }
+        return Ok(SliceCheck::Verified);
     }
     let out = match Command::new("lipo").arg("-archs").arg(path).output() {
         Ok(out) => out,
@@ -894,6 +947,9 @@ fn verify_library_slice(path: &Path, arch: &str) -> Result<()> {
         SliceCheck::Verified => debug!("slice {} verified in {}", arch, path.display()),
         SliceCheck::Unverifiable(why) => {
             warn!("slice {} UNVERIFIED for {}: {}", arch, path.display(), why)
+        }
+        SliceCheck::Fail(why) => {
+            anyhow::bail!("slice check FAILED for {} ({}): {}", path.display(), arch, why)
         }
     }
     Ok(())
@@ -1560,13 +1616,50 @@ mod tests {
     }
 
     #[test]
-    fn tr7_slice_check_off_macos_is_unverifiable_not_admitted() {
+    fn rel5_elf_magic_verifies_on_linux_branch() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("libduckdb_x86_64.so");
+        // Crafted ELF-magic payload (min_bytes=1 floor so the fixture stays tiny).
+        let mut bytes = vec![0x7f, b'E', b'L', b'F'];
+        bytes.extend_from_slice(&[2, 1, 1, 0]); // 64-bit LE SysV ident tail
+        fs::write(&path, &bytes).unwrap();
+        assert_eq!(
+            verify_library_slice_for("linux", &path, "x86_64", 1).unwrap(),
+            SliceCheck::Verified
+        );
+    }
+
+    #[test]
+    fn rel5_text_file_fails_hard_on_linux_branch() {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("libduckdb_x86_64.so");
         fs::write(&path, b"not inspected").unwrap();
         match verify_library_slice_for("linux", &path, "x86_64", 1).unwrap() {
-            SliceCheck::Unverifiable(why) => assert!(why.contains("macOS-only"), "{}", why),
-            SliceCheck::Verified => panic!("non-macOS check must not claim Verified"),
+            SliceCheck::Fail(why) => assert!(why.contains("ELF magic"), "{}", why),
+            other => panic!("text payload must Fail hard on the linux branch, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn rel5_wrong_magic_fails_on_windows_branch() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("duckdb.dll");
+        // An ELF served where a PE (MZ) is expected must Fail, not verify.
+        fs::write(&path, [0x7f, b'E', b'L', b'F']).unwrap();
+        match verify_library_slice_for("windows", &path, "x86_64", 1).unwrap() {
+            SliceCheck::Fail(why) => assert!(why.contains("PE magic"), "{}", why),
+            other => panic!("ELF on windows branch must Fail, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn rel5_truncated_linux_payload_fails_size_floor() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("libduckdb_x86_64.so");
+        fs::write(&path, [0x7f, b'E', b'L', b'F']).unwrap();
+        match verify_library_slice_for("linux", &path, "x86_64", 1024).unwrap() {
+            SliceCheck::Fail(why) => assert!(why.contains("size floor"), "{}", why),
+            other => panic!("below-floor payload must Fail, got {:?}", other),
         }
     }
 
