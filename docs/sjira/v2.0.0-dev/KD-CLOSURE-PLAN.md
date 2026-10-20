@@ -58,16 +58,24 @@ Format: plan / owner class / effort / blocks 2.0.0-final?
 
 ### KD-05 — wasm artifact
 
-- Plan: GAP1 status PENDING. Prior exit 2 was a broken brew
-  emscripten. Install a pinned emsdk (not brew) under
-  `~/.frozen-duckdb/emsdk`, rerun `scripts/build_wasm_duckdb.sh`
-  to produce `duckdb.wasm`, run the version gate. Fallback:
-  upstream v2.0.0 release assets when cut.
-- Owner: UPSTREAM preferred (release assets); LOCAL emsdk build
-  as fallback.
-- Effort: M (LOCAL) / S (upstream).
-- Blocks release: Yes for the FR-01 browser claim family; No for
-  the engine binary itself.
+- Standing: **PARTIAL_ALIVE** (2026-10-19, lane KDC-05). Minimal
+  slice closes the version-gate claim: standalone
+  `target/wasm-min/kdc05-min.wasm` (25,886,446 B = 24.69 MiB, under
+  the 25 MiB raw SLA; llvm-strip no-op), instantiable in node with a
+  22-symbol WASI shim; `duckdb_library_version()` returns
+  `v2.0.0-dev88595`. Receipt:
+  `docs/sjira/v2.0.0-dev/receipts/KDC-05-wasm-min.md`. Unlocks
+  KD-11: the OPFS courts mount this minimal wasm. Full-build
+  browser slice (pthreads/OPFS, `build_wasm_duckdb.sh` with
+  `-sUSE_PTHREADS=1`) vs the 25 MiB SLA stays open on the pthreads
+  build.
+- Plan (residual): GAP1 full-browser slice still PENDING; prior
+  exit 2 was a broken brew emscripten — use the pinned `~/emsdk`.
+- Owner: LOCAL (minimal slice done); UPSTREAM preferred for
+  release assets.
+- Effort: M (LOCAL residual) / S (upstream).
+- Blocks release: Partially — version-gate claim closed; the
+  FR-01 full browser claim still inherits the pthreads build.
 
 ### KD-06 — host-VFS (`host-range://`)
 
