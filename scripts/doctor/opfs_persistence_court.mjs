@@ -64,7 +64,7 @@ self.stage = (name) => self.postMessage({ kind: "stage", name });
 stage("boot");
 
 const kdc11_out = []; const kdc11_err = [];
-const kdc11_sql_args = ["-noinput", "-c",
+const kdc11_sql_args = ["-c",
   "CREATE TABLE t AS SELECT range(i) AS i, md5(i::VARCHAR) AS h FROM range(1000) tbl(i);" +
   "SELECT count(*) AS n, md5('kdc11-marker') AS marker_md5 FROM t;"];
 
@@ -204,8 +204,11 @@ async function launchBrowser(userDir) {
     await sleep(100);
   }
   const [port] = readFileSync(portFile, "utf8").split("\n");
+  for (const f of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
+    try { rmSync(join(dir, f), { force: true }); } catch {}
+  }
   const version = await (async () => {
-    const d = Date.now() + 10_000;
+    const d = Date.now() + 30_000;
     for (;;) {
       try {
         const res = await fetch(`http://127.0.0.1:${port}/json/version`);
