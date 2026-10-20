@@ -1,13 +1,19 @@
 # Quickstart: frozen-duckdb in the browser (Web Worker + OPFS)
 
-> **Standing: BLOCKED (KD-05), as of 2026-10-19.** This tutorial describes the
-> FR-01 target. The wasm artifact does **not** exist yet:
-> `scripts/build_wasm_duckdb.sh` exits 2 against a broken Homebrew emscripten
-> install, so there is nothing runnable in a browser today. The TypeScript
-> below is **the contract the wasm build must satisfy**, not a runnable
-> today-path. Divergence row: `KNOWN_DIVERGENCES.md` (KD-05); the blocking
-> receipt is the exit-2 build attempt recorded there. When KD-05 closes, this
-> page flips from BLOCKED to a real quickstart with a court receipt path.
+> **Standing: PARTIAL_ALIVE (KD-05), as of 2026-10-19.** This tutorial
+> describes the FR-01 target. The wasm artifact **exists** in two forms:
+> `target/wasm/duckdb.wasm` (41,099,303 B / 39.2 MiB, 72 imports, **not
+> standalone** — fails `WebAssembly.Instance(mod, {})`) and
+> `target/wasm-min/kdc05-min.wasm` (25,886,446 B / 24.69 MiB, standalone,
+> instantiable with a 22-symbol WASI/env shim; `duckdb_library_version()` =
+> `v2.0.0-dev88595` under real node instantiation — receipt
+> `docs/sjira/v2.0.0-dev/receipts/KDC-05-wasm-min.md`). Nothing here runs in
+> a browser yet: the OPFS block layer (`openDuckDbOverOpfs`) and the shim are
+> unwritten — that is KD-11 and KD-05-closure work. The TypeScript below is
+> the RPC contract (it type-checks only with ambient declarations this page
+> now lists). Divergence row: `KNOWN_DIVERGENCES.md` (KD-05).
+> Per-section standing: **[WORKS-TODAY]** verified on this tree;
+> **[REQUIRES-KD-05-CLOSURE]** contract-only until the browser build lands.
 
 ## What you will build
 
@@ -26,7 +32,48 @@ Design source of truth: `docs/design/wasm-opfs-architecture.md`. Every
 untested claim there is marked UNVERIFIED on purpose; the code in this
 tutorial is the executable form of that contract.
 
-## The worker (`wasm-worker.ts`)
+## What exists today vs what is contract [REQUIRES-KD-05-CLOSURE]
+
+Measured on this tree (2026-10-19, node 2x `WebAssembly.compile` +
+`new WebAssembly.Instance(mod, {})`):
+
+```
+target/wasm/duckdb.wasm        imports: 72  modules: a            bare instantiate: FAIL
+target/wasm-min/kdc05-min.wasm imports: 22  modules: wasi_snapshot_preview1,env  bare instantiate: FAIL
+```
+
+`kdc05-min.wasm` instantiates **only** with the 22-symbol
+`wasi_snapshot_preview1.{clock_time_get,fd_*,environ_*,random_get,proc_exit}`
++ `env.{_msync_js,__syscall_*}` shim (25 lines of node; shell stubs return
+errno 8 / -1 — receipt `KDC-05-wasm-min.md`). The TypeScript in this page
+does **not** type-check as printed: `RpcRequest`/`RowBatch` are referenced
+but never declared, and OPFS handle types need `--lib es2022,webworker` plus
+two ambient interface augmentations. The full compiling form is at the bottom
+of this page (Compiling the contract).
+
+## Compiling the contract [WORKS-TODAY]
+
+Verified: `tsc 7.0.2 --noEmit --strict --target es2022 --lib es2022,webworker`
+over the two blocks above plus this `ambient.d.ts` — exit 0:
+
+```ts
+// ambient.d.ts — required in addition to the printed blocks; tsc 7.0.2, exit 0
+type RpcRequest =
+  | { id: number; op: "open"; path: string }
+  | { id: number; op: "execute"; sql: string }
+  | { id: number; op: "fetch"; sql: string };
+interface RowBatch { rows: unknown[]; buffers: ArrayBuffer[]; }
+interface StorageManager { persist(): Promise<boolean>; }
+interface FileSystemFileHandle {
+  createSyncAccessHandle(): FileSystemSyncAccessHandle;
+}
+```
+
+The `[WORKS-TODAY]` claim covers the type-check only. Instantiation,
+queries, OPFS persistence: **[REQUIRES-KD-05-CLOSURE]** — no browser path
+exists yet (KD-11 glue unwritten).
+
+## The worker (`wasm-worker.ts`) [REQUIRES-KD-05-CLOSURE]
 
 One worker owns the engine, the OPFS handles, and the module cache. A crash
 inside the worker tears down only the worker, never the page.
@@ -89,7 +136,7 @@ declare function openDuckDbOverOpfs(h: FileSystemSyncAccessHandle):
   WorkerSideConn;
 ```
 
-## The main-thread client (`rpc.ts`)
+## The main-thread client (`rpc.ts`) [REQUIRES-KD-05-CLOSURE]
 
 The main thread never links the engine. It gets a promise API that mirrors
 the native `frozen-duckdb` surface and rejects on worker death so a dead
@@ -148,7 +195,7 @@ export class FrozenDuckClient {
 }
 ```
 
-## The OPFS block layer
+## The OPFS block layer [REQUIRES-KD-05-CLOSURE]
 
 `openDuckDbOverOpfs` wraps a `FileSystemSyncAccessHandle` in DuckDB's
 `FileSystem` interface. The mapping (from
@@ -164,7 +211,7 @@ export class FrozenDuckClient {
   for wasm stack, FFI buffers, and JS transfer buffers.
 - On `QuotaExceededError`, surface the typed `out-of-disk` RPC reply.
 
-## Falsifiers the build must pass
+## Falsifiers the build must pass [REQUIRES-KD-05-CLOSURE]
 
 The wasm artifact closes KD-05 only by passing these (from the design doc's
 falsifier list):
@@ -181,8 +228,11 @@ falsifier list):
 
 ## Status and receipts
 
-- Divergence row: `KNOWN_DIVERGENCES.md` KD-05 — BLOCKED as of 2026-10-19
-  (receipt: `scripts/build_wasm_duckdb.sh` exit 2).
+- Divergence row: `KNOWN_DIVERGENCES.md` KD-05 — PARTIAL_ALIVE as of
+  2026-10-19 (receipt:
+  `docs/sjira/v2.0.0-dev/receipts/KDC-05-wasm-min.md`: standalone slice
+  24.69 MiB < 25 MiB SLA, version gate `v2.0.0-dev88595` PASS under real
+  node instantiation with the 22-import shim).
 - Downstream: KD-11 browser courts stay blocked until KD-05 closes.
 - Window standing: `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md`
   (DOD-16, known-open).

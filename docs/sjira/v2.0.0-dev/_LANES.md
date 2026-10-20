@@ -179,7 +179,7 @@ section). `sys-audit` resolves to `scripts/doctor/checks/bin_audit.sh`.
 
 | lane | type | owns (write) |
 |---|---|---|
-| H1 | writer | doctor.sh 11-stage aggregate + stage renames (scripts/doctor/) |
+| H1 | writer | doctor.sh 13-stage aggregate + stage renames (scripts/doctor/) |
 | H2 | writer | court-x2 wiring (sys-audit propagation + crash-chaos court) |
 | H3 | writer | stage 10 economics-court wiring (10_verify_economics.sh + G5 runner seam) |
 | H4 | writer | implementation-map reconciliation + _LANES Wave 10 + CAMPAIGN-RECEIPT residues |

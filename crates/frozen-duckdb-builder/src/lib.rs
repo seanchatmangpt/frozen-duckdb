@@ -774,7 +774,7 @@ fn verify_library_slice_for(
         }
         let matched = match expected.0 {
             "ELF" => magic == [0x7f, b'E', b'L', b'F'],
-            "PE" => magic[..2] == [b'M', b'Z'],
+            "PE" => magic[..2] == *b"MZ",
             _ => false,
         };
         if !matched {
@@ -949,7 +949,12 @@ fn verify_library_slice(path: &Path, arch: &str) -> Result<()> {
             warn!("slice {} UNVERIFIED for {}: {}", arch, path.display(), why)
         }
         SliceCheck::Fail(why) => {
-            anyhow::bail!("slice check FAILED for {} ({}): {}", path.display(), arch, why)
+            anyhow::bail!(
+                "slice check FAILED for {} ({}): {}",
+                path.display(),
+                arch,
+                why
+            )
         }
     }
     Ok(())
@@ -1636,7 +1641,10 @@ mod tests {
         fs::write(&path, b"not inspected").unwrap();
         match verify_library_slice_for("linux", &path, "x86_64", 1).unwrap() {
             SliceCheck::Fail(why) => assert!(why.contains("ELF magic"), "{}", why),
-            other => panic!("text payload must Fail hard on the linux branch, got {:?}", other),
+            other => panic!(
+                "text payload must Fail hard on the linux branch, got {:?}",
+                other
+            ),
         }
     }
 
@@ -1765,6 +1773,9 @@ mod tests {
                 Err(e) => assert!(e.to_string().contains("not a readable Mach-O"), "{}", e),
                 Ok(SliceCheck::Unverifiable(why)) => {
                     eprintln!("SKIP malformed check for {}: {}", p.display(), why)
+                }
+                Ok(SliceCheck::Fail(why)) => {
+                    panic!("{} must Fail closed loudly: {}", p.display(), why)
                 }
                 Ok(SliceCheck::Verified) => panic!("{} must not verify", p.display()),
             }

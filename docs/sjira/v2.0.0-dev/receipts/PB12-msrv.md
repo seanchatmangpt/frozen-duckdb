@@ -96,6 +96,35 @@ encoding_rs 0.8.35, home 0.5.11, icu_* 2.2.0) -> SUCCESS (exit 0, 38.45s),
 and `cargo +1.87.0 test -p frozen-duckdb-builder --release` -> 35 passed;
 0 failed (exit 0). First-party floor 1.87 confirmed; `rust-version = "1.87"`
 is evidence-based and coherent. Receipt:
-`receipts/ADV10-msrv-proof.md`. Caveat: the committed Cargo.lock pins
-transitive deps requiring rustc 1.88, so out-of-the-box 1.87 builds need
-those pins (lockfile-owner item, ADV10 §5.2).
+`receipts/ADV10-msrv-proof.md`.
+
+## 7. Lockfile resolution (PB12/ADV10 §5.2 closure, lane F4, 2026-10-19)
+
+The ADV10 §5.2 caveat (lockfile pins requiring rustc 1.88) was executed and
+**REFUTED as a pin fix**: the 1.87-compatible pin set is unsatisfiable under
+the committed dependency graph.
+
+- Pin attempt (`cargo update -p <crate> --precise`): encoding_rs 0.8.35,
+  home 0.5.11, icu_normalizer/icu_properties/icu_properties_data 2.2.0 all
+  applied cleanly, but `time --precise 0.3.44` FAILS (cargo exit 1):
+  `error: failed to select a version for the requirement time = "^0.3.47"`,
+  required by `zip v9.0.5` <- `frozen-duckdb-builder` (`zip = "^9"`).
+- Registry evidence (crates.io sparse index, queried 2026-10-19): every
+  `time` release >= 0.3.46 carries `rust_version = 1.88` (0.3.44 is the last
+  1.87-compatible release at 1.81); every `zip` >= 7.4.0 (including all of
+  8.x/9.x) requires `time ^0.3.47`. `time 0.3.44` only satisfies
+  `zip <= 2.6.x` — a major-version downgrade of zip, out of scope.
+- **Resolution applied: rust-version = "1.88"** (workspace
+  `Cargo.toml` [workspace.package], one-line edit), stale pins NOT applied —
+  Cargo.lock restored to latest pins (encoding_rs 0.8.41, home 0.5.12,
+  icu_* 2.3.0, time 0.3.55, time-core 0.1.9; zstd-sys moved 2.1.0 ->
+  2.1.2+zstd.1.5.7 by cargo update, semver-compatible, requirement
+  `^2.1.2` elsewhere in the graph).
+- Verification on default toolchain 1.97: `cargo check --workspace` ->
+  Finished dev profile (exit 0, 12.35s); `cargo test -p
+  frozen-duckdb-builder` -> **46 passed; 0 failed** (exit 0).
+- MSRV bump cost: 1.87's binding feature (`usize::is_multiple_of`) remains
+  satisfied; 1.88 is above the first-party floor purely to honor the
+  lockfile. Out-of-the-box `cargo +1.87.0 check` on the committed lock is
+  now expected to fail the MSRV check (correct, loud behavior), consistent
+  with rust-version = "1.88".

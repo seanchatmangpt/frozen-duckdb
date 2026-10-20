@@ -140,8 +140,8 @@ impl Config {
             assert_eq!(state, ffi::DuckDBSuccess);
             self.config = Some(config);
         }
-        let c_key = CString::new(key).unwrap();
-        let c_value = CString::new(value).unwrap();
+        let c_key = CString::new(key)?;
+        let c_value = CString::new(value)?;
         let state = unsafe {
             ffi::duckdb_set_config(
                 self.config.unwrap(),

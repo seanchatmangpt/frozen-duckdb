@@ -255,7 +255,7 @@ is checked per window; a mismatch means entropy was consumed without
 being either twinned or stored — an unaccounted channel, and the window
 fails conformance.
 
-## 5. Subsystem D — verification substrate: the 11-stage court ladder
+## 5. Subsystem D — verification substrate: the 13-stage court ladder
 
 Repo-local application: `verification-plan.md` + the GATE-V courts.
 Pattern: shim-court (BASELINE sha256 -> BEFORE green -> SHIM marked
@@ -376,7 +376,7 @@ shredded reads UNVERIFIED) |
 engine | UNSUPPORTED here (foreign subsystem, spec capture only) |
 | smalt TLS twins / AMQP / PQC | 4 | foreign repo (smalt) | [C]
 interceptor courts | UNSUPPORTED here (foreign subsystem) |
-| 11-stage court ladder | 5 | `verification-plan.md`, `gate-v0*.md` |
+| 13-stage court ladder (6 green, remaining KD-mapped) | 5 | `verification-plan.md`, `gate-v0*.md` |
 shim-court protocol | PROPOSED (V-W*/V-S* inventory; none flipped) |
 | GATE-V-01 | 5 | `gate-v01-latency.md` | latency court | PROPOSED |
 | GATE-V-02 | 5 | `gate-v02-crash-chaos.md` | crash-chaos court | PROPOSED |

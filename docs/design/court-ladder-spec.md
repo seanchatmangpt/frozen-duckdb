@@ -2,8 +2,9 @@
 
 Status: GOVERNING STAGE MATRIX for the Chicago Verification Courts program.
 The CURRENT repo wiring (`docs/design/doctor-implementation-map.md`) uses a
-10-phase 0-9 layout; the reconciliation from that layout to the 11 stages
-below (01-11) is lane H2's transition and is recorded in the map. Where the
+10-phase 0-9 layout; the reconciliation from that layout to the 13 stages
+on disk (00..12 under `scripts/doctor/`, 6 green, remaining KD-mapped) is
+lane H2's transition and is recorded in the map. Where the
 two disagree, THIS matrix is the target state.
 
 - Scope: PRD/ARD transcription of the operator's mandate for verification
@@ -108,7 +109,7 @@ Every stage command obeys one exit contract, no exceptions:
 
 Anything outside this set is a harness defect. CI keys on exit codes only.
 
-## 5. The 11-stage ladder
+## 5. The 13-stage ladder
 
 ```
 [01 doctor] -> [02 env] -> [03 storage] -> [04 types] -> [05 host-vfs]

@@ -118,10 +118,12 @@ invoking doctor phase script.
 
 ## Stage-to-artifact reconciliation (Wave 10, lane H4, 2026-10-19)
 
-The 11-stage ladder (operator spec; `docs/design/court-ladder-11.md`) is
-now formalized as the doctor stage matrix: 11 stages 00..10, one script
+The 13-stage ladder (operator spec; `docs/design/court-ladder-11.md`) is
+now formalized as the doctor stage matrix: 13 stages 00..12 (6 green at
+time of writing, remaining stages KD-mapped honest FAIL / loud
+NOT-IMPLEMENTED), one script
 per stage under `scripts/doctor/`, aggregated fail-closed by
-`scripts/doctor.sh` (11 phase banners 00..10). Old phase-N filenames map
+`scripts/doctor.sh` (13 phase banners 00..12). Old phase-N filenames map
 to new stage filenames as follows.
 
 | old phase-N | new stage file | stage role | standing on disk (2026-10-19) |

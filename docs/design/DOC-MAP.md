@@ -9,7 +9,7 @@ UNSUPPORTED); this map assigns ownership, not standing.
 
 | topic | canonical home | pointers in (reduced to pointer) |
 |---|---|---|
-| 11-stage court ladder (this repo's stage specs, laws L1-L4, COURT-x2) | `court-ladder-spec.md` | — |
+| 13-stage court ladder (this repo's stage specs, laws L1-L4, COURT-x2) | `court-ladder-spec.md` | — |
 | smalt 11-stage ladder mapping to this repo | `court-ladder-11.md` | — (DISAMBIGUATION: a *different* ladder — smalt sdk/sleep-gate stages mapped onto fd rungs. Same stage count, different content; not a duplicate of `court-ladder-spec.md`) |
 | doctor verification battery (TEST-001..025, phases 0-9, boundary law) | `doctor-verification-blueprint.md` | — |
 | doctor battery live landing state (what runs green today) | `doctor-implementation-map.md` | — |

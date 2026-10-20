@@ -179,7 +179,7 @@ citation would be unreceipted.)
 | revenue packs REV-001..004 | PASS / OBSERVED | DISPATCH-CITED |
 | fleet classes A-E | PASS + loud blocks | DISPATCH-CITED |
 | warehouse-sim courts + S-wave | PASS | mixed WITNESSED/DISPATCH-CITED |
-| doctor ladder | 6/11 + loud blocks | DISPATCH-CITED |
+| doctor ladder | 13-stage (6 green, remaining KD-mapped) | DISPATCH-CITED |
 | browser/OPFS (FR-01/FR-02) | BLOCKED | loud, never faked |
 | blueprint layer | PROPOSED | no court flipped (BP16) |
 | cost constants (sim) | ASSUMPTION-UNVERIFIED | counterfactual params |

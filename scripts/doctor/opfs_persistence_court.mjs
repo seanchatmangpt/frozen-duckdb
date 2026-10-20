@@ -63,17 +63,18 @@ const WORKER_SRC = String.raw`
 self.stage = (name) => self.postMessage({ kind: "stage", name });
 stage("boot");
 
-const out = [];
-const SQL_ARGS = ["-noinput", "-c",
+const kdc11_out = [];
+const kdc11_sql_args = ["-noinput", "-c",
   "CREATE TABLE t AS SELECT range(i) AS i, md5(i::VARCHAR) AS h FROM range(1000) tbl(i);" +
   "SELECT count(*) AS n, md5('kdc11-marker') AS marker_md5 FROM t;"];
 
 self.Module = {
   arguments: SQL_ARGS,
-  print: (s) => out.push(s),
-  printErr: (s) => out.push("E:" + s),
+  print: (s) => kdc11_out.push(s),
+  printErr: (s) => kdc11_out.push("E:" + s),
   onRuntimeInitialized: () => stage("runtime-initialized"),
 };
+const kdc11_main = async () => {
 try { importScripts("/wasm/duckdb.js"); stage("imported"); }
 catch (e) { self.postMessage({ kind: "error", where: "importScripts", message: String(e && e.message || e) }); throw e; }
 
@@ -89,34 +90,37 @@ const exportedFns = Object.keys(self.Module).filter(k => k.startsWith("_"));
 const result = {
   crossOriginIsolated: self.crossOriginIsolated,
   sab: typeof SharedArrayBuffer,
-  captured: out.slice(0, 40),
+  captured: kdc11_out.slice(0, 40),
   exportedFns: exportedFns.slice(0, 40),
   exportedFnCount: exportedFns.length,
   hasModuleFS: typeof self.Module.FS,
-  sqlOutputPresent: out.length > 0,
+  sqlOutputPresent: kdc11_out.length > 0,
 };
 try {
   // L3/L4 payload: court-owned marker bytes written via the platform OPFS
   // surface. w.close() is the flush point the crash lands just after.
-  const markerText = "KDC11-OPFS-PERSISTENCE-MARKER:" + new Date().toISOString();
-  const markerBytes = new TextEncoder().encode(markerText);
-  const root = await navigator.storage.getDirectory();
-  const fh = await root.getFileHandle("kdc11-marker.dat", { create: true });
-  const w = await fh.createWritable();
-  await w.write(markerBytes);
-  await w.close();
-  const dig = await crypto.subtle.digest("SHA-256", markerBytes);
+  const kdc11_markerText = "KDC11-OPFS-PERSISTENCE-MARKER:" + new Date().toISOString();
+  const kdc11_markerBytes = new TextEncoder().encode(kdc11_markerText);
+  const kdc11_root = await navigator.storage.getDirectory();
+  const fh = await kdc11_root.getFileHandle("kdc11-marker.dat", { create: true });
+  const kdc11_w = await fh.createWritable();
+  await kdc11_w.write(kdc11_markerBytes);
+  await kdc11_w.close();
+  const kdc11_dig = await crypto.subtle.digest("SHA-256", kdc11_markerBytes);
   result.opfsWrite = {
     ok: true,
-    bytes: markerBytes.length,
-    text: markerText,
-    sha256: [...new Uint8Array(dig)].map(b => b.toString(16).padStart(2, "0")).join(""),
+    bytes: kdc11_markerBytes.length,
+    text: kdc11_markerText,
+    sha256: [...new Uint8Array(kdc11_dig)].map(b => b.toString(16).padStart(2, "0")).join(""),
   };
 } catch (e) {
   result.opfsWrite = { ok: false, error: String(e && e.message || e) };
 }
 self.__kdc11_done = true;
 self.postMessage({ kind: "result", phase: "write", result });
+};
+
+kdc11_main().catch(e => self.postMessage({ kind: "error", where: "worker-main", message: String(e && e.message || e) }));
 
 self.onmessage = async (ev) => {
   if (ev.data !== "read-back") return;

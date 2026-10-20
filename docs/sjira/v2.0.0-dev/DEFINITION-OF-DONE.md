@@ -54,10 +54,10 @@ post-rebuild unless explicitly marked.
   - Evidence: X9 receipt; court
     `crates/frozen-duckdb/tests/oom_graceful_abort.rs` now run and
     receipted. Was PARTIAL_ALIVE (run not yet receipted).
-- [ ] **DOD-11 11-stage ladder live: 6/11 PASS, 3 loud-NI, 2 real-FAIL** —
+- [ ] **DOD-11 13-stage ladder live: 13-stage (6 green, remaining KD-mapped: 2 honest-KD FAIL, 4 loud-NI, 1 conditional)** —
   owner H2 — PARTIAL_ALIVE
   - Evidence: `scripts/doctor.sh` stage banners; H2 receipt. The
-    final-state 6/11 with loud blocks is the dispatched end state, not a
+    final-state 13-stage with loud blocks is the dispatched end state, not a
     shortfall — see DOD-12/16/17 for the blocked legs.
 - [ ] **DOD-12 Doctor + court-x2 wiring + fleet battery** — owners
   H2/H3/E4/T1-T5 — ALIVE

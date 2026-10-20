@@ -3,7 +3,7 @@ members = [
   "crates/frozen-duckdb",
   "crates/frozen-duckdb-builder",
   "crates/frozen-duckdb-sys",
-  "test-validation",
+  "test-validation", "u2-probe",
 ]
 resolver = "2"
 
@@ -27,7 +27,7 @@ zip = "9"
 version = "2.0.0-dev"
 authors = ["Sean Chatman"]
 edition = "2021"
-rust-version = "1.87"
+rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/seanchatmangpt/frozen-duckdb"
 homepage = "https://github.com/seanchatmangpt/frozen-duckdb"

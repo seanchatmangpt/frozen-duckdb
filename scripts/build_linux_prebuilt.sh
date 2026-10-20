@@ -34,16 +34,16 @@ docker run --name "$CTR" --platform linux/arm64 \
       git clone https://github.com/duckdb/duckdb.git /out/src
     fi
     cd /out/src && git checkout '"$PIN"'
-    if [ ! -f build/Makefile ]; then
-      apt-get update -qq && apt-get install -y -qq cmake make g++ libssl-dev >/dev/null
+    if ! grep -q "DISABLE_UNITY:BOOL=ON" build/CMakeCache.txt 2>/dev/null; then
       mkdir -p build && cd build
       cmake .. -DCMAKE_BUILD_TYPE=Release \
                -DBUILD_EXTENSIONS="'"$EXTS"'" \
                -DBUILD_JEMALLOC=ON \
-               -DBUILD_AUTOLOAD=ON
+               -DBUILD_AUTOLOAD=ON \
+               -DDISABLE_UNITY=ON
     fi
     cd /out/src/build
-    make -j2 duckdb
+    make -j4 duckdb
     find /out/src/build -name "libduckdb*.so" -print
     cp -v "$(find /out/src/build -name "libduckdb*.so" | head -1)" /out/libduckdb.so
     rm -rf /out/duckdb && mkdir -p /out/duckdb

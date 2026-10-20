@@ -34,7 +34,7 @@ Wave 14 final reconciliation, 2026-10-19).
 - **Stateful poll/pagination warehouse-sim** — KD-03/04 closed; journeys
   settle SUCCEEDED over real HTTP 4/4.
 - **13-stage doctor battery** — `just doctor`, stages 00–12, fail-closed;
-  currently 6/11 core stages green plus loud named blocks. Never a faked pass.
+  currently 13-stage (6 green, remaining KD-mapped) plus loud named blocks. Never a faked pass.
 - **Value-audit battery** — real cost-avoidance courts on live receipts
   (`receipts/val001..004.json`).
 
@@ -85,7 +85,7 @@ just doctor-quick  # preflight stage only
 just doctor-court  # dual-pass idempotence court (TEST-025)
 ```
 
-Witnessed state: 6/11 core stages green; stages 11/12 green on every
+Witnessed state: 13-stage (6 green, remaining KD-mapped); stages 11/12 green on every
 executable leg with loud named blocks where hardware/substrate is absent.
 Overall standing PARTIAL_ALIVE. Blocks are loud and named, never faked.
 
