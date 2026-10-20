@@ -68,7 +68,7 @@ STUB="${BUILD}/stub_main.c"
 cat > "${STUB}" <<'EOF2'
 int main(void) { return 0; }
 EOF2
-emcc "${STUB}" \
+em++ "${STUB}" \
   "${BUILD}/src/libduckdb_static.a" \
   "${BUILD}/extension/core_functions/libcore_functions_extension.a" \
   "${BUILD}/extension/icu/libicu_extension.a" \

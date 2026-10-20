@@ -41,10 +41,10 @@ if [ ! -f "$OUT/libduckdb.so" ]; then
     -DCMAKE_BUILD_TYPE=Release -DBUILD_SHELL=0 -DBUILD_UNITTESTS=0 \
     -DBUILD_PARQUET_EXTENSION=0 -DBUILD_TPCH_EXTENSION=0 \
     -DBUILD_TPCDS_EXTENSION=0 -DBUILD_JSON_EXTENSION=0 \
-    -DENABLE_SANITIZER=0 -DENABLE_UBSAN=0 \
+    -DENABLE_SANITIZER=0 -DENABLE_UBSAN=0 -DDISABLE_UNITY=1 \
     -DCMAKE_EXE_LINKER_FLAGS="-latomic" \
     -DCMAKE_SHARED_LINKER_FLAGS="-latomic"
-  cmake --build build --target duckdb -j "$(nproc)"
+  cmake --build build --target duckdb -j 2
   find build -name 'libduckdb.so' -exec cp {} "$OUT/" \;
 fi
 ls -l "$OUT/libduckdb.so"

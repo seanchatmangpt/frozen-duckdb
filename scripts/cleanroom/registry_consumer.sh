@@ -63,6 +63,7 @@ VENDOR_MODE=offline
 
 write_receipt() {
   local standing="$1" reason="$2" exit_code="$3"
+  reason="${reason//\"/\\\"}"
   cat >"$RECEIPT" <<EOF
 {
   "court": "registry-consumer-cleanroom",
