@@ -6,7 +6,7 @@
 # NOT-IMPLEMENTED (leg absent or zero tests executed — a filter that
 # matches nothing is NOT a pass).
 #
-# Wiring note: this stage is NOT wired into scripts/doctor.sh. The
+# Wiring note: this stage is now wired into scripts/doctor.sh PHASES (stage 11). The
 # doctor.sh PHASES array is an admitted transition owned by the
 # coordinator, applied after the Wave 12 lanes land — a lane does not
 # edit the aggregate.

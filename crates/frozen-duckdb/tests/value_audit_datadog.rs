@@ -23,9 +23,19 @@ use std::time::Instant;
 use frozen_duckdb::Connection;
 
 const EVENTS: usize = 500_000;
-const DB_PATH: &str = "/tmp/value_audit/val001.duckdb";
-const JSONL_PATH: &str = "/tmp/value_audit/val001-events.jsonl";
+// Per-run scratch paths (CG1 FILE-LOCK-COLLISION fix): concurrent court runs
+// must never share a DuckDB file. The final /tmp/value_audit/val001.json
+// receipt stays at its fixed coordination-surface path, written last.
 const RECEIPT_PATH: &str = "/tmp/value_audit/val001.json";
+
+fn scratch_path(name: &str) -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "value_audit_{}_datadog",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    dir.join(name)
+}
 
 /// The exact SQL filter that works on this engine (recorded per lane task).
 const FILTER_SQL: &str =
@@ -99,21 +109,23 @@ fn segment(
 #[test]
 fn value_audit_datadog_500k_variant_compression() {
     std::fs::create_dir_all("/tmp/value_audit").unwrap();
-    for p in [DB_PATH, JSONL_PATH, RECEIPT_PATH] {
+    let db_path = scratch_path("val001.duckdb");
+    let jsonl_path = scratch_path("val001-events.jsonl");
+    for p in [&db_path, &jsonl_path, std::path::Path::new(RECEIPT_PATH)] {
         let _ = std::fs::remove_file(p);
     }
 
     let ident = engine_identity();
     println!("engine dylib: {}", ident.dylib);
 
-    let conn = Connection::open(DB_PATH).expect("open db");
+    let conn = Connection::open(&db_path).expect("open db");
     conn.execute("CREATE TABLE logs(ts BIGINT, payload VARIANT)", [])
         .expect("VARIANT DDL accepted on this engine");
 
     // Generate once, write raw JSONL, insert through the VARIANT pipeline in
     // multi-row batches (single-row prepared executes measured ~3ms/row).
     let t_ins = Instant::now();
-    let mut raw = BufWriter::new(File::create(JSONL_PATH).unwrap());
+    let mut raw = BufWriter::new(File::create(&jsonl_path).unwrap());
     const BATCH: usize = 500;
     let mut sql = String::with_capacity(1 << 16);
     let mut done = 0usize;
@@ -142,15 +154,15 @@ fn value_audit_datadog_500k_variant_compression() {
     // Close the connection BEFORE measuring: the WAL is flushed into the db
     // file on close, so mid-run measurement under-counts footprint bytes.
     drop(conn);
-    let bytes_raw = std::fs::metadata(JSONL_PATH).unwrap().len();
-    let bytes_db = std::fs::metadata(DB_PATH).unwrap().len();
-    let bytes_wal = std::fs::metadata(format!("{DB_PATH}.wal"))
+    let bytes_raw = std::fs::metadata(&jsonl_path).unwrap().len();
+    let bytes_db = std::fs::metadata(&db_path).unwrap().len();
+    let bytes_wal = std::fs::metadata(format!("{}.wal", db_path.display()))
         .map(|m| m.len())
         .unwrap_or(0);
     let bytes_db_total = bytes_db + bytes_wal;
 
     // Selective filter on a fresh connection over the checkpointed db.
-    let conn2 = Connection::open(DB_PATH).expect("reopen db");
+    let conn2 = Connection::open(&db_path).expect("reopen db");
     let t_f = Instant::now();
     let hits: i64 = conn2
         .query_row(FILTER_SQL, [], |r| r.get(0))
@@ -162,9 +174,9 @@ fn value_audit_datadog_500k_variant_compression() {
     // Leg-2 footprint: the segment table lives in its own database file so
     // bytes_segments is measured on disk, not derived. The solo fold below
     // re-projects the identical events into seg_db.
-    let seg_db = "/tmp/value_audit/val001-segments.duckdb";
-    let _ = std::fs::remove_file(seg_db);
-    let conn4 = Connection::open(seg_db).expect("open segments-only db");
+    let seg_db = scratch_path("val001-segments.duckdb");
+    let _ = std::fs::remove_file(&seg_db);
+    let conn4 = Connection::open(&seg_db).expect("open segments-only db");
     conn4
         .execute(
             "CREATE TABLE ocel_conforming_segments(
@@ -224,8 +236,8 @@ fn value_audit_datadog_500k_variant_compression() {
         .expect("checkpoint segments");
     drop(conn4);
     let seg_insert_s = t_seg.elapsed().as_secs_f64();
-    let seg_bytes = std::fs::metadata(seg_db).unwrap().len();
-    let seg_wal = std::fs::metadata(format!("{seg_db}.wal"))
+    let seg_bytes = std::fs::metadata(&seg_db).unwrap().len();
+    let seg_wal = std::fs::metadata(format!("{}.wal", seg_db.display()))
         .map(|m| m.len())
         .unwrap_or(0);
     let bytes_segments = seg_bytes + seg_wal;

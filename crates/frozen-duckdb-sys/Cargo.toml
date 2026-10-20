@@ -1,16 +1,16 @@
 [package]
 name = "frozen-duckdb-sys"
 version.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-documentation.workspace = true
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
-description = "FFI bindings for frozen-duckdb mega-library"
+description = "Low-level FFI bindings to the DuckDB analytical database for frozen-duckdb"
 # Required so cargo:DUCKDB_LIB_DIR from the build script reaches dependents as
 # DEP_DUCKDB_DUCKDB_LIB_DIR, and to enforce a single linking duckdb provider
 links = "duckdb"

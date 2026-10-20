@@ -2,6 +2,7 @@
 name = "test-dependency"
 version = "0.1.0"
 edition = "2021"
+publish = false # SHIM-COURT lane PB1: path-only test crate, unpublishable
 
 [dependencies]
 frozen-duckdb = { path = "../crates/frozen-duckdb" }

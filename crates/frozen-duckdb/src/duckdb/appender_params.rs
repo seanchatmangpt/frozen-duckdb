@@ -52,7 +52,7 @@ use sealed::Sealed;
 ///   Unfortunately, in the current design it's not possible to allow this for
 ///   references to arrays of non-references (e.g. `&[1i32, 2, 3]`). Code like
 ///   this should instead either use `params!`, an array literal, a `&[&dyn
-///   ToSql]` or if none of those work, [`ParamsFromIter`].
+///   ToSql]` or if none of those work, [`AppenderParamsFromIter`].
 ///
 /// - As a slice of `ToSql` trait object references, e.g. `&[&dyn ToSql]`. This
 ///   is mostly useful for passing parameter lists around as arguments without
@@ -110,11 +110,11 @@ use sealed::Sealed;
 ///
 /// - Use a `&[&dyn ToSql]`, which is nice if you have one otherwise might be
 ///   annoying.
-/// - Use the [`ParamsFromIter`] type. This essentially lets you wrap an
-///   iterator some `T: ToSql` with something that implements `Params`.
+/// - Use the [`AppenderParamsFromIter`] type. This essentially lets you wrap an
+///   iterator some `T: ToSql` with something that implements `AppenderParams`.
 ///
 /// A lot of the considerations here are similar either way, so you should see
-/// the [`ParamsFromIter`] documentation for more info / examples.
+/// the [`AppenderParamsFromIter`] documentation for more info / examples.
 pub trait AppenderParams: Sealed {
     // XXX not public api, might not need to expose.
     //
@@ -178,9 +178,9 @@ impl_for_array_ref!(
 );
 
 /// Adapter type which allows any iterator over [`ToSql`] values to implement
-/// [`Params`].
+/// [`AppenderParams`].
 ///
-/// This struct is created by the [`params_from_iter`] function.
+/// This struct is created by the [`appender_params_from_iter`] function.
 ///
 /// This can be useful if you have something like an `&[String]` (of unknown
 /// length), and you want to use them with an API that wants something
@@ -214,7 +214,8 @@ impl_for_array_ref!(
 ///
 /// ## Realistic use case
 ///
-/// Here's how you'd use `ParamsFromIter` to call [`Statement::exists`] with a
+/// Here's how you'd use `ParamsFromIter` to call
+/// [`Statement::exists`](crate::duckdb::Statement::exists) with a
 /// dynamic number of parameters.
 ///
 /// ```rust,no_run
@@ -257,7 +258,7 @@ impl_for_array_ref!(
 /// production-ready:
 ///
 /// - production code should ensure `usernames` isn't so large that it will
-///   surpass [`conn.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)`][limits]),
+///   surpass `conn.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)`),
 ///   chunking if too large. (Note that the limits api requires duckdb to have
 ///   the "limits" feature).
 ///
@@ -266,8 +267,6 @@ impl_for_array_ref!(
 ///
 /// - Etc...
 ///
-/// [limits]: crate::duckdb::Connection::limit
-///
 /// This complexity reflects the fact that `ParamsFromIter` is mainly intended
 /// for advanced use cases — most of the time you should know how many
 /// parameters you have statically (and if you don't, you're either doing
@@ -275,7 +274,7 @@ impl_for_array_ref!(
 #[derive(Clone, Debug)]
 pub struct AppenderParamsFromIter<I>(I);
 
-/// Constructor function for a [`ParamsFromIter`]. See its documentation for
+/// Constructor function for a [`AppenderParamsFromIter`]. See its documentation for
 /// more.
 #[inline]
 pub fn appender_params_from_iter<I>(iter: I) -> AppenderParamsFromIter<I>

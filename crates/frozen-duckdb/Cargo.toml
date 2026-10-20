@@ -1,11 +1,11 @@
 [package]
 name = "frozen-duckdb"
 version.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-documentation.workspace = true
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
@@ -42,12 +42,18 @@ doctest = false
 [[bin]]
 name = "frozen-duckdb-cli"
 path = "src/main.rs"
+# PB10-F2: the CLI prints JSON output via serde_json; with the dep now
+# optional and NOT in default features, `cargo build`/`cargo install`
+# without `--features serde_json` skips this bin (silently, per cargo
+# semantics). Operators wanting the CLI: enable the feature.
+required-features = ["serde_json"]
 
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
 clap.workspace = true
-serde_json.workspace = true
+# PB10-F2: optional — compiled only when the `serde_json` feature is on
+serde_json = { workspace = true, optional = true }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tempfile.workspace = true
@@ -66,8 +72,13 @@ strum = { version = "0.27", features = ["derive"] }
 frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.0-dev" }
 
 [features]
-# Gates the FromSql/ToSql impls for serde_json::Value (src/duckdb/types/serde_json.rs)
-serde_json = []
+# PB10-F2: load-bearing — cfg(feature = "serde_json") at src/duckdb/types/mod.rs:20
+# gates the FromSql/ToSql impls for serde_json::Value (src/duckdb/types/serde_json.rs)
+# AND the optional dependency itself: with the feature off, consumers do not
+# compile serde_json through this crate at all. The vendored duckdb-rs
+# cfg(test) code does not touch serde_json outside the gated module; the CLI
+# bin is required-features-gated above.
+serde_json = ["dep:serde_json"]
 
 [dev-dependencies]
 # Used by vendored cfg(test) modules ported from duckdb-rs (do not churn)

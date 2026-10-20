@@ -799,7 +799,6 @@ dependencies = [
  "hashlink",
  "reqwest",
  "rust_decimal",
- "serde_json",
  "strum 0.27.2",
  "tempfile",
  "tracing",

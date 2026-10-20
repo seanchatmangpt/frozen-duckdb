@@ -11,6 +11,7 @@ use std::fs;
 use std::io::Read as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 const VERSION: &str = "2.0.0-dev";
@@ -84,6 +85,156 @@ fn release_asset_name(arch: &str) -> String {
     release_asset_name_for(target_os_name(), arch)
 }
 
+/// X3/T2/GAP15: exclusive build lock for the download/compile fallback.
+///
+/// Pattern (KD-09/BP4 lockfile): a create-exclusive `.build-lock` file
+/// carrying the holder's PID. A contender reads the PID; if the holder is
+/// dead the lock is STOLEN (removed, then re-raced). After acquiring, the
+/// cache is RE-CHECKED (double-checked locking): another process may have
+/// finished staging while we waited.
+///
+/// No external crates: exclusion via `OpenOptions::create_new`, liveness via
+/// `kill -0` (exit 0 = alive; EPERM-class failure also means alive — a live
+/// process we cannot signal is not a dead one).
+const BUILD_LOCK_FILE: &str = ".build-lock";
+
+/// True when `pid` names a live process on this host. Fail-closed: if we
+/// cannot determine liveness (kill spawn fails), report ALIVE so we never
+/// steal a possibly-live lock.
+#[cfg(unix)]
+fn pid_alive(pid: u32) -> bool {
+    let out = Command::new("kill").arg("-0").arg(pid.to_string()).output();
+    match out {
+        Ok(o) => {
+            if o.status.success() {
+                true
+            } else {
+                // EPERM: process exists but is not signalable by us.
+                let err = String::from_utf8_lossy(&o.stderr).to_lowercase();
+                o.status.code() != Some(1) || err.contains("operation not permitted")
+            }
+        }
+        // Cannot determine -> assume alive, never steal.
+        Err(_) => true,
+    }
+}
+
+#[cfg(not(unix))]
+fn pid_alive(_pid: u32) -> bool {
+    // Non-unix: no liveness info -> treat every existing lock as held.
+    true
+}
+
+/// How long a contended builder waits for the live holder to stage the cache
+/// before failing loudly. Bounds the lock to the documented compile envelope.
+const LOCK_WAIT_TIMEOUT: Duration = Duration::from_secs(90 * 60);
+
+/// Poll interval for the contended wait. Not a coordination sleep: this is
+/// the audited poll step over a real observable (trusted cache entry).
+/// SLEEP-CLASS: POLL-STEP
+const LOCK_POLL_INTERVAL: Duration = Duration::from_secs(2);
+
+/// Bounded poll for a trusted cache entry staged by the live lock holder.
+/// Returns `Ok(true)` when the entry appeared (caller serves it), `Ok(false)`
+/// on deadline. Poll re-checks the ENTRY ITSELF, not the lockfile — the
+/// holder may stage the entry and still hold the lock while finishing.
+fn wait_for_staged_entry(
+    versioned_cache: &Path,
+    binary_path: &Path,
+    arch: &str,
+    timeout: Duration,
+) -> Result<bool> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        if binary_path.exists()
+            && accept_cached_entry(versioned_cache, binary_path, arch, MIN_ENGINE_DYLIB_BYTES)?
+        {
+            return Ok(true);
+        }
+        if Instant::now() >= deadline {
+            return Ok(false);
+        }
+        std::thread::sleep(LOCK_POLL_INTERVAL);
+    }
+}
+
+/// An acquired exclusive build lock. Removing the lockfile on drop ONLY if
+/// it still carries our PID (a stolen-then-reacquired lockfile must never be
+/// deleted by the process that lost it).
+#[derive(Debug)]
+pub struct BuildLock {
+    lock_path: PathBuf,
+    pid: u32,
+}
+
+impl BuildLock {
+    /// Attempt to acquire the exclusive build lock at `versioned_cache/.build-lock`.
+    ///
+    /// `Ok(lock)` = we hold it. `Err` naming `LockHeld` = a LIVE holder exists;
+    /// caller treats this as a blocking condition (build.rs callers will wait on
+    /// the cache to appear; in-process callers serialize on this error).
+    pub fn acquire(versioned_cache: &Path) -> Result<Self> {
+        let lock_path = versioned_cache.join(BUILD_LOCK_FILE);
+        fs::create_dir_all(versioned_cache)
+            .with_context(|| format!("creating cache dir {}", versioned_cache.display()))?;
+        let pid = std::process::id();
+        loop {
+            match fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&lock_path)
+            {
+                Ok(mut f) => {
+                    use std::io::Write;
+                    writeln!(f, "{}", pid).context("writing build-lock pid")?;
+                    return Ok(BuildLock { lock_path, pid });
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                    // Stale detection: read the holder PID; steal if dead.
+                    let holder = fs::read_to_string(&lock_path)
+                        .ok()
+                        .and_then(|s| s.trim().parse::<u32>().ok());
+                    match holder {
+                        Some(h) if h == pid => {
+                            // We already hold it (reentrant) — treat as held.
+                            anyhow::bail!("build lock already held by this process (pid {})", pid);
+                        }
+                        Some(h) if pid_alive(h) => anyhow::bail!(
+                            "build lock held by live pid {} at {}",
+                            h,
+                            lock_path.display()
+                        ),
+                        _ => {
+                            // No readable PID or dead holder -> steal and re-race.
+                            info!(
+                                "stealing stale build lock at {} (holder dead or unparseable)",
+                                lock_path.display()
+                            );
+                            let _ = fs::remove_file(&lock_path);
+                            continue;
+                        }
+                    }
+                }
+                Err(e) => {
+                    return Err(e)
+                        .with_context(|| format!("creating build lock at {}", lock_path.display()))
+                }
+            }
+        }
+    }
+}
+
+impl Drop for BuildLock {
+    fn drop(&mut self) {
+        // Release only if the lockfile still names OUR pid (not a stolen one).
+        if let Ok(content) = fs::read_to_string(&self.lock_path) {
+            if content.trim() == self.pid.to_string() {
+                let _ = fs::remove_file(&self.lock_path);
+            }
+        }
+    }
+}
+
 /// Ensure the prebuilt DuckDB binary is available
 ///
 /// This function:
@@ -123,35 +274,86 @@ pub fn ensure_binary() -> Result<PathBuf> {
         copy_prebuilt_to_cache(&prebuilt_path, &binary_path)?;
         info!("Successfully set up prebuilt binary and headers");
     } else {
-        info!("No cached binary found at: {}", binary_path.display());
-        info!("Cache directory: {}", versioned_cache.display());
-
-        // Debug: show what's in the cache directory
-        if let Ok(entries) = fs::read_dir(&versioned_cache) {
-            info!("Versioned cache directory contents:");
-            for entry in entries.flatten() {
-                info!("  {}", entry.path().display());
+        // X3/T2/GAP15: enter the expensive fallback only under the exclusive
+        // build lock, then RE-CHECK the cache — a contender that was already
+        // compiling may have staged the entry while we waited for the lock.
+        let _lock = match BuildLock::acquire(&versioned_cache) {
+            Ok(l) => Some(l),
+            Err(_held) => {
+                // Contended: a live builder is staging this exact cache entry.
+                // Bounded poll on the real observable (a trusted cache entry
+                // appearing); fail loudly on deadline instead of double-compiling.
+                if wait_for_staged_entry(&versioned_cache, &binary_path, &arch, LOCK_WAIT_TIMEOUT)?
+                {
+                    info!(
+                        "Cache entry staged by another builder while waiting: {}",
+                        binary_path.display()
+                    );
+                    None
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "another builder (pid) holds the build lock at {} and no cache entry appeared within {:?}",
+                        versioned_cache.join(BUILD_LOCK_FILE).display(),
+                        LOCK_WAIT_TIMEOUT
+                    ))
+                    .context("DuckDB build lock contended; refusing to double-compile");
+                }
             }
+        };
+
+        let mut post_lock_hit = false;
+        if _lock.is_some() && binary_path.exists() {
+            post_lock_hit = accept_cached_entry(
+                &versioned_cache,
+                &binary_path,
+                &arch,
+                MIN_ENGINE_DYLIB_BYTES,
+            )?;
         }
+        if post_lock_hit {
+            info!(
+                "Cache entry staged by another process while waiting on build lock: {}",
+                binary_path.display()
+            );
+        } else if let Ok(prebuilt_path) = check_prebuilt_binary(&arch) {
+            verify_library_slice(&prebuilt_path, &arch)?;
+            info!(
+                "Found prebuilt binary, copying to cache: {}",
+                prebuilt_path.display()
+            );
+            copy_prebuilt_to_cache(&prebuilt_path, &binary_path)?;
+            info!("Successfully set up prebuilt binary and headers");
+        } else {
+            info!("No cached binary found at: {}", binary_path.display());
+            info!("Cache directory: {}", versioned_cache.display());
 
-        info!("Attempting to download...");
-
-        // Try to download from GitHub Release
-        match download_from_github_release(&versioned_cache, &arch) {
-            Ok(path) => {
-                info!(
-                    "Successfully downloaded frozen DuckDB binary: {}",
-                    path.display()
-                );
+            // Debug: show what's in the cache directory
+            if let Ok(entries) = fs::read_dir(&versioned_cache) {
+                info!("Versioned cache directory contents:");
+                for entry in entries.flatten() {
+                    info!("  {}", entry.path().display());
+                }
             }
-            Err(e) => {
-                warn!("Failed to download from GitHub Release: {}", e);
-                info!("Falling back to local compilation...");
 
-                // Fallback to local compilation
-                let path = compile_duckdb_locally(&versioned_cache, &arch)
-                    .context("Failed to compile DuckDB locally")?;
-                info!("Successfully compiled DuckDB binary: {}", path.display());
+            info!("Attempting to download...");
+
+            // Try to download from GitHub Release
+            match download_from_github_release(&versioned_cache, &arch) {
+                Ok(path) => {
+                    info!(
+                        "Successfully downloaded frozen DuckDB binary: {}",
+                        path.display()
+                    );
+                }
+                Err(e) => {
+                    warn!("Failed to download from GitHub Release: {}", e);
+                    info!("Falling back to local compilation...");
+
+                    // Fallback to local compilation
+                    let path = compile_duckdb_locally(&versioned_cache, &arch)
+                        .context("Failed to compile DuckDB locally")?;
+                    info!("Successfully compiled DuckDB binary: {}", path.display());
+                }
             }
         }
     }
@@ -231,6 +433,14 @@ fn accept_cached_entry(
                 versioned_cache.display()
             )
         })?;
+
+    // KD-15 self-heal: a cache written before the install-ID stamp existed is
+    // still accepted, then stamped in place (idempotent). Stamping changes the
+    // byte length, so the size pin is re-staged over the stamped bytes; the
+    // ENGINE_VERSION marker is untouched (already validated above).
+    if ensure_install_id(binary_path)? {
+        stage_library_size_pin(binary_path)?;
+    }
     Ok(true)
 }
 
@@ -330,6 +540,10 @@ fn copy_prebuilt_to_cache(prebuilt_path: &Path, cache_path: &Path) -> Result<()>
 
     // Copy headers as well
     copy_prebuilt_headers(cache_path)?;
+
+    // KD-15: stamp the install ID BEFORE the size pin so the pin covers the
+    // stamped bytes (install_name_tool + codesign change the length).
+    ensure_install_id(cache_path)?;
 
     // DT1 persist-order law: dylib -> `.size` pin -> ENGINE_VERSION marker.
     // The marker is the trust root and must land LAST, so a crash anywhere
@@ -582,6 +796,97 @@ fn verify_library_slice_for(
     }
 }
 
+/// KD-15 (LC_RPATH does not propagate cross-crate): a cached dylib whose
+/// Mach-O install ID is `@rpath/libduckdb.dylib` makes every consumer record
+/// `@rpath/libduckdb.dylib` in its LC_LOAD_DYLIB regardless of how the linker
+/// found the library, so a bare run dies with "no LC_RPATH's found". The fix
+/// is at the SOURCE of the ID: stamp the dylib's install ID to its absolute
+/// cache path (install_name_tool -id) and re-sign ad-hoc (codesign -f -s -).
+/// Consumers then record the absolute cache path and load without any rpath
+/// or DYLD env var. Idempotent: an already-stamped library is left untouched.
+/// Non-Mach-O payloads (unit-test fixtures) are skipped, not an error.
+#[cfg(target_os = "macos")]
+fn ensure_install_id(path: &Path) -> Result<bool> {
+    // Only stamp real Mach-O images: unit tests persist fake byte payloads
+    // through persist_verified_for, and install_name_tool would reject them.
+    let mut magic = [0u8; 4];
+    fs::File::open(path)
+        .and_then(|mut f| f.read_exact(&mut magic))
+        .with_context(|| {
+            format!(
+                "failed to read magic for install-ID check: {}",
+                path.display()
+            )
+        })?;
+    if !is_macho_magic(&magic) {
+        debug!("install-ID stamp skipped (not Mach-O): {}", path.display());
+        return Ok(false);
+    }
+
+    let wanted = fs::canonicalize(path)?;
+    let path_str = path.to_str().context("non-UTF8 path")?;
+    let wanted_str = wanted.to_str().context("non-UTF8 path")?;
+
+    let out = Command::new("otool")
+        .args(["-D", path_str])
+        .output()
+        .context("failed to run otool -D")?;
+    let current = String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .last()
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    if out.status.success() && current == wanted_str {
+        debug!("install-ID already stamped: {}", path.display());
+        return Ok(false);
+    }
+
+    let out = Command::new("install_name_tool")
+        .args(["-id", wanted_str, path_str])
+        .output()
+        .context("failed to run install_name_tool")?;
+    if !out.status.success() {
+        // Best-effort: a dylib linked without -headerpad_max_install_names has
+        // no room to grow its LC_ID_DYLIB (observed on minimal cc-built test
+        // fixtures; CMake-built DuckDB carries the padding). Serving an
+        // unstamped library only re-opens KD-15 for consumers (they need an
+        // rpath or DYLD_LIBRARY_PATH again) — it must not brick the build, so
+        // warn loudly and leave the library untouched.
+        warn!(
+            "KD-15 install-ID stamp UNSUCCESSFUL on {} (consumers will need an              rpath or DYLD_LIBRARY_PATH): {}",
+            path.display(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+        return Ok(false);
+    }
+    // install_name_tool invalidates the existing code signature; re-sign
+    // ad-hoc so the loader accepts the modified image.
+    let out = Command::new("codesign")
+        .args(["--force", "--sign", "-", path_str])
+        .output()
+        .context("failed to run codesign")?;
+    if !out.status.success() {
+        anyhow::bail!(
+            "codesign ad-hoc re-sign failed on {} (KD-15 stamp): {}",
+            path.display(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+    }
+    info!(
+        "install-ID stamped to {}: {}",
+        wanted.display(),
+        path.display()
+    );
+    Ok(true)
+}
+
+/// Non-macOS: the LC_ID_DYLIB/@rpath mechanism does not exist; nothing to stamp.
+#[cfg(not(target_os = "macos"))]
+fn ensure_install_id(_path: &Path) -> Result<bool> {
+    Ok(false)
+}
+
 /// Host-platform form of [`verify_library_slice_for`]; an unverifiable
 /// check is logged, a mismatch or unreadable library is an error.
 fn verify_library_slice(path: &Path, arch: &str) -> Result<()> {
@@ -754,6 +1059,8 @@ fn persist_verified_for(
         let _ = fs::remove_file(dest);
         return Err(e.context("refusing to cache downloaded binary"));
     }
+    // KD-15: stamp before the size pin so the pin covers the stamped bytes.
+    ensure_install_id(dest)?;
     if let Some(versioned_cache) = dest.parent() {
         stage_library_size_pin(dest)?;
         stage_engine_marker(versioned_cache)?;
@@ -963,6 +1270,8 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     }
 
     info!("Compiled DuckDB binary to: {}", binary_path.display());
+    // KD-15: stamp before the size pin so the pin covers the stamped bytes.
+    ensure_install_id(&binary_path)?;
     stage_library_size_pin(&binary_path)?;
     stage_engine_marker(cache_dir)?;
     Ok(binary_path)
@@ -1273,8 +1582,12 @@ mod tests {
         for a in archs {
             cc.args(["-arch", a]);
         }
+        // -headerpad_max_install_names: leave room for install_name_tool -id
+        // to grow the LC_ID_DYLIB (KD-15 stamp path is exercised on these
+        // fixtures by persist/accept courts).
         let status = cc
             .arg("-dynamiclib")
+            .args(["-Wl,-headerpad_max_install_names"])
             .arg("-o")
             .arg(&out)
             .arg(&src)
@@ -1435,7 +1748,26 @@ mod tests {
         let good = get_binary_path(tmp.path(), "arm64");
         persist_verified_for("macos", &bytes, &good, "arm64", 1).unwrap();
         persist_verified_for("macos", &bytes, &good, "arm64", 1).unwrap();
-        assert_eq!(fs::read(&good).unwrap(), bytes);
+        // KD-15: the persisted bytes are the DELIVERED payload with the
+        // install ID stamped to the cache path (and re-signed), so byte
+        // equality with the payload no longer holds. What must hold:
+        // idempotence across duplicate delivery, and a stamped install ID.
+        let persisted = fs::read(&good).unwrap();
+        assert_eq!(persisted.len(), fs::metadata(&good).unwrap().len() as usize);
+        let id = Command::new("otool")
+            .args(["-D", good.to_str().unwrap()])
+            .output()
+            .unwrap();
+        assert!(
+            String::from_utf8_lossy(&id.stdout)
+                .lines()
+                .last()
+                .unwrap_or("")
+                .trim()
+                == good.canonicalize().unwrap().to_str().unwrap(),
+            "persisted dylib install ID must be its own cache path, got {:?}",
+            String::from_utf8_lossy(&id.stdout)
+        );
         // A 404 body delivered as the asset is refused and removed too.
         let html = get_binary_path(tmp.path(), "arm64-html");
         assert!(persist_verified_for("macos", b"<html>404</html>", &html, "arm64", 1).is_err());
@@ -2318,5 +2650,156 @@ mod tests {
             "unexpected SERVE count: {}",
             served
         );
+    }
+
+    // ===== X3/T2/GAP15 build-lock court =====
+    // Lock primitives tested directly against real processes and real files.
+
+    fn live_foreign_pid(dir: &Path) -> Option<u32> {
+        // A real, genuinely live foreign process (not self, not reaped).
+        let child = Command::new("sleep").arg("5").spawn().ok()?;
+        let pid = child.id();
+        // Dropping Child stops tracking but does NOT kill the process; a
+        // detached reaper thread reaps it after it exits so no zombie lingers.
+        std::thread::spawn(move || {
+            let mut child = child;
+            let _ = child.wait();
+        });
+        let _ = dir;
+        Some(pid)
+    }
+
+    #[test]
+    fn lock_acquire_write_release_roundtrip() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path().join("entry");
+        let lock = BuildLock::acquire(&cache).unwrap();
+        let lock_path = cache.join(".build-lock");
+        assert!(lock_path.exists());
+        assert_eq!(
+            fs::read_to_string(&lock_path).unwrap().trim(),
+            std::process::id().to_string()
+        );
+        drop(lock);
+        assert!(!lock_path.exists(), "release must remove the lockfile");
+    }
+
+    #[test]
+    fn lock_held_blocks_second_acquire() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path().join("entry");
+        let _held = BuildLock::acquire(&cache).unwrap();
+        // Same-pid reentrancy is refused (not silently re-granted).
+        let err = BuildLock::acquire(&cache).unwrap_err();
+        assert!(
+            format!("{}", err).contains("already held by this process"),
+            "{}",
+            err
+        );
+    }
+
+    #[test]
+    fn lock_blocks_on_live_foreign_holder() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path().join("entry");
+        let lock_path = cache.join(".build-lock");
+        fs::create_dir_all(&cache).unwrap();
+        let pid = live_foreign_pid(tmp.path()).expect("spawn live holder");
+        fs::write(&lock_path, format!("{}\n", pid)).unwrap();
+        let err = BuildLock::acquire(&cache).unwrap_err();
+        assert!(format!("{}", err).contains("live pid"), "{}", err);
+        // The live holder's lockfile survives the refused acquisition.
+        assert!(lock_path.exists());
+    }
+
+    #[test]
+    fn lock_steals_dead_holder() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path().join("entry");
+        let lock_path = cache.join(".build-lock");
+        fs::create_dir_all(&cache).unwrap();
+        // A genuinely dead PID: spawn a process, reap it, record its pid.
+        let out = Command::new("true").status().unwrap();
+        assert!(out.success());
+        // `true`'s pid is unrecoverable from status(); write a pid that is
+        // guaranteed dead by reaping a child we spawned explicitly.
+        let mut child = Command::new("true").spawn().unwrap();
+        let dead = child.id();
+        child.wait().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let _ = out;
+        fs::write(&lock_path, format!("{}\n", dead)).unwrap();
+        let _lock = BuildLock::acquire(&cache).unwrap();
+        // Lockfile now carries OUR pid: stolen and re-raced.
+        assert_eq!(
+            fs::read_to_string(&lock_path).unwrap().trim(),
+            std::process::id().to_string()
+        );
+    }
+
+    #[test]
+    fn lock_steals_unparseable_lockfile() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path().join("entry");
+        let lock_path = cache.join(".build-lock");
+        fs::create_dir_all(&cache).unwrap();
+        fs::write(&lock_path, b"not-a-pid\n").unwrap();
+        let _lock = BuildLock::acquire(&cache).unwrap();
+        assert_eq!(
+            fs::read_to_string(&lock_path).unwrap().trim(),
+            std::process::id().to_string()
+        );
+    }
+
+    #[test]
+    fn lock_drop_never_deletes_foreign_lockfile() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path().join("entry");
+        let lock_path = cache.join(".build-lock");
+        let lock = BuildLock::acquire(&cache).unwrap();
+        // Simulate a steal: a foreign holder overwrote the file.
+        let foreign = live_foreign_pid(tmp.path()).unwrap();
+        fs::write(&lock_path, format!("{}\n", foreign)).unwrap();
+        drop(lock);
+        assert!(lock_path.exists(), "foreign lockfile must survive our drop");
+    }
+
+    #[test]
+    fn pid_alive_court() {
+        // Real observables: self is alive; a reaped child is dead.
+        assert!(pid_alive(std::process::id()));
+        let mut child = Command::new("true").spawn().unwrap();
+        let dead = child.id();
+        child.wait().unwrap();
+        assert!(!pid_alive(dead));
+    }
+
+    #[test]
+    fn wait_for_staged_entry_poll_semantics() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cache = tmp.path().join("entry");
+        fs::create_dir_all(&cache).unwrap();
+        let binary = get_binary_path(&cache, "arm64");
+
+        // MISS + zero timeout -> Ok(false) without a single poll sleep.
+        let started = Instant::now();
+        let hit = wait_for_staged_entry(&cache, &binary, "arm64", Duration::ZERO).unwrap();
+        assert!(!hit);
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "deadline check must precede any poll sleep"
+        );
+
+        // Stage a TRUSTED entry (marker + size pin + slice-verifying dylib
+        // above the production floor) -> Ok(true) immediately.
+        let Some(dylib) = real_dylib_above_production_floor(tmp.path(), "wd.dylib") else {
+            eprintln!("SKIP wait_for_staged_entry_poll_semantics: no arm64 cc");
+            return;
+        };
+        let bytes = fs::read(&dylib).unwrap();
+        persist_verified_for("macos", &bytes, &binary, "arm64", MIN_ENGINE_DYLIB_BYTES).unwrap();
+        stage_engine_marker(&cache).unwrap();
+        let hit = wait_for_staged_entry(&cache, &binary, "arm64", Duration::ZERO).unwrap();
+        assert!(hit);
     }
 }

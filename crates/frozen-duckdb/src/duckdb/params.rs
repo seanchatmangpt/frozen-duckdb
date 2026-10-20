@@ -257,7 +257,7 @@ impl_for_array_ref!(
 /// production-ready:
 ///
 /// - production code should ensure `usernames` isn't so large that it will
-///   surpass [`conn.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)`][limits]),
+///   surpass `conn.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)`),
 ///   chunking if too large. (Note that the limits api requires duckdb to have
 ///   the "limits" feature).
 ///
@@ -265,8 +265,6 @@ impl_for_array_ref!(
 ///   a String.
 ///
 /// - Etc...
-///
-/// [limits]: crate::duckdb::Connection::limit
 ///
 /// This complexity reflects the fact that `ParamsFromIter` is mainly intended
 /// for advanced use cases — most of the time you should know how many

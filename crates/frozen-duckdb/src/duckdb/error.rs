@@ -48,7 +48,7 @@ pub enum Error {
     QueryReturnedNoRows,
 
     /// Error when a query that was expected to return only one row (e.g.,
-    /// for [`query_one`](crate::duckdb::Connection::query_one)) did return more than one.
+    /// for [`query_one`](crate::duckdb::Statement::query_one)) did return more than one.
     QueryReturnedMoreThanOneRow,
 
     /// Error when the value of a particular column is requested, but the index

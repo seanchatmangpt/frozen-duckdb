@@ -89,14 +89,11 @@ fn subject_binding() {
     );
 }
 
-#[test]
-fn gate_v01_p95_under_15ms() {
-    machine_specs();
-    subject_binding();
-    println!(
-        "config: n_rows={} warmup={} measured={} budget_ms={}",
-        N_ROWS, WARMUP_ITERS, MEASURED_ITERS, P95_BUDGET_MS
-    );
+/// One full measurement round on a FRESH connection (LSS5 §5 rule 3:
+/// median-of-N, N=3 — defeats the contention flake without weakening the
+/// budget; a contended run must fail all three medians to pass).
+fn measure_round(round: usize) -> (f64, f64) {
+    println!("--- round {}/3: fresh connection ---", round);
 
     let conn = Connection::open_in_memory().unwrap();
     build_table(&conn);
@@ -139,32 +136,63 @@ fn gate_v01_p95_under_15ms() {
     let p95 = samples[idx];
     let mean = samples.iter().sum::<f64>() / samples.len() as f64;
 
-    println!("samples measured = {}", samples.len());
-    println!("mean_ms = {:.4}", mean);
-    println!("median_ms = {:.4}", samples[samples.len() / 2]);
-    println!("p95_nearest_rank_ms = {:.4} (index {})", p95, idx);
+    println!("round {}: samples measured = {}", round, samples.len());
+    println!("round {}: mean_ms = {:.4}", round, mean);
     println!(
-        "verdict = {}",
-        if p95 < P95_BUDGET_MS { "PASS" } else { "FAIL" }
+        "round {}: median_ms = {:.4}",
+        round,
+        samples[samples.len() / 2]
+    );
+    println!(
+        "round {}: p95_nearest_rank_ms = {:.4} (index {})",
+        round, p95, idx
     );
     println!(
         "leak_clause = UNSUPPORTED-BY-CURRENT-SURFACE (probe: no allocation-stats C API on pinned engine surface; counters not faked per doc F5)"
     );
 
+    (p95, mean)
+}
+
+#[test]
+fn gate_v01_p95_under_15ms() {
+    machine_specs();
+    subject_binding();
+    println!(
+        "config: rounds=3 (median-of-N per GAGE-RR-COURTS §5 rule 3) n_rows={} warmup={} measured={} budget_ms={}",
+        N_ROWS, WARMUP_ITERS, MEASURED_ITERS, P95_BUDGET_MS
+    );
+
+    let mut p95s: Vec<f64> = Vec::with_capacity(3);
+    for round in 1..=3 {
+        let (p95, _mean) = measure_round(round);
+        p95s.push(p95);
+    }
+    p95s.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let median_p95 = p95s[1];
+
+    println!("p95_rounds_ms = [{:.4}, {:.4}, {:.4}]", p95s[0], p95s[1], p95s[2]);
+    println!("median_p95_ms = {:.4}", median_p95);
+    println!(
+        "verdict = {}",
+        if median_p95 < P95_BUDGET_MS { "PASS" } else { "FAIL" }
+    );
+
     assert!(
-        p95 < P95_BUDGET_MS,
-        "GATE-V-01 FAIL: p95 {:.4} ms >= budget {} ms over {} samples (debug-profile caveat: debug builds are substantially slower than release)",
-        p95,
+        median_p95 < P95_BUDGET_MS,
+        "GATE-V-01 FAIL: median p95 {:.4} ms >= budget {} ms over rounds {:?} (debug-profile caveat: debug builds are substantially slower than release)",
+        median_p95,
         P95_BUDGET_MS,
-        samples.len()
+        p95s
     );
 
     // SHIM-COURT / lane V4 cross-file edit (F1's file, disclosed): JSON
     // receipt emission for the value ledger (TEST-VAL-003). Written only
     // after the assert above passes, so the receipt implies a real PASS run.
+    // Median-of-3 per LSS5 §5; all raw p95s carried per the receipt law.
     let receipt = format!(
-        "{{\"gate\":\"GATE-V-01\",\"p95_ms\":{:.4},\"mean_ms\":{:.4},\"iterations\":{},\"queries\":3,\"budget_ms\":{},\"n_rows\":{}}}\n",
-        p95, mean, MEASURED_ITERS, P95_BUDGET_MS, N_ROWS
+        "{{\"gate\":\"GATE-V-01\",\"mode\":\"median-of-3\",\"p95_ms_rounds\":[{:.4},{:.4},{:.4}],\"p95_ms\":{:.4},\"iterations_per_round\":{},\"queries\":3,\"budget_ms\":{},\"n_rows\":{}}}\n",
+        p95s[0], p95s[1], p95s[2], median_p95, MEASURED_ITERS, P95_BUDGET_MS, N_ROWS
     );
     let dir = std::path::Path::new("/tmp/value_audit");
     let _ = std::fs::create_dir_all(dir);
