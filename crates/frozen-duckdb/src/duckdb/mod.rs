@@ -140,6 +140,8 @@ mod extension;
 pub mod types;
 /// The duckdb table function interface
 #[cfg(feature = "vtab")]
+pub mod host_vfs;
+#[cfg(feature = "vtab")]
 pub mod vtab;
 
 /// The duckdb scalar function interface
