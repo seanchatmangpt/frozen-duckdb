@@ -171,11 +171,18 @@ fn gate_v01_p95_under_15ms() {
     p95s.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let median_p95 = p95s[1];
 
-    println!("p95_rounds_ms = [{:.4}, {:.4}, {:.4}]", p95s[0], p95s[1], p95s[2]);
+    println!(
+        "p95_rounds_ms = [{:.4}, {:.4}, {:.4}]",
+        p95s[0], p95s[1], p95s[2]
+    );
     println!("median_p95_ms = {:.4}", median_p95);
     println!(
         "verdict = {}",
-        if median_p95 < P95_BUDGET_MS { "PASS" } else { "FAIL" }
+        if median_p95 < P95_BUDGET_MS {
+            "PASS"
+        } else {
+            "FAIL"
+        }
     );
 
     assert!(

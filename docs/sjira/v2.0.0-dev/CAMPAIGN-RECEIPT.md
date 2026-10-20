@@ -380,3 +380,63 @@ WITNESSED. Lines ≤100 chars.
 | browser/OPFS (FR-01/FR-02) | BLOCKED | loud, never faked |
 | blueprint layer | PROPOSED | no court flipped (BP16) |
 | cost constants (sim) | ASSUMPTION-UNVERIFIED | counterfactual params |
+
+## Release-prep wave (REL13, 2026-10-19) — final residues
+
+Facts only; statuses as found on disk at read time. No lane-claimed
+PASS is upgraded by this entry; WITNESSED means this lane ran the probe
+itself this pass.
+
+### Standing corrections (KD register)
+
+- **KD-01 (native dylib symbol table)**: demangled census corrected to
+  **27,682** C++-mangled `__Z*` T exports — the prior "21" was an
+  audit-regex artifact in `bin_audit` (only `__ZZ` local symbols
+  matched). Source: `nm -gU … | grep -cE 'T[[:space:]]*__Z'` -> 27682;
+  `strip -x` no-op on exports (LC_DYLD_EXPORTS_TRIE). Receipt:
+  `receipts/ADV3-export-fence.md` (WITNESSED by ADV3, cited here).
+- **KD-09 (Class B cgroup)**: docker-closed. `KNOWN_DIVERGENCES.md`
+  KD-09 row now carries the DOCKER1 container leg: RSS HELD under hard
+  `--memory 128m`, exit 0; 32MB negative control exit 137 (kernel limit
+  binds; virtualized-kernel caveat recorded). Row standing
+  PARTIAL_ALIVE; `scripts/doctor/docker_low_ram_runner.sh` +
+  `Dockerfile.lowram` on disk.
+- **KD-15 (consumer @rpath)**: macOS-closed. install-ID stamp at the
+  cache persist layer + self-heal in `accept_cached_entry`; builder
+  43/43 green; live cache stamped in place, pin re-staged. Linux
+  remains UNVERIFIED (ELF has no LC_ID_DYLIB; stamp is a no-op there).
+  Receipt: `receipts/ADV9-rpath.md`.
+
+### REL lane deliverables — status at read time
+
+- REL5 Windows feasibility table: LANDED —
+  `receipts/REL5-windows.md`. Key findings: upstream v1.5.5 DOES ship
+  Windows prebuilts (`libduckdb-windows-{amd64,arm64}.zip`, live API
+  probe exit 0); builder naming law already maps windows -> `.dll`
+  (unit-tested); `verify_library_slice_for` is macOS-only and degrades
+  to Unverifiable elsewhere (honest, disclosed).
+- REL6 Linux .so candidate: **IN-FLIGHT** —
+  `scripts/build_linux_prebuilt.sh` on disk (linux/arm64 container
+  build from pin `b6013f7`, colima/docker); `/tmp/rel6` exists and is
+  EMPTY; no `rel6-duckdb-build` container present. No `.so` artifact,
+  no build receipt at read time.
+- REL7 CI Linux leg proposal: landed as a diff —
+  `.github/workflows/build-binaries.yml` carries `build-binaries-linux`
+  (job + artifact upload `libduckdb_${arch}-linux`, wiring into the
+  publish job via `needs`); modified-not-committed at read time.
+- REL8 asset checklist extension: landed as a diff —
+  `scripts/verify_release_assets.sh` carries the +74-line extension;
+  modified-not-committed at read time.
+- REL9 release-notes pattern alignment:
+  `RELEASE-NOTES-2.0.0.md` landed, follows the standing pattern
+  (prerelease channel + upstream pin `b6013f7`, PARTIAL_ALIVE framing,
+  every claim naming its receipt; DISPATCH-CITED numbers cited from the
+  Wave 14 roll-up).
+- REL1-REL3 (builder/sys/API re-witnesses), REL4 (consolidated test
+  plan), REL10 (known-limitations doc), REL11 (pre-flight re-run):
+  statuses as found — no receipts under `receipts/` matching these
+  lanes at read time; recorded IN-FLIGHT, owned by their lanes.
+- Wave 16 standing: PARTIAL_ALIVE — Windows table + release notes +
+  CI/checklist diffs landed; Linux .so candidate and the remaining
+  REL lanes IN-FLIGHT; three KD standing corrections on record with
+  receipts cited.

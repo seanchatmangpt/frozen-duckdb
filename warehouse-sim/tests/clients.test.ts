@@ -97,9 +97,9 @@ test("concurrent clients: interleaved handles, no cross-talk", async () => {
 
 test("error propagation: client surfaces the sim's route-failure envelope", async () => {
   // Drive the REAL route with a malformed body (what a corrupted payload
-  // would look like on the wire); the handler rejects exactly as Next would,
-  // and the transport surfaces the 500 envelope. The client must propagate
-  // it as a typed WarehouseError, never fake a 202.
+  // would look like on the wire); the AD2 typed-400 closure means the handler
+  // now returns a typed 400 invalid_request envelope (never an unhandled 500).
+  // The client must propagate it as a typed WarehouseError, never fake a 202.
   const transport: FetchLike = async (input, init) => {
     const broken = new Request(new URL(input, ORIGIN), {
       method: "POST",
@@ -119,7 +119,8 @@ test("error propagation: client surfaces the sim's route-failure envelope", asyn
   await assert.rejects(
     strict.submit("SELECT 1"),
     (err: WarehouseError) => {
-      assert.match(err.message, /expected 202, got 500/);
+      assert.match(err.message, /expected 202, got 400/);
+      assert.equal(err.envelope.error, "invalid_request", "envelope must be the route's typed 400");
       assert.ok("error" in err.envelope, "envelope must carry the sim's error field");
       return true;
     },

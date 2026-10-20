@@ -16,6 +16,8 @@ if [[ -z "$TAG" ]]; then
 fi
 
 EXPECTED_ASSETS=(libduckdb_arm64.dylib libduckdb_x86_64.dylib)
+OPTIONAL_ASSETS=(libduckdb_linux_arm64.so)   # REL6 Linux arm64 — accept-and-verify, never required
+BANNED_ATOM='libfrozen_mega_'                # mega-library leftovers never ship as release assets
 MAX_BYTES=$((55 * 1024 * 1024))   # strip -x size ceiling: 55 MiB
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/verify_release_assets.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
@@ -55,6 +57,78 @@ for name in "${actual[@]:-}"; do
     breach "unexpected extra asset: $name"
   fi
 done
+
+# ---------------------------------------------------------------------------
+# 1b. No libfrozen_mega_* leftovers on the release asset list (REHEARSAL law).
+# ---------------------------------------------------------------------------
+for name in "${actual[@]:-}"; do
+  [[ -z "$name" ]] && continue
+  case "$name" in
+    libfrozen_mega_*)
+      breach "asset '$name' is a $BANNED_ATOM* mega-library leftover — must never ship"
+      ;;
+  esac
+done
+note "no ${BANNED_ATOM}* leftovers on asset list (checked ${#actual[@]} names)"
+
+# ---------------------------------------------------------------------------
+# 1c. Optional Linux arm64 asset (REL6): accept-and-verify if present.
+#     Its presence is NOT required; if shipped it must download and be nonempty.
+# ---------------------------------------------------------------------------
+for name in "${OPTIONAL_ASSETS[@]}"; do
+  if [[ " ${actual[*]:-} " == *" $name "* ]]; then
+    dl="$WORK/$name"
+    if gh release download "$TAG" --pattern "$name" --dir "$WORK" --clobber >/dev/null 2>&1 \
+       && [[ -s "$dl" ]]; then
+      bytes="$(stat -f%z "$dl")"
+      note "optional $name present: verified download, $bytes bytes"
+      printf 'optional  %s  bytes=%s\n' "$name" "$bytes" >>"$WORK/optional-assets.txt" || true
+    else
+      breach "optional asset '$name' listed but download failed or empty file"
+    fi
+  else
+    note "optional $name absent from release (REL6) — accepted, not required"
+  fi
+done
+
+# ---------------------------------------------------------------------------
+# 1d. Cache-population check: post-download cache for this tag must carry the
+#     duckdb/ headers + libduckdb.dylib. Absent cache = loud informational note
+#     (populated on this machine by first consumer build, not by this harness);
+#     present-but-incomplete cache = breach.
+# ---------------------------------------------------------------------------
+cache_root="${HOME}/.frozen-duckdb/cache"
+cache_hits=0
+for name in "${EXPECTED_ASSETS[@]}"; do
+  arch="${name#libduckdb_}"; arch="${arch%.dylib}"
+  cdir="$cache_root/${TAG#v}-${arch}"
+  if [[ -d "$cdir" ]]; then
+    cache_hits=$((cache_hits + 1))
+    for req in duckdb/duckdb.h duckdb/duckdb.hpp libduckdb.dylib; do
+      [[ -e "$cdir/$req" ]] || breach "cache $cdir missing required artifact: $req"
+    done
+    note "cache $cdir populated (duckdb/ headers + libduckdb.dylib verified)"
+  fi
+done
+if (( cache_hits == 0 )); then
+  note "cache $cache_root/${TAG#v}-<arch> not populated on this machine — informational (first consumer build populates it)"
+fi
+
+# ---------------------------------------------------------------------------
+# 1e. Clean-machine smoke step reference: print the exact checklist commands a
+#     clean machine must run (no DYLD_LIBRARY_PATH — the dylib embeds its rpath).
+# ---------------------------------------------------------------------------
+note "clean-machine smoke checklist (REL11):"
+cat <<'SMOKE'
+  cd "$(mktemp -d)" && cargo new smoke && cd smoke
+  cargo add frozen-duckdb --path <repo>/crates/frozen-duckdb   # or crates.io pin post-publish
+  cat > src/main.rs <<'EOF'
+fn main() { let db = frozen_duckdb::Connection::open_in_memory().unwrap();
+            println!("smoke: {}", frozen_duckdb::version()); }
+EOF
+  env -u DYLD_LIBRARY_PATH cargo run   # must link + run with NO DYLD_LIBRARY_PATH
+SMOKE
+note "smoke checklist printed — operator runs it on a clean machine; harness asserts the asset prerequisites"
 
 # ---------------------------------------------------------------------------
 # 2. Per-asset: real download -> Mach-O arch -> strip -x size -> ENGINE -> sha256

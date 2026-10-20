@@ -353,8 +353,17 @@ set -e
 BUILD_SECONDS="$(($(date +%s) - BUILD_START))"
 printf '%s\n' "$BUILD_OUT" >>"$LOG"
 
-grep -q "Using prebuilt DuckDB binary" <<<"$BUILD_OUT" \
-  || fail "build log missing 'Using prebuilt DuckDB binary' — compile fallback suspected"
+# Zero-compile evidence: cargo does NOT surface cargo:warning lines from
+# dependency (non-workspace) build scripts on stdout (ACT1's path-dep build
+# showed them; registry-shaped builds do not). Read the build script's own
+# `output` file instead — stronger anyway: it proves BOTH the prebuilt line
+# AND that link-search points at the pre-seeded scratch cache dir.
+SYS_OUTPUT="$(find "$CARGO_TARGET_DIR/debug/build" -maxdepth 2 -path '*frozen-duckdb-sys-*/output' 2>/dev/null | head -1)"
+[[ -n "$SYS_OUTPUT" ]] || fail "frozen-duckdb-sys build script output file not found under $CARGO_TARGET_DIR/debug/build"
+grep -q "Using prebuilt DuckDB binary" "$SYS_OUTPUT" \
+  || fail "build script output missing 'Using prebuilt DuckDB binary' — compile fallback suspected"
+grep -q "rustc-link-search=native=$CACHE_DST" "$SYS_OUTPUT" \
+  || fail "build script link-search does not point at the pre-seeded cache dir ($CACHE_DST) — compile fallback suspected"
 PREBUILT_LINE_SEEN=true
 [[ $BUILD_STATUS -eq 0 ]] || fail "cargo build exit=$BUILD_STATUS in ${BUILD_SECONDS}s"
 log "cargo build exit=0 in ${BUILD_SECONDS}s (prebuilt log line present, zero compile)"

@@ -47,6 +47,8 @@ if true; then
     -DBUILD_HTTPFS=OFF \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_HAVE_LIBC_PTHREAD=1 \
+    -DDUCKDB_NO_THREADS=1 \
+    -DDUCKDB_NO_THREADS_DEPENDENCY_MANAGEMENT=1 \
     2>&1 | tail -25 || fail "emcmake configure failed"
 else
   log "reusing configured ${BUILD}"
@@ -70,7 +72,7 @@ emcc "${STUB}" \
   "${BUILD}/src/libduckdb_static.a" \
   "${BUILD}/extension/core_functions/libcore_functions_extension.a" \
   "${BUILD}/extension/icu/libicu_extension.a" \
-  -O3 -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=0 -sENVIRONMENT=node \
+  -O3 -sALLOW_MEMORY_GROWTH=1 -sENVIRONMENT=node \
   -sEXPORTED_FUNCTIONS=[_main,_duckdb_library_version,_duckdb_free,_duckdb_open,_duckdb_close] \
   -sEXPORTED_RUNTIME_METHODS=[] \
   -o "${BUILD}/duckdb-min.wasm" 2>&1 | tail -20 || fail "final emcc link failed"

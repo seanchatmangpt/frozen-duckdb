@@ -1,0 +1,86 @@
+{
+  "court": "warehouse-sim/economics",
+  "seed": 20261019,
+  "rows": 100000,
+  "sovereign": {
+    "leg": "native-baseline",
+    "engine": "frozen-duckdb v0.1.0 (bundled libduckdb, native in-process; leg=native-baseline, wasm leg FR-01-blocked)",
+    "queries": [
+      {
+        "id": "q1-cohort-filter",
+        "p95_latency_ms": 0.714,
+        "cold_latency_ms": 0.995,
+        "egress_bytes": 0,
+        "invoice_usd": 0,
+        "rows_returned": 1
+      },
+      {
+        "id": "q2-funnel-groupby",
+        "p95_latency_ms": 3.431,
+        "cold_latency_ms": 3.503,
+        "egress_bytes": 0,
+        "invoice_usd": 0,
+        "rows_returned": 5000
+      },
+      {
+        "id": "q3-event-window",
+        "p95_latency_ms": 6.339,
+        "cold_latency_ms": 6.225,
+        "egress_bytes": 0,
+        "invoice_usd": 0,
+        "rows_returned": 1
+      }
+    ],
+    "total_network_bytes": 0,
+    "total_invoice_usd": 0
+  },
+  "warehouse": {
+    "engine": "warehouse-sim (Next 14.2.15 local sim; Snowflake SQL API v2 surface)",
+    "queries": [
+      {
+        "id": "q1-cohort-filter",
+        "submit_status": 202,
+        "poll_requests": 10,
+        "p95_latency_ms": 5327,
+        "network_bytes": 719915,
+        "credits": 0.005922162683280023,
+        "ledger_entry": {
+          "warehouseHours": 0.0014797222222222221,
+          "dcuHours": 0,
+          "bytesScanned": 719915
+        },
+        "rows": 0
+      },
+      {
+        "id": "q2-funnel-groupby",
+        "submit_status": 202,
+        "poll_requests": 10,
+        "p95_latency_ms": 5116,
+        "network_bytes": 361031,
+        "credits": 0.005686086223352823,
+        "ledger_entry": {
+          "warehouseHours": 0.001421111111111111,
+          "dcuHours": 0,
+          "bytesScanned": 361031
+        },
+        "rows": 0
+      },
+      {
+        "id": "q3-event-window",
+        "submit_status": 202,
+        "poll_requests": 10,
+        "p95_latency_ms": 5199,
+        "network_bytes": 360952,
+        "credits": 0.005778308086324639,
+        "ledger_entry": {
+          "warehouseHours": 0.0014441666666666667,
+          "dcuHours": 0,
+          "bytesScanned": 360952
+        },
+        "rows": 0
+      }
+    ],
+    "total_network_bytes": 1441898,
+    "total_credits": 0.017386556992957485
+  }
+}

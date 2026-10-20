@@ -29,10 +29,7 @@ const EVENTS: usize = 500_000;
 const RECEIPT_PATH: &str = "/tmp/value_audit/val001.json";
 
 fn scratch_path(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "value_audit_{}_datadog",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("value_audit_{}_datadog", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     dir.join(name)
 }

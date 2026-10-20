@@ -291,3 +291,71 @@ commands; the coordinator owns all git transitions.
 Shared seams: GAP14/GAP15 both read the flipped dylib identity —
 reads are disjoint from writes; GAP13's append cites the other GAP
 lanes' landed receipts and does not own their files.
+
+## Wave 15: PB1-PB19 (publish-prep)
+
+Each lane owns exactly its dispatched file(s); disjoint, no co-owned.
+Purpose: crates.io publish preparation for the 2.0.0-dev window —
+manifest/license/docs.rs/feature/deny/MSRV/ownership audits, registry
+and flip rehearsals, docs-surface and leak scans, header-license
+compliance, and the consolidated PUBLISH-PREP-RECEIPT. Lanes never run
+git state-changing commands; the coordinator owns all git transitions
+(including the uncommitted `publish = false` flags and
+`LICENSE-DUCKDB.md` files the PB wave left in the working tree).
+
+| lane | type | owns (write) |
+|---|---|---|
+| PB1 | writer | `publish = false` flags on `test-dependency/Cargo.toml` + `test-validation/Cargo.toml` (applied in-tree, uncommitted; witnessed by PB8 step 3) |
+| PB2 | writer | `crates/*/LICENSE-DUCKDB.md` (MPL 1.1 attribution carrier) + `receipts/PB2-license.md` |
+| PB3 | writer | manifest-metadata audit (diff-only, coordinator applies) + `PB3-metadata.md` |
+| PB4 | writer | registry-shaped rehearsal (`/tmp/pb4/consumer`, `[patch.crates-io]`) + `receipts/PB4-registry-rehearsal.md` |
+| PB5 | writer | docs.rs rehearsal, all three crates + `receipts/PB5-docsr.md` |
+| PB6 | re-witness | ship-list leak rescan post-wave + `receipts/PB6-leakscan.md` |
+| PB7 | writer | NO-RECEIPT-LANDED as of 2026-10-19 18:05 — ownership UNKNOWN at consolidation time |
+| PB8 | writer | full flip+publish mechanical rehearsal in `git archive` scratch + `receipts/PB8-flip-publish.md` |
+| PB9 | writer | per-crate docs-surface audit + `receipts/PB9-docs-surface.md` |
+| PB10 | writer | `crates/frozen-duckdb/Cargo.toml` [features] comment + `receipts/PB10-features.md` |
+| PB11 | writer | cargo audit/deny/update dry-runs (no changes applied) + `receipts/PB11-deny-audit.md` |
+| PB12 | writer | MSRV determination (grep + standalone probes) + `receipts/PB12-msrv.md` |
+| PB13 | writer | header-license compliance analysis (read-only) + `receipts/PB13-mpl-compliance.md` |
+| PB14 | writer | crates.io name-ownership preflight (read-only curls) + `receipts/PB14-ownership.md` |
+| PB15-PB18 | writer | NO-RECEIPT-LANDED as of 2026-10-19 18:05 — ownership UNKNOWN at consolidation time |
+| PB19 | writer | `_LANES.md` Wave 15 + consolidated `PUBLISH-PREP-RECEIPT.md` |
+
+Shared seams: PB8's scratch rehearsal reconstructs PB2's license file
+and applies PB1's flags in scratch only — it owns no canonical-tree
+file. PB13's analysis corrects PB2's receipt content (MIT not MPL 1.1)
+but owns neither the file nor PB2's receipt; the correction routes to
+the owner. PB6 re-scans the ship lists PB2/PB10 grew — read-only against
+those files. PB19 cites all lanes, owns none of their files.
+
+## Wave 16: REL1-REL13 (release-prep)
+
+Each lane owns exactly its dispatched file(s); disjoint, no co-owned.
+Purpose: release preparation for the `2.0.0-dev` prerelease — re-witness
+the builder/sys/API surfaces, stage the Linux prebuilt candidate,
+document Windows feasibility, propose the CI Linux leg, align the
+release-notes pattern, consolidate the test plan, re-run pre-flight,
+extend the asset checklist, and land the known-limitations doc. Lanes
+never run git state-changing commands; the coordinator owns all git
+transitions.
+
+| lane | type | owns (write) |
+|---|---|---|
+| REL1-REL3 | writer | builder / sys / public-API re-witnesses (fresh runs vs the flipped v2.0.0-dev88595 dylib; receipts under `receipts/`) |
+| REL4 | writer | consolidated test plan (test-ladder roll-up for the release) |
+| REL5 | writer | Windows feasibility table (`receipts/REL5-windows.md` — landed) |
+| REL6 | writer | Linux .so candidate: `scripts/build_linux_prebuilt.sh` (linux/arm64 container build, pin `b6013f7`) |
+| REL7 | writer | CI Linux leg proposal (`build-binaries.yml`, `build-binaries-linux` job) |
+| REL8 | writer | release asset checklist extension (`scripts/verify_release_assets.sh`) |
+| REL9 | writer | release-notes pattern alignment (`docs/sjira/v2.0.0-dev/RELEASE-NOTES-2.0.0.md`) |
+| REL10 | writer | known-limitations doc (IN-FLIGHT; not on disk at Wave 16 read time) |
+| REL11 | writer | pre-flight re-run (`scripts/doctor/00_preflight.sh`) + receipt |
+| REL12 | writer | KD standing corrections -> `KNOWN_DIVERGENCES.md` + `KD-CLOSURE-PLAN.md` |
+| REL13 | writer | bookkeeping: `_LANES.md` Wave 16 partition + `CAMPAIGN-RECEIPT.md` final residues (append-only) |
+
+Shared seams: REL12's corrections cite REL1-REL3/REL11 receipts but own
+only the divergence-register files; REL6's container build and REL7's
+CI leg both express the Linux build path — REL6 is local-container,
+REL7 is CI-side, disjoint by execution environment. REL13 cites the
+other REL lanes' outputs and owns no release surface.
