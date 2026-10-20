@@ -36,7 +36,9 @@ BASE_URL="https://github.com/${OWNER_REPO}/releases/download/${TAG}"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 RECEIPT="${DG4_RECEIPT:-/tmp/dg4-receipt-${TS}.json}"
 LOG="${RECEIPT%.json}.log"
-IMAGE="${DG4_IMAGE:-rust:bookworm-slim}"
+# note: the upstream tag rust:bookworm-slim does not exist; rust:1-bookworm
+# is the fresh-container image (aarch64, git present, cmake ABSENT)
+IMAGE="${DG4_IMAGE:-rust:1-bookworm}"
 : >"$LOG"
 log() { printf '%s %s\n' "$(date -u +%H:%M:%SZ)" "$*" | tee -a "$LOG"; }
 
@@ -61,7 +63,7 @@ json.dump({
     "asset_mac": "libduckdb_arm64.dylib",
     "evidence": evidence,
     "log": log_path,
-    "finished": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "finished": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
 }, open(receipt, "w"), indent=2)
 PY
   log "receipt written: $RECEIPT (standing=$STATUS)"
