@@ -80,7 +80,7 @@ fn is_shredded_variant(arr: &arrow::array::StructArray) -> bool {
 
 #[cfg(test)]
 mod test {
-    use crate::duckdb::{types::ToSql, types::Value, Connection, Result};
+    use crate::duckdb::{types::ToSql, Connection, Result};
 
     fn checked_memory_handle() -> Result<Connection> {
         let db = Connection::open_in_memory()?;
