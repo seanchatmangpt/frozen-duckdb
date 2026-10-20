@@ -122,7 +122,7 @@ upstream surface), **LOCAL-FIX** (a lane repairs on this tree), **SPEC**
 |---|---|---|---|
 | KD-01 | 21 `__Z*` exports breach C-ABI | LOCAL+SPEC | Stages 00/01 red; fix exports |
 | KD-02 | flock 404 at dev pin | UPSTREAM | Watch upstream; un-ignore `flock_tests.rs` |
-| KD-05 | No wasm artifact (FR-01) | LOCAL-FIX | `build_wasm_duckdb.sh`; stage 06 red-loud |
+| KD-05 | ~~No wasm artifact (FR-01)~~ CLOSED (MINIMAL-SLICE, X3) | resolved | min wasm 24.69MiB, wire 6.00MiB, version gate ×3 (`X3-kd05-close.md`); full-threaded build vs SLA open as separate surface |
 | KD-06 | `host-range://` VFS design-only | LOCAL-FIX | Build VFS; `courts/gate_v05.sh` flips |
 | KD-07 | REV-001 wall 4.2-6.1s vs <2.5s | SPEC | C3 detects; optimize or split clause |
 | KD-08 | Allocator-stats C API absent | LOCAL-FIX | Add in `-sys`; `courts/gate_v01.sh` covers |

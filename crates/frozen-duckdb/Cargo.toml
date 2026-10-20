@@ -71,6 +71,10 @@ strum = { version = "0.27", features = ["derive"] }
 # Use our FFI crate instead of duckdb-rs
 frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.0-dev" }
 
+[[test]]
+name = "host_vfs_local"
+required-features = ["vtab"]
+
 [features]
 # CL13 (KD-06 local slice): declares the previously-undeclared cfg gate
 # `feature = "vtab"` used throughout src/duckdb/vtab/ and host_vfs.rs.

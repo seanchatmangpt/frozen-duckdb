@@ -47,7 +47,7 @@ post-build optimization.
   extension selection, `-Oz`, LTO, or build split); re-run
   `scripts/wasm_size_audit.sh` exit 0.
 
-## 4. KD-01 — mangled symbols in the native dylib export table
+## 5. KD-01 — mangled symbols in the native dylib export table
 
 The native dylib exports 21 mangled (non-C-ABI) symbols; upstream
 DuckDB's visibility macros do not fence the export table at our pin.
@@ -59,7 +59,7 @@ Ships per `PUBLISH-DECISION.md` ("Blocks release: No").
   `-DDUCKDB_EXTRA_LINK_FLAGS`) or a local wrapper-ltcg link step; re-run
   the export-fence court (`receipts/ADV3-export-fence.md`).
 
-## 5. crates.io publish on hold for 2.0.0-dev
+## 6. crates.io publish on hold for 2.0.0-dev
 
 This is a prerelease; publishing a dev version to crates.io is
 permanent (immutable index entry) and is held for the final release.
@@ -67,7 +67,7 @@ permanent (immutable index entry) and is held for the final release.
   PROPOSED); `PUBLISH-DECISION.md` (Option B, HOLD FOR FINAL).
 - Close: owner release-op decision at 2.0.0-final per DOD-18.
 
-## 6. tpch/flock test gates in the workspace suite
+## 7. tpch/flock test gates in the workspace suite
 
 Workspace test runs exclude the extension-dependent tests via
 `#[ignore]` (e.g. `crates/frozen-duckdb/tests/flock_tests.rs`, ignore
@@ -77,7 +77,7 @@ they re-enable mechanically when the watcher fires.
   `crates/frozen-duckdb/tests/flock_tests.rs` (lines 27, 533)
 - Close: same as item 2.
 
-## 7. Latency gate is median-of-3 (load-sensitive)
+## 8. Latency gate is median-of-3 (load-sensitive)
 
 The latency gate uses median-of-3 over the rev2 three-query workload;
 single-run p95 is load-sensitive (one run's round-2 p95 alone would

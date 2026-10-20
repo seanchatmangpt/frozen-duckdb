@@ -71,6 +71,11 @@ jobs:
               # (bounded, 2 minutes) instead of 15 minutes into make.
               if [ -x /usr/local/bin/brew ]; then
                 X64_SSL="$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3 2>/dev/null || true)"
+                if [ -z "${X64_SSL}" ]; then
+                  echo "x86_64 openssl keg absent — installing via Rosetta brew" >&2
+                  arch -x86_64 /usr/local/bin/brew install openssl@3 2>/dev/null || true
+                  X64_SSL="$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3 2>/dev/null || true)"
+                fi
                 if [ -n "$X64_SSL" ] && [ -d "$X64_SSL/lib" ]; then
                   echo "OPENSSL_ROOT_DIR=${X64_SSL}" >> "$GITHUB_ENV"
                 else
@@ -234,7 +239,7 @@ jobs:
           # httpfs extension's OpenSSL linkage (the macOS legs' brew openssl@3
           # equivalent — on Linux the system keg is the right slice by
           # construction, no OPENSSL_ROOT_DIR needed).
-          sudo apt-get install -y cmake g++ libssl-dev ninja-build
+          sudo apt-get install -y cmake g++ libssl-dev libcurl4-openssl-dev ninja-build
 
       - name: Preflight (pin visible in the first minute)
         run: |

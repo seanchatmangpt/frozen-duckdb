@@ -462,7 +462,7 @@ out by the register; reported as found.
 | KD-02 | open | flock 404 at pin; watcher ADV12 active |
 | KD-03 | CLOSED | POLL stateful; journeys 4/4 SUCCEEDED |
 | KD-04 | CLOSED | helpers to lib; tsc clean |
-| KD-05 | PARTIAL | see wasm note below |
+| KD-05 | CLOSED (MINIMAL-SLICE) | X3: 25,886,446 B ≤ 25 MiB; gzip -9 6,294,562 B ≤ 9.5 MiB; instantiation + version gate re-witness ×3 (`X3-kd05-close.md`); full-threaded build OPEN as separate surface |
 | KD-06 | open | host-VFS design-only; GATE-V-05 UNVERIFIED |
 | KD-07 | open (SPEC-AMENDED) | rev001.json UNMET-BY-MEASURED |
 | KD-08 | open (UPSTREAM-DRAFTED) | D6 RSS-deceleration proxy |

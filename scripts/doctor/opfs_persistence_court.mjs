@@ -246,7 +246,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === "/court.html") body = [200, COURT_HTML, "text/html"];
   else if (url.pathname === "/worker.js") body = [200, WORKER_SRC, "text/javascript"];
   else if (url.pathname === "/wasm/duckdb.js") body = [200, wasmJs, "text/javascript"];
-  else if (url.pathname === "/wasm/duckdb.wasm") {
+  else if (url.pathname === "/wasm/duckdb.wasm" || url.pathname === "/duckdb.wasm") {
     res.writeHead(200, { ...headers, "Content-Type": "application/wasm", "Content-Length": wasmBin.length });
     res.end(wasmBin); return;
   } else body = [404, "not found", "text/plain"];

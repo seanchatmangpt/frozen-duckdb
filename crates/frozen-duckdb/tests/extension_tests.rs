@@ -51,7 +51,7 @@ fn test_tpch_load_and_dbgen_smoke() -> Result<()> {
 
     // Query smoke: run one TPC-H query against the generated data.
     let rows: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM nation WHERE nationkey >= 0",
+        "SELECT COUNT(*) FROM nation WHERE n_nationkey >= 0",
         [],
         |row| row.get(0),
     )?;
