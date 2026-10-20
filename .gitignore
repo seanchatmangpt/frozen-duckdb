@@ -93,3 +93,4 @@ test-dependency/target-dep-coord/
 # entries here would be dead patterns. (No /tmp fixture paths are tracked.)
 target-*/
 doctor-target/
+warehouse-sim/economics/sovereign_probe/target-g5/
