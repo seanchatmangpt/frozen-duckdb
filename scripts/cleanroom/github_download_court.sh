@@ -29,7 +29,15 @@ set -euo pipefail
 
 REPO="${CLEANROOM_REPO:-/Users/sac/frozen-duckdb}"
 OWNER_REPO="seanchatmangpt/frozen-duckdb"
-TAG="v2.0.0-dev"
+# DG4_TAG: release tag under which assets are published (asset URLs).
+# DG4_BUILDER_VERSION: the builder's VERSION pin the download URL is keyed
+# from. The repo's builder pins "2.0.0-dev"; when the live release tag is a
+# dev-suffix (e.g. v2.0.0-dev.2), the real leg runs against a SCRATCH COPY of
+# the repo whose builder VERSION is sed-aligned to DG4_BUILDER_VERSION —
+# the only delta; the download->verify->pin->marker machinery is untouched.
+# Disclosed in the receipt whenever != the repo pin.
+TAG="${DG4_TAG:-v2.0.0-dev}"
+BUILDER_VERSION="${DG4_BUILDER_VERSION:-2.0.0-dev}"
 ASSET_LINUX="libduckdb_arm64.so"
 ASSET_MAC="libduckdb_arm64.dylib"
 BASE_URL="https://github.com/${OWNER_REPO}/releases/download/${TAG}"
@@ -58,7 +66,8 @@ json.dump({
     "reason": reason,
     "exit_code": int(exit_code),
     "repo": "/Users/sac/frozen-duckdb",
-    "tag": "v2.0.0-dev",
+    "tag": __import__("os").environ.get("DG4_TAG", "v2.0.0-dev"),
+    "builder_version": __import__("os").environ.get("DG4_BUILDER_VERSION", "2.0.0-dev"),
     "asset_linux": "libduckdb_arm64.so",
     "asset_mac": "libduckdb_arm64.dylib",
     "evidence": evidence,
@@ -103,10 +112,23 @@ note "EVID linux-asset-sha256 ${ASSET_SHA} size=${ASSET_SIZE:-unknown}"
 # ---------------------------------------------------------------------------
 # Leg B — fresh container, empty cache, real download path
 # ---------------------------------------------------------------------------
-SCRATCH="$(mktemp -d /tmp/dg4-court-XXXXXX)"
+# Docker Desktop does NOT share /tmp with containers (bind mounts of /tmp
+# dirs come up EMPTY inside); /Users IS shared. Scratch must live under /Users.
+SCRATCH_ROOT="${DG4_SCRATCH_ROOT:-/Users/sac/.dg4-tmp}"
+mkdir -p "$SCRATCH_ROOT"
+SCRATCH="$(mktemp -d "$SCRATCH_ROOT/dg4-court-XXXXXX")"
 note "EVID scratch ${SCRATCH}"
 W=/work
 mkdir -p "$SCRATCH/home/.frozen-duckdb"   # parent only; cache/ left ABSENT
+# Dev-suffix release: the repo's builder pins "2.0.0-dev", so the download
+# URL it constructs must be aligned to the published tag. Done CONTAINER-SIDE
+# as a SELECTIVE copy (root manifests + crates/ + test-validation/Cargo.toml
+# — the full path-dep closure, NOT target/ etc.) with ONLY the builder
+# VERSION sed-aligned; sole delta, disclosed in evidence. REPO_COPY=1 is
+# passed into the container; consumer Cargo.toml is repointed there.
+REPO_COPY=0
+[ "$BUILDER_VERSION" != "2.0.0-dev" ] && REPO_COPY=1
+note "EVID builder-version ${BUILDER_VERSION} repo_copy=${REPO_COPY}"
 
 cat >"$SCRATCH/consumer-Cargo.toml" <<EOF
 [package]
@@ -135,12 +157,10 @@ fn main() {
         .query_row("SELECT 42", [], |row| row.get(0))
         .expect("SELECT 42");
     println!("DUCKDB_VERSION={} FORTY_TWO={}", version, forty_two);
-    assert!(version.starts_with("v2.0.0-dev"), "unexpected version: {}", version;
+    assert!(version.starts_with("v2.0.0-dev"), "unexpected version: {}", version);
     assert_eq!(forty_two, 42);
 }
 EOF
-# fix a paren the heredoc cannot be trusted with
-sed -i '' 's/unexpected version: {};/unexpected version: {}", version);/' "$SCRATCH/consumer-main.rs"
 
 BUILD_SECONDS=-1
 log "launching container ($IMAGE): consumer build + run"
@@ -150,23 +170,44 @@ docker run --rm \
   -v "$REPO":/repo:ro \
   -v "$SCRATCH":$W \
   -e HOME=$W/home \
+  -e REPO_COPY=${REPO_COPY} \
+  -e BUILDER_VERSION=${BUILDER_VERSION} \
   -e CARGO_TARGET_DIR=$W/target \
   -e CARGO_HOME=$W/cargo-home \
   -w $W \
   "$IMAGE" \
   bash -euo pipefail -c '
     set -x
+    # bindgen needs libclang; rust:1-bookworm does not ship it
+    apt-get update -qq && apt-get install -y -qq libclang-dev >/dev/null
     echo "--- EMPTY cache proof ---"
     ls -la /work/home/.frozen-duckdb; ls /work/home/.frozen-duckdb/cache 2>&1 || true
+    CONSUMER_PATH="/repo/crates/frozen-duckdb"
+    if [ "${REPO_COPY}" = "1" ]; then
+      mkdir -p /work/repo-copy/test-validation
+      cp /repo/Cargo.toml /repo/Cargo.lock /work/repo-copy/
+      cp -r /repo/crates /work/repo-copy/crates
+      cp -r /repo/test-validation /work/repo-copy/test-validation
+      sed -i "s/const VERSION: \&str = \"2.0.0-dev\";/const VERSION: \&str = \"${BUILDER_VERSION}\";/" \
+        /work/repo-copy/crates/frozen-duckdb-builder/src/lib.rs
+      grep -n "const VERSION" /work/repo-copy/crates/frozen-duckdb-builder/src/lib.rs
+      CONSUMER_PATH="/work/repo-copy/crates/frozen-duckdb"
+    fi
     mkdir -p /work/consumer/src
     cp /work/consumer-Cargo.toml /work/consumer/Cargo.toml
+    sed -i "s#/repo/crates/frozen-duckdb#${CONSUMER_PATH}#" /work/consumer/Cargo.toml
+    grep -n "path =" /work/consumer/Cargo.toml
     cp /work/consumer-main.rs  /work/consumer/src/main.rs
     echo "--- cargo build (ensure_binary runs here) ---"
     time cargo build --manifest-path /work/consumer/Cargo.toml 2>&1 | tee /work/build.log
     echo "--- cache artifacts after ensure_binary ---"
     find /work/home/.frozen-duckdb -type f -printf "%s %p\n" | sort -k2
     echo "--- dynamic link + SELECT version() + SELECT 42 ---"
-    /work/target/debug/dg4-consumer | tee /work/run.log
+    # KD-CLEANROOM-RPATH: cargo does not forward cargo:rustc-link-arg from
+    # dependency build scripts, so the consumer has no baked rpath; load-time
+    # resolution uses LD_LIBRARY_PATH at the cache dir (documented contract).
+    CACHE_DIR=$(dirname "$(find /work/home/.frozen-duckdb -name 'libduckdb_*.so' | head -1)")
+    LD_LIBRARY_PATH="$CACHE_DIR" /work/target/debug/dg4-consumer | tee /work/run.log
     echo "--- served binary forensics ---"
     SO=$(find /work/home/.frozen-duckdb -name "libduckdb_*.so" | head -1)
     echo "served: $SO"
@@ -208,7 +249,7 @@ note "EVID size-pin pin=${PIN:-MISSING} actual=${ACTUAL}"
 
 MARKER="$(cat "$(dirname "$SO")/ENGINE_VERSION" 2>/dev/null | tr -d '\n' || true)"
 note "EVID engine-marker '${MARKER}'"
-[ "$MARKER" = "v2.0.0-dev" ] || finish "FAIL" "ENGINE_VERSION marker '$MARKER' != v2.0.0-dev" 1
+[ "$MARKER" = "v${BUILDER_VERSION}" ] || finish "FAIL" "ENGINE_VERSION marker '$MARKER' != v${BUILDER_VERSION}" 1
 
 grep -q "Using prebuilt DuckDB binary" "$SCRATCH/build.log" || \
   finish "FAIL" "build log lacks 'Using prebuilt DuckDB binary' warning line" 1
@@ -219,6 +260,55 @@ note "EVID prebuilt-log-line present"
 # ---------------------------------------------------------------------------
 log "leg C: bogus-VERSION control (patched builder copy, in-container)"
 mkdir -p "$SCRATCH/ctrl-home/.frozen-duckdb"   # parent only; cache ABSENT
+# Payload as a standalone script file: avoids nested-quote fragility.
+cat >"$SCRATCH/legc.sh" <<'LEGC'
+#!/usr/bin/env bash
+set -euxo pipefail
+mkdir -p /work/shim
+# git shim: the fallback compile must never rescue a 404 in this court; the
+# shim makes clone_duckdb_locally fail FAST with a typed exit.
+printf '#!/bin/sh\necho "dg4-control: git blocked" >&2\nexit 1\n' > /work/shim/git
+chmod +x /work/shim/git
+# The control runs INSIDE the repo-copy workspace (staged by Leg B) so the
+# builder crate's workspace inheritance resolves: add two members — a pristine
+# builder copy patched to a nonexistent VERSION, and a consumer calling
+# ensure_binary directly.
+test -d /work/repo-copy/crates
+cp -r /repo/crates/frozen-duckdb-builder /work/repo-copy/ctrl-builder
+sed -i 's/const VERSION: &str = "[^"]*";/const VERSION: \&str = "9.9.9-nonexistent";/' \
+  /work/repo-copy/ctrl-builder/src/lib.rs
+grep -n "9.9.9-nonexistent" /work/repo-copy/ctrl-builder/src/lib.rs
+mkdir -p /work/repo-copy/ctrl-consumer/src
+cat > /work/repo-copy/ctrl-consumer/Cargo.toml <<'TOML'
+[package]
+name = "dg4-ctrl-consumer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+frozen-duckdb-builder = { path = "../ctrl-builder" }
+TOML
+# ensure_binary fails at RUNTIME, so the control must RUN, not just build.
+cat > /work/repo-copy/ctrl-consumer/src/main.rs <<'EOF'
+fn main() {
+    let p = frozen_duckdb_builder::ensure_binary()
+        .expect("DG4 control: ensure_binary must FAIL for nonexistent version");
+    println!("UNEXPECTED_SERVED={}", p.display());
+}
+EOF
+sed -i 's#"crates/frozen-duckdb",#"crates/frozen-duckdb", "ctrl-builder", "ctrl-consumer",#' \
+  /work/repo-copy/Cargo.toml
+grep -n "ctrl-builder" /work/repo-copy/Cargo.toml
+set +e
+PATH=/work/shim:$PATH cargo run --manifest-path /work/repo-copy/ctrl-consumer/Cargo.toml 2>&1 | tee /work/ctrl.log
+CARGO_RC=${PIPESTATUS[0]}
+set -e
+echo "CONTROL_CARGO_RC=${CARGO_RC}"
+if [ "$CARGO_RC" = "0" ]; then
+  echo "CONTROL_EXIT=0 (unexpected — control must fail)"
+fi
+exit 1  # control MUST exit nonzero (expected failure leg)
+LEGC
 set +e
 docker run --rm \
   -v "$REPO":/repo:ro \
@@ -228,33 +318,9 @@ docker run --rm \
   -e CARGO_HOME=$W/cargo-home \
   -w $W \
   "$IMAGE" \
-  bash -euo pipefail -c '
-    set -x
-    mkdir -p /work/ctrl/consumer/src /work/shim
-    # git shim: the fallback compile must never rescue a 404 in this court;
-    # the shim makes clone_duckdb_locally fail FAST with a typed exit.
-    printf "#!/bin/sh\necho \"dg4-control: git blocked\" >&2\nexit 1\n" > /work/shim/git
-    chmod +x /work/shim/git
-    cp -r /repo/crates/frozen-duckdb-builder /work/ctrl/builder-copy
-    sed -i "s/const VERSION: \&str = \"2.0.0-dev\";/const VERSION: \&str = \"9.9.9-nonexistent\";/" \
-      /work/ctrl/builder-copy/src/lib.rs
-    grep -n "9.9.9-nonexistent" /work/ctrl/builder-copy/src/lib.rs
-    cp /work/consumer-Cargo.toml /work/ctrl/consumer/Cargo.toml
-    sed -i "s#frozen-duckdb = { path = \"/repo/crates/frozen-duckdb\" }#frozen-duckdb-builder = { path = \"/work/ctrl/builder-copy\" }#" \
-      /work/ctrl/consumer/Cargo.toml
-    # control main: call ensure_binary directly via the patched builder
-    # (OVERWRITES the copied consumer main)
-    cat > /work/ctrl/consumer/src/main.rs <<'"'"'EOF'"'"'
-fn main() {
-    let p = frozen_duckdb_builder::ensure_binary().expect("DG4 control: ensure_binary must FAIL for nonexistent version");
-    println!("UNEXPECTED_SERVED={}", p.display());
-}
-EOF
-    # cargo run: ensure_binary fails at RUNTIME, so the control must RUN,
-    # not just build, to prove the bogus version is never served.
-    PATH=/work/shim:$PATH cargo run --manifest-path /work/ctrl/consumer/Cargo.toml 2>&1 | tee /work/ctrl.log
-    echo "CONTROL_EXIT=0 (unexpected — control must fail)"
-  '
+  bash /work/legc.sh
+CTRL_EXIT=$?
+set -e
 CTRL_EXIT=$?
 set -e
 note "CTRL container-exit ${CTRL_EXIT} (nonzero expected)"
@@ -267,7 +333,9 @@ fi
 CTRL_SO_COUNT="$(find "$SCRATCH/ctrl-home" -name 'libduckdb_*.so' -type f | wc -l | tr -d ' ')"
 note "CTRL served-so-count ${CTRL_SO_COUNT} (0 expected)"
 [ "$CTRL_SO_COUNT" = "0" ] || finish "FAIL" "control cached a .so for bogus version" 1
-tail -25 "$SCRATCH/ctrl.log" 2>/dev/null | while IFS= read -r l; do note "CTRL log: $l"; done
+if [ -f "$SCRATCH/ctrl.log" ]; then
+  tail -25 "$SCRATCH/ctrl.log" | while IFS= read -r l; do note "CTRL log: $l"; done
+fi
 note "PASS control failed as required; no binary served for v9.9.9-nonexistent"
 
 finish "PASS" "download court: fresh container -> empty cache -> live release download -> ELF+size-pin verify -> dynamic link -> SELECT version()+42" 0
