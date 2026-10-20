@@ -134,8 +134,8 @@ jobs:
               exit 1
               ;;
           esac
-          if [[ "$GOT" != "$WANT" ]]; then
-            echo "${{ github.event_name }} version='${GOT}' does not match the builder pin ${WANT}; refusing to build the wrong version silently." >&2
+          if [[ "$GOT" != "${WANT}" && "$GOT" != "${WANT}."* ]]; then
+            echo "${{ github.event_name }} version='${GOT}' does not match the builder pin ${WANT} (dev-suffix tags like ${WANT}.N accepted); refusing to build the wrong version silently." >&2
             exit 1
           fi
 
@@ -269,8 +269,8 @@ jobs:
               exit 1
               ;;
           esac
-          if [[ "$GOT" != "$WANT" ]]; then
-            echo "${{ github.event_name }} version='${GOT}' does not match the builder pin ${WANT}; refusing to build the wrong version silently." >&2
+          if [[ "$GOT" != "${WANT}" && "$GOT" != "${WANT}."* ]]; then
+            echo "${{ github.event_name }} version='${GOT}' does not match the builder pin ${WANT} (dev-suffix tags like ${WANT}.N accepted); refusing to build the wrong version silently." >&2
             exit 1
           fi
 
