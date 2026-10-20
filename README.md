@@ -51,14 +51,33 @@ No speculative numbers. Performance-validation commands:
 
 ## Quick Start
 
-The crate version is `2.0.0-dev` — a prerelease line pinned to upstream
-main SHA `b6013f7` (no upstream `v2.0.0-dev` tag exists yet). Semver
-caveats apply until the first tagged release.
+**Prerelease warning — read before `cargo add`.** crates.io currently hosts
+only `frozen-duckdb` **0.1.0**; the `2.0.0-dev` line is NOT on crates.io.
+`cargo add frozen-duckdb` will silently install the stale, incompatible
+**0.1.0** — no error, wrong crate generation. Until the `2.0.0-dev` publish
+lands, install from a checkout:
+
+```bash
+# 1. Clone (a `vendors/duckdb-rs` submodule warning is expected and harmless —
+#    the crate builds from the vendored headers in frozen-duckdb-builder)
+git clone https://github.com/seanchatmangpt/frozen-duckdb.git
+# 2. In your own project, add the path dependency (pin a checkout at a known
+#    SHA for reproducibility, e.g. d73d017cb59018cd59db7917604da4f5ac18b2eb):
+cargo add --path /path/to/frozen-duckdb/crates/frozen-duckdb
+```
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0-dev"
+frozen-duckdb = { path = "/path/to/frozen-duckdb/crates/frozen-duckdb" } # 2.0.0-dev
 ```
+
+A `--git` dependency is NOT a working alternative yet: the repository tree
+carries a `vendors/duckdb-rs` gitlink with no `.gitmodules`, so cargo's
+`--git`/`--rev` add fails with `no URL configured for submodule
+'vendors/duckdb-rs'`. Use the clone + path dep above.
+
+> After the first tagged publish this section becomes
+> `frozen-duckdb = "2.0.0"` from crates.io.
 
 ```rust
 use frozen_duckdb::{Connection, Result};

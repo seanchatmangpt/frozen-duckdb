@@ -36,6 +36,10 @@ cargo run -- download --dataset tpch --output-dir test_data
 
 No environment setup is required: on first build, `frozen-duckdb-builder::ensure_binary()`
 downloads `libduckdb_{arch}.dylib` from this repository's GitHub Releases into
+(currently HTTP 404 — no release is published for `v2.0.0-dev` — so the first
+build falls back to compiling DuckDB locally, which takes tens of minutes and
+prints nothing at default verbosity; the only visible artifact is a
+`.build-lock` file under `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`)
 `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`, vendored 2.0.0-dev headers make bindgen work
 offline, and the emitted runtime `@rpath` means binaries and tests run without any
 `DYLD_LIBRARY_PATH` setup. `prebuilt/setup_env.sh` remains available for the legacy
@@ -43,12 +47,22 @@ manual-prebuilt workflow only.
 
 ### 3. Use in Your Project
 
-Add to your `Cargo.toml`:
+**Prerelease warning:** crates.io has only **0.1.0** — `cargo add
+frozen-duckdb` silently installs that stale, incompatible version. The
+`2.0.0-dev` line is not published. Point at a checkout instead (see step 1;
+a fresh clone's empty `vendors/duckdb-rs` is harmless — the crate builds
+from the vendored headers in `frozen-duckdb-builder`):
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0-dev"
+frozen-duckdb = { path = "/path/to/frozen-duckdb/crates/frozen-duckdb" } # 2.0.0-dev
 ```
+
+A `cargo add frozen-duckdb --git ...` dependency does NOT work yet (the
+repository has a `vendors/duckdb-rs` gitlink with no `.gitmodules`; cargo
+fails with `no URL configured for submodule 'vendors/duckdb-rs'`). Use the
+path dependency above until the `2.0.0-dev` publish and the submodule fix
+land.
 
 That's it — no custom `build.rs`, no environment variables. The `frozen-duckdb-sys`
 build script invokes `frozen-duckdb-builder::ensure_binary()`, which fetches the

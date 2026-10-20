@@ -3,7 +3,7 @@
 # Spec: the marine container-telemetry 1M-event fleet class D battery.
 #
 # Subject: /tmp/t2writer (cargo fixture, frozen-duckdb path dep, rpath to the
-# cached v1.5.5-arm64 dylib). Schema: D8 `ocel_conforming_segments` RLE
+# cached v2.0.0-dev-arm64 dylib). Schema: D8 `ocel_conforming_segments` RLE
 # (segment_id, oid, action, channel, t_start, t_end, transition_count) plus a
 # per-block chksum column carrying the closed form sum_{n}(3n+7), so any torn
 # transaction is detectable by checksum alone.
@@ -34,7 +34,11 @@ DEADLINE_POLL=120
 RC=0
 RECEIPT="${FLEET_D_RECEIPT:-$REPO/target/court/fleet-d-chaos-receipt.json}"
 
-mkdir -p "$REPO/target/court" /tmp/value_audit || { echo "[SKIP] unwritable target dirs"; exit 1; }
+# Per-run fixture dir: concurrent court runs must never share db files
+# (F7-D2 torn-txn witnessed when two lanes ran this court against the
+# shared /tmp/value_audit path).
+RUN_DIR="/tmp/value_audit_$(date -u +%Y%m%dT%H%M%S)_$$"
+mkdir -p "$REPO/target/court" "$RUN_DIR" || { echo "[SKIP] unwritable target dirs"; exit 1; }
 
 say() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 shasum() { command shasum -a 256 "$@" | cut -d' ' -f1; }
@@ -170,7 +174,7 @@ crash_leg() {
 # ---- prerequisites -------------------------------------------------------
 if [ ! -x "$T2_BIN" ]; then
   echo "[SKIP] no t2writer fixture binary: $T2_BIN"
-  echo "[SKIP] build: cd /tmp/t2writer && RUSTFLAGS='-C link-arg=-Wl,-rpath,$HOME/.frozen-duckdb/cache/v1.5.5-arm64' cargo build --release"
+  echo "[SKIP] build: cd /tmp/t2writer && RUSTFLAGS='-C link-arg=-Wl,-rpath,$HOME/.frozen-duckdb/cache/v2.0.0-dev-arm64' cargo build --release"
   exit 1
 fi
 

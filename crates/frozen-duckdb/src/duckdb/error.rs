@@ -187,10 +187,22 @@ impl fmt::Display for Error {
             }
             Self::QueryReturnedNoRows => write!(f, "Query returned no rows"),
             Self::QueryReturnedMoreThanOneRow => write!(f, "Query returned more than one row"),
-            Self::InvalidColumnIndex(i) => write!(f, "Invalid column index: {i}"),
-            Self::InvalidColumnName(ref name) => write!(f, "Invalid column name: {name}"),
+            Self::InvalidColumnIndex(i) => write!(
+                f,
+                "Invalid column index: {i} (the query returned fewer columns; \
+                 indices are 0-based — check `Statement::column_count`)"
+            ),
+            Self::InvalidColumnName(ref name) => write!(
+                f,
+                "Invalid column name: {name} (column lookup is by exact, case-sensitive name — \
+                 list valid names with `Statement::column_names`)"
+            ),
             Self::InvalidColumnType(i, ref name, ref t) => {
-                write!(f, "Invalid column type {t} at index: {i}, name: {name}")
+                write!(
+                    f,
+                    "Invalid column type {t} at index: {i}, name: {name} (requested a different \
+                     Rust type; fetch as {t} or cast in SQL, e.g. `SELECT {name}::VARCHAR`)"
+                )
             }
             Self::ArrowTypeToDuckdbType(ref name, ref t) => {
                 write!(f, "Invalid column type {t} , name: {name}")
