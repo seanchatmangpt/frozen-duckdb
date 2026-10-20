@@ -86,17 +86,23 @@ jobs:
           CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
           mkdir -p "$CACHE_DIR"
           TMP="$(mktemp -d)"
-          curl -fL --retry 5 --silent --show-error \
+          # Best-effort: upstream has no v2.0.0-dev release assets (dev pin,
+          # KD-registered). On 404 the builder's local-compile fallback from
+          # the pinned upstream source SHA supplies the library instead.
+          if curl -fL --retry 5 --silent --show-error \
             "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \
-            -o "$TMP/libduckdb.zip"
-          unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
-          cp "$TMP/libduckdb.${LIB_EXT}" "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
-          # -lduckdb resolves the plain name; seed it here so the cache is
-          # complete before the builder runs (post-TR7 ensure_link_name links
-          # the platform-correct plain name itself; this is belt-and-braces).
-          ln -sf "libduckdb_${ARCH_TAG}.${LIB_EXT}" "$CACHE_DIR/libduckdb.${LIB_EXT}"
-          test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
-          echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
+            -o "$TMP/libduckdb.zip" && [[ -s "$TMP/libduckdb.zip" ]]; then
+            unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
+            cp "$TMP/libduckdb.${LIB_EXT}" "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
+            # -lduckdb resolves the plain name; seed it here so the cache is
+            # complete before the builder runs (post-TR7 ensure_link_name links
+            # the platform-correct plain name itself; this is belt-and-braces).
+            ln -sf "libduckdb_${ARCH_TAG}.${LIB_EXT}" "$CACHE_DIR/libduckdb.${LIB_EXT}"
+            test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
+            echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.${LIB_EXT}"
+          else
+            echo "::warning::no upstream prebuilt asset at v${DUCKDB_VERSION}; builder will local-compile from pinned source"
+          fi
           rm -rf "$TMP"
 
       - name: Check formatting
@@ -139,14 +145,20 @@ jobs:
           CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
           mkdir -p "$CACHE_DIR"
           TMP="$(mktemp -d)"
-          curl -fL --retry 5 --silent --show-error \
+          # Best-effort: upstream has no v2.0.0-dev release assets (dev pin,
+          # KD-registered). On 404 the builder's local-compile fallback from
+          # the pinned upstream source SHA supplies the library instead.
+          if curl -fL --retry 5 --silent --show-error \
             "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \
-            -o "$TMP/libduckdb.zip"
-          unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
-          cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
-          ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
-          test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
-          echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+            -o "$TMP/libduckdb.zip" && [[ -s "$TMP/libduckdb.zip" ]]; then
+            unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
+            cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+            ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
+            test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+            echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          else
+            echo "::warning::no upstream prebuilt asset at v${DUCKDB_VERSION}; builder will local-compile from pinned source"
+          fi
           rm -rf "$TMP"
 
       - name: Build all examples
@@ -176,14 +188,20 @@ jobs:
           CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
           mkdir -p "$CACHE_DIR"
           TMP="$(mktemp -d)"
-          curl -fL --retry 5 --silent --show-error \
+          # Best-effort: upstream has no v2.0.0-dev release assets (dev pin,
+          # KD-registered). On 404 the builder's local-compile fallback from
+          # the pinned upstream source SHA supplies the library instead.
+          if curl -fL --retry 5 --silent --show-error \
             "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \
-            -o "$TMP/libduckdb.zip"
-          unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
-          cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
-          ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
-          test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
-          echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+            -o "$TMP/libduckdb.zip" && [[ -s "$TMP/libduckdb.zip" ]]; then
+            unzip -o -q "$TMP/libduckdb.zip" -d "$TMP"
+            cp "$TMP/libduckdb.so" "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+            ln -sf "libduckdb_${ARCH_TAG}.so" "$CACHE_DIR/libduckdb.so"
+            test -s "$CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+            echo "Pre-seeded $CACHE_DIR/libduckdb_${ARCH_TAG}.so"
+          else
+            echo "::warning::no upstream prebuilt asset at v${DUCKDB_VERSION}; builder will local-compile from pinned source"
+          fi
           rm -rf "$TMP"
 
       - name: Run performance benchmarks

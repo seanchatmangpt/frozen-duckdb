@@ -813,6 +813,7 @@ dependencies = [
  "fallible-streaming-iterator",
  "frozen-duckdb-sys",
  "hashlink",
+ "num",
  "pretty_assertions",
  "reqwest",
  "rust_decimal",

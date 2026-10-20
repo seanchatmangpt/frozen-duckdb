@@ -91,6 +91,12 @@ fn browser_leg_blocked() {}
 #[test]
 fn rev002_native_bottleneck_query() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Connection::open_in_memory().expect("open in-memory frozen-duckdb");
+    // This frozen engine statically links `core_functions` but does NOT
+    // autoload it — without this LOAD, `sum`/`quantile_cont` are Catalog
+    // Errors (same pattern as tests/dfg_cut_detection.rs; `INSTALL` is
+    // banned in this build: "does not link the loadable_extensions library").
+    conn.execute_batch("LOAD core_functions")
+        .expect("LOAD core_functions");
 
     // ---- Corpus: 250k segments, D8 pattern (deterministic, in-engine) ----
     // Transition segments: from/to action pairs drawn cyclically from 4

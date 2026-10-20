@@ -114,6 +114,9 @@ pub use polars_arrow as arrow2;
 /// The core module contains the main functionality of the DuckDB crate.
 pub mod core;
 
+/// STALE_PRECONDITION_REFUSED two-phase guard (lane MAX5).
+pub mod precondition;
+
 #[macro_use]
 mod error;
 mod appender;
@@ -149,6 +152,12 @@ pub mod vtab;
 /// The duckdb scalar function interface
 #[cfg(feature = "vscalar")]
 pub mod vscalar;
+
+/// Crate-side gap fix (lane MAX3): json_extract / json_extract_string scalar
+/// UDFs over serde_json for engine builds without the bundled json extension.
+/// Requires `serde_json` + `vscalar` features.
+#[cfg(all(feature = "serde_json", feature = "vscalar"))]
+pub mod variant_json_udf;
 
 // Number of cached prepared statements we'll hold on to.
 const STATEMENT_CACHE_DEFAULT_CAPACITY: usize = 16;

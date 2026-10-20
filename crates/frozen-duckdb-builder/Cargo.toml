@@ -21,5 +21,13 @@ zip.workspace = true
 tracing.workspace = true
 tempfile.workspace = true
 
+# Target-Profile Matrix (lane SP1): pure metadata + selection logic.
+# `profile.rs` maps these feature names onto Profile cells; per-profile
+# artifact acquisition does not exist yet (typed UNSUPPORTED follow-up,
+# see src/profile.rs — ensure_binary must NOT silently default to Core).
 [features]
-default = []
+default = ["core"]
+core = []
+threads = []
+icu = []
+parquet = []

@@ -65,26 +65,31 @@ jobs:
               echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
               ;;
             x86_64)
-              # macOS runners are arm64; brew's openssl@3 is an arm64 keg, and
-              # linking an x86_64 slice against arm64 libs fails. Try the
-              # Rosetta x86_64 brew keg first; if absent, fail loudly here
-              # (bounded, 2 minutes) instead of 15 minutes into make.
-              if [ -x /usr/local/bin/brew ]; then
-                X64_SSL="$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3 2>/dev/null || true)"
-                if [ -z "${X64_SSL}" ]; then
-                  echo "x86_64 openssl keg absent — installing via Rosetta brew" >&2
-                  arch -x86_64 /usr/local/bin/brew install openssl@3 2>/dev/null || true
-                  X64_SSL="$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3 2>/dev/null || true)"
-                fi
-                if [ -n "$X64_SSL" ] && [ -d "$X64_SSL/lib" ]; then
-                  echo "OPENSSL_ROOT_DIR=${X64_SSL}" >> "$GITHUB_ENV"
-                else
-                  echo "No x86_64 openssl@3 keg via Rosetta brew; exporting arm64 prefix anyway - link failure will be loud and diagnostic-rich." >&2
-                  echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
-                fi
-              else
-                echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+              # macOS runners are arm64; brew's openssl@3 is an arm64 keg and
+              # /usr/local/bin/brew (Rosetta x86_64 brew) does not exist on
+              # these runners. Run 39360386823 proved the fallback path: the
+              # preflight exported the arm64 prefix anyway, the httpfs
+              # extension linked its x86_64 slice against it, and make died
+              # 15 minutes in with undefined x86_64 symbols
+              # (_BIO_ctrl/_BIO_free/... from httpfs_httplib_client.cpp.o).
+              # Fix (option b): cross-compile openssl x86_64 from source —
+              # clang -arch x86_64 handles darwin64-x86_64 natively, no
+              # Rosetta brew bootstrap needed (~3-5 min, bounded here).
+              X64_SSL="${RUNNER_TEMP}/openssl-x86_64"
+              if [ ! -d "${X64_SSL}/lib" ]; then
+                # brew versions can carry a formula-revision suffix (e.g. 3.5.4_1);
+                # upstream release tags never do.
+                OSSL_VER="$(brew list --versions openssl@3 | awk '{print $2}' | sed 's/_[0-9]*$//')"
+                curl -fsSL -o "${RUNNER_TEMP}/openssl.tar.gz" \
+                  "https://github.com/openssl/openssl/releases/download/openssl-${OSSL_VER}/openssl-${OSSL_VER}.tar.gz"
+                mkdir -p "${RUNNER_TEMP}/openssl-src"
+                tar -xzf "${RUNNER_TEMP}/openssl.tar.gz" -C "${RUNNER_TEMP}/openssl-src" --strip-components=1
+                cd "${RUNNER_TEMP}/openssl-src"
+                ./Configure darwin64-x86_64 --prefix="${X64_SSL}" no-shared
+                make -j"$(sysctl -n hw.ncpu)"
+                make install_sw
               fi
+              echo "OPENSSL_ROOT_DIR=${X64_SSL}" >> "$GITHUB_ENV"
               ;;
           esac
           echo "OPENSSL_ROOT_DIR=$( cat "$GITHUB_ENV" | sed -n 's/^OPENSSL_ROOT_DIR=//p' )"

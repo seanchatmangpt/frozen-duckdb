@@ -9,7 +9,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 BUILDER_LIB="$REPO_ROOT/crates/frozen-duckdb-builder/src/lib.rs"
 
 # --- derive VERSION from the builder source (single source of truth) ---
-VERSION="$(sed -n 's/^[[:space:]]*const VERSION:[[:space:]]*&str[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$BUILDER_LIB" | head -n1)"
+VERSION="$(sed -n 's/^[[:space:]]*\(pub \)\{0,1\}const VERSION:[[:space:]]*&str[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\2/p' "$BUILDER_LIB" | head -n1)"
 if [[ -z "$VERSION" ]]; then
     echo "[FAIL] cannot derive VERSION const from $BUILDER_LIB" >&2
     exit 3

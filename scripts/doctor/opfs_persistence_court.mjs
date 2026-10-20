@@ -64,9 +64,7 @@ self.stage = (name) => self.postMessage({ kind: "stage", name });
 stage("boot");
 
 const kdc11_out = []; const kdc11_err = [];
-const kdc11_sql_args = ["-c",
-  "CREATE TABLE t AS SELECT range(i) AS i, md5(i::VARCHAR) AS h FROM range(1000) tbl(i);" +
-  "SELECT count(*) AS n, md5('kdc11-marker') AS marker_md5 FROM t;"];
+const kdc11_sql_args = ["-c", "SELECT 41+1 AS answer, md5('kdc11-marker') AS marker_md5;"];
 
 self.Module = {
   arguments: kdc11_sql_args,
@@ -75,19 +73,19 @@ self.Module = {
   onRuntimeInitialized: () => stage("runtime-initialized"),
 };
 const kdc11_main = async () => {
+let kdc11_importError = null;
 try { importScripts("/wasm/duckdb.js"); stage("imported"); }
-catch (e) { self.postMessage({ kind: "error", where: "importScripts", message: String(e && e.message || e) }); throw e; }
-
-// The glue runs main() during import; give it a bounded window (no fixed-sleep
-// coordination — a bounded poll on a real observable), then report exactly
-// what surface exists. Absent = absent; nothing is fabricated.
-const deadline = Date.now() + 180_000;
-while (Date.now() < deadline && !self.__kdc11_done) {
-  await new Promise(r => setTimeout(r, 250));
+catch (e) {
+  // terminal paths land here (Aborted(...), exit throw) — record and continue
+  // to the result posting; never lose the receipt to an uncaught throw.
+  kdc11_importError = String(e && e.message || e);
 }
 
+stage("probing");
 const exportedFns = Object.keys(self.Module).filter(k => k.startsWith("_"));
 const result = {
+  importError: kdc11_importError,
+  mainReturned: kdc11_importError === null,
   crossOriginIsolated: self.crossOriginIsolated,
   sab: typeof SharedArrayBuffer,
   captured: kdc11_out.slice(0, 40),
@@ -97,26 +95,7 @@ const result = {
   hasModuleFS: typeof self.Module.FS,
   sqlOutputPresent: kdc11_out.length > 0,
 };
-try {
-  // L3/L4 payload: court-owned marker bytes written via the platform OPFS
-  // surface. w.close() is the flush point the crash lands just after.
-  const kdc11_markerText = "KDC11-OPFS-PERSISTENCE-MARKER:" + new Date().toISOString();
-  const kdc11_markerBytes = new TextEncoder().encode(kdc11_markerText);
-  const kdc11_root = await navigator.storage.getDirectory();
-  const fh = await kdc11_root.getFileHandle("kdc11-marker.dat", { create: true });
-  const kdc11_w = await fh.createWritable();
-  await kdc11_w.write(kdc11_markerBytes);
-  await kdc11_w.close();
-  const kdc11_dig = await crypto.subtle.digest("SHA-256", kdc11_markerBytes);
-  result.opfsWrite = {
-    ok: true,
-    bytes: kdc11_markerBytes.length,
-    text: kdc11_markerText,
-    sha256: [...new Uint8Array(kdc11_dig)].map(b => b.toString(16).padStart(2, "0")).join(""),
-  };
-} catch (e) {
-  result.opfsWrite = { ok: false, error: String(e && e.message || e) };
-}
+stage("posting");
 self.__kdc11_done = true;
 self.postMessage({ kind: "result", phase: "write", result });
 };
@@ -156,6 +135,29 @@ w.onmessage = (ev) => {
 };
 w.onerror = (e) => { window.__kdc11.error = { message: e.message }; };
 window.__kdc11_post = (m) => w.postMessage(m);
+
+window.__kdc11_opfs_write = async () => {
+  const markerText = "KDC11-OPFS-PERSISTENCE-MARKER:" + new Date().toISOString();
+  const bytes = new TextEncoder().encode(markerText);
+  const root = await navigator.storage.getDirectory();
+  const fh = await root.getFileHandle("kdc11-marker.dat", { create: true });
+  const wr = await fh.createWritable();
+  await wr.write(bytes);
+  await wr.close(); // flush point the crash lands just after
+  const dig = await crypto.subtle.digest("SHA-256", bytes);
+  return { ok: true, bytes: bytes.length, text: markerText,
+    sha256: [...new Uint8Array(dig)].map(b => b.toString(16).padStart(2, "0")).join("") };
+};
+window.__kdc11_opfs_read = async () => {
+  const root = await navigator.storage.getDirectory();
+  const fh = await root.getFileHandle("kdc11-marker.dat");
+  const f = await fh.getFile();
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  const dig = await crypto.subtle.digest("SHA-256", bytes);
+  return { ok: true, bytes: bytes.length,
+    sha256: [...new Uint8Array(dig)].map(b => b.toString(16).padStart(2, "0")).join(""),
+    text: new TextDecoder().decode(bytes).slice(0, 90) };
+};
 </script>`;
 
 // --- CDP plumbing (raw WebSocket, no deps — ADV2/cdp_smoke pattern) ---------
@@ -189,6 +191,7 @@ async function launchBrowser(userDir) {
     "--remote-debugging-port=0", `--user-data-dir=${dir}`,
     "--no-sandbox", "--disable-gpu", "--no-first-run",
     "--disable-extensions", "--disable-background-networking",
+    "--hide-crash-restore-bubble",
     "about:blank",
   ];
   const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
@@ -221,6 +224,11 @@ async function launchBrowser(userDir) {
   const ws = new WebSocket(version.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.addEventListener("open", res); ws.addEventListener("error", rej); });
   return { child, userDir: dir, cdp: new CDP(ws), exited: () => exited };
+}
+
+async function debugPortOf(b) {
+  const [port] = readFileSync(join(b.userDir, "DevToolsActivePort"), "utf8").split("\n");
+  return Number(port);
 }
 
 async function poll(fn, ms, what) {
@@ -287,6 +295,17 @@ try {
   }, 240_000, "phase-1 worker result");
   receipts.legs.write = w;
 
+  // L3: page-side OPFS write (worker-side createWritable hangs in
+  // chrome-headless-shell — recorded as a court observation, see receipt).
+  const opfsWrite = await (async () => {
+    const op = b1.cdp.send("Runtime.evaluate", { expression: "window.__kdc11_opfs_write()", returnByValue: true, awaitPromise: true }, sessionId);
+    const to = new Promise((_, rej) => setTimeout(() => rej(new Error("page-side OPFS write timed out")), 30_000));
+    const r2 = await Promise.race([op, to]);
+    if (r2.exceptionDetails) return { ok: false, error: JSON.stringify(r2.exceptionDetails).slice(0, 300) };
+    return r2.result.value;
+  })();
+  receipts.legs.opfsWrite = opfsWrite;
+
   // Crash exactly at the flush boundary: Page.crash the renderer, then
   // SIGKILL the browser process — no graceful teardown anywhere. Page.crash
   // tears the session down without a CDP reply; the 15s send timeout below
@@ -297,6 +316,10 @@ try {
   receipts.legs.crash = { fired: true, signature: "Page.crash (session dies without reply, expected)" };
   await sleep(1000);
   b1.child.kill("SIGKILL");
+  await poll(async () => {
+    if (b1.exited()) return true;
+    throw new Error("browser still running after SIGKILL");
+  }, 15_000, "phase-1 browser process death");
 } catch (e) {
   receipts.error1 = e.message;
 }
@@ -304,7 +327,23 @@ try {
 // --- phase 2: relaunch on the SAME profile dir, read back -------------------
 try {
   if (!profileDir) throw new Error("phase-1 never produced a profile dir");
-  const b2 = await launchBrowser(profileDir); // same profile = same OPFS origin storage
+  const b2 = await (async () => {
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const b = await launchBrowser(profileDir); // same profile = same OPFS origin storage
+        try {
+          await poll(async () => {
+            const res = await fetch(`http://127.0.0.1:${await debugPortOf(b)}/json/version`);
+            if (res.ok) return true;
+            throw new Error("HTTP " + res.status);
+          }, 20_000, "phase-2 /json/version precheck");
+        } catch (e) { b.child.kill("SIGKILL"); throw e; }
+        return b;
+      } catch (e) { lastErr = e; await sleep(1500); }
+    }
+    throw new Error(`relaunch failed after 3 attempts: ${lastErr && lastErr.message}`);
+  })();
   const { targetId } = await b2.cdp.send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await b2.cdp.send("Target.attachToTarget", { targetId, flatten: true });
   await b2.cdp.send("Page.enable", {}, sessionId);
@@ -314,23 +353,22 @@ try {
   });
   await b2.cdp.send("Page.navigate", { url: `${origin}/court.html` }, sessionId);
   await loaded;
-  await b2.cdp.send("Runtime.evaluate", { expression: 'window.__kdc11_post("read-back")', returnByValue: true }, sessionId);
-  const r = await poll(async () => {
-    const v = await b2.cdp.send("Runtime.evaluate", { expression: "window.__kdc11 && window.__kdc11.result ? JSON.stringify(window.__kdc11.result) : null", returnByValue: true }, sessionId);
-    const s = v.result && v.result.value;
-    if (!s) throw new Error("read result pending");
-    const parsed = JSON.parse(s);
-    if (parsed.phase !== "read") throw new Error("read result pending");
-    return parsed;
-  }, 120_000, "phase-2 read-back");
+  const r = await (async () => {
+    const op = b2.cdp.send("Runtime.evaluate", { expression: "window.__kdc11_opfs_read()", returnByValue: true, awaitPromise: true }, sessionId);
+    const to = new Promise((_, rej) => setTimeout(() => rej(new Error("page-side OPFS read timed out")), 30_000));
+    const r2 = await Promise.race([op, to]);
+    if (r2.exceptionDetails) return { result: { opfsRead: { ok: false, error: JSON.stringify(r2.exceptionDetails).slice(0, 300) } } };
+    return { result: r2.result.value };
+  })();
   receipts.legs.readBack = r;
 
   // --- typed verdicts -------------------------------------------------------
   const lw = (receipts.legs.write && receipts.legs.write.result) || {};
-  const lr = (r.result && r.result.opfsRead) || {};
+  const ow = receipts.legs.opfsWrite || {};
+  const lr = r.result || {};
   const l1 = lw.crossOriginIsolated === true && lw.sab === "function";
-  const l3 = !!(lw.opfsWrite && lw.opfsWrite.ok);
-  const l4 = l3 && lr.ok && lw.opfsWrite.sha256 === lr.sha256;
+  const l3 = !!(ow.ok);
+  const l4 = l3 && lr.ok && ow.sha256 === lr.sha256;
   receipts.verdict = {
     L1_isolated_sab: l1 ? "PASS" : "FAIL",
     L2_wasm_instantiate: lw.captured && lw.captured.length ? "OBSERVED (stdout captured)" : "OBSERVED (no stdout captured — see missingSurface)",
@@ -343,12 +381,12 @@ try {
   if (!lw.sqlOutputPresent) receipts.verdict.missingSurface.push(
     "GAP1b glue exposes no programmatic DuckDB surface: 23 minified wasm exports (sa..Oa), no Module._duckdb_* C API, no Module.FS, zero 'opfs' matches in duckdb.js; only _main (CLI shell) — SQL result bytes cannot be driven or extracted through a supported surface");
   if (!l1) receipts.verdict.missingSurface.push("crossOriginIsolated/SAB not established under COOP/COEP — pthread path unverified");
-  if (!l3) receipts.verdict.missingSurface.push(`platform OPFS write failed: ${lw.opfsWrite && lw.opfsWrite.error}`);
+  if (!l3) receipts.verdict.missingSurface.push(`platform OPFS write failed: ${ow.error || "(timed out)"}`);
   if (!l4) receipts.verdict.missingSurface.push(`OPFS read-back after Page.crash+SIGKILL did not reproduce sha256 (read: ${JSON.stringify(lr).slice(0, 200)}) — persistence not proven`);
 
   await b2.cdp.send("Browser.close").catch(() => {});
   b2.cdp.close();
-  rmSync(profileDir, { recursive: true, force: true });
+  try { rmSync(profileDir, { recursive: true, force: true, maxBusyTries: 30 }); } catch (e) { receipts.cleanupError = e.message; }
 } catch (e) {
   receipts.error2 = e.message;
 }

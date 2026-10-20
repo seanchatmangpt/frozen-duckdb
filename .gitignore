@@ -94,3 +94,5 @@ test-dependency/target-dep-coord/
 target-*/
 doctor-target/
 warehouse-sim/economics/sovereign_probe/target-g5/
+.cache/clangd/wasm-full-nt-icu/
+.cache/clangd/wasm-spec/

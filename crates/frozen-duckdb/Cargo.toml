@@ -61,6 +61,10 @@ reqwest.workspace = true
 
 # Dependencies carried over from the vendored duckdb-rs API layer
 arrow = { version = "56", default-features = false, features = ["ffi", "prettyprint"] }
+# Lane MAX3: required by src/duckdb/vtab/arrow.rs (`use num::{...}`) — that
+# module was previously unreachable (undeclared vtab-arrow gate) so the
+# missing dep never surfaced. Optional, compiled only under vtab-arrow.
+num = { version = "0.4", optional = true }
 cast = "0.3"
 fallible-iterator = "0.3"
 fallible-streaming-iterator = "0.1"
@@ -81,6 +85,14 @@ required-features = ["vtab"]
 # Without this declaration the cfg was always-false and the whole vtab
 # surface (table-function registration) was unreachable dead code.
 vtab = []
+# Lane MAX3: declares the cfg(feature = "vscalar") gate at
+# src/duckdb/mod.rs:153 — previously always-false, leaving the whole
+# scalar-function registration surface unreachable (same defect class as
+# KD-06's undeclared `vtab` gate).
+vscalar = ["vtab", "vtab-arrow"]
+# Lane MAX3: declares the cfg(feature = "vtab-arrow") gate at
+# src/duckdb/vtab/mod.rs:13 — previously always-false (KD-06 class).
+vtab-arrow = ["dep:num"]
 # PB10-F2: load-bearing — cfg(feature = "serde_json") at src/duckdb/types/mod.rs:20
 # gates the FromSql/ToSql impls for serde_json::Value (src/duckdb/types/serde_json.rs)
 # AND the optional dependency itself: with the feature off, consumers do not

@@ -5,6 +5,8 @@
 //! `~/.frozen-duckdb/cache/` (one `v{version}-{arch}/` directory per build)
 //! to ensure fast subsequent builds.
 
+pub mod profile;
+
 use anyhow::{Context, Result};
 use std::env;
 use std::fs;
@@ -14,7 +16,7 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
-const VERSION: &str = "2.0.0-dev";
+pub const VERSION: &str = "2.0.0-dev";
 /// Pinned upstream duckdb/duckdb main commit this dev build stages/compiles
 /// from (dev heads move — load-bearing pin).
 const SOURCE_PIN: &str = "b6013f7aa2f36caabb9466ce1791667ea8a280bb";
@@ -148,6 +150,7 @@ fn wait_for_staged_entry(
     loop {
         if binary_path.exists()
             && accept_cached_entry(versioned_cache, binary_path, arch, MIN_ENGINE_DYLIB_BYTES)?
+                == CacheAdmission::Trusted
         {
             return Ok(true);
         }
@@ -255,12 +258,17 @@ pub fn ensure_binary() -> Result<PathBuf> {
     // a MISS so the download/compile path restages it atomically.
     let mut cache_hit = false;
     if binary_path.exists() {
-        cache_hit = accept_cached_entry(
+        cache_hit = match accept_cached_entry(
             &versioned_cache,
             &binary_path,
             &arch,
             MIN_ENGINE_DYLIB_BYTES,
-        )?;
+        )? {
+            CacheAdmission::Trusted => true,
+            CacheAdmission::Refused(invariant) => {
+                poison_state_refuse(&versioned_cache, invariant);
+            }
+        };
     }
 
     if cache_hit {
@@ -303,12 +311,17 @@ pub fn ensure_binary() -> Result<PathBuf> {
 
         let mut post_lock_hit = false;
         if _lock.is_some() && binary_path.exists() {
-            post_lock_hit = accept_cached_entry(
+            post_lock_hit = match accept_cached_entry(
                 &versioned_cache,
                 &binary_path,
                 &arch,
                 MIN_ENGINE_DYLIB_BYTES,
-            )?;
+            )? {
+                CacheAdmission::Trusted => true,
+                CacheAdmission::Refused(invariant) => {
+                    poison_state_refuse(&versioned_cache, invariant);
+                }
+            };
         }
         if post_lock_hit {
             info!(
@@ -366,73 +379,95 @@ pub fn ensure_binary() -> Result<PathBuf> {
     Ok(binary_path)
 }
 
+/// Typed verdict of the cache-entry admission law. `Trusted` = serve the
+/// cached dylib. `Refused(invariant)` = the entry failed the named
+/// invariant; the caller MUST abort with `POISON_STATE_REFUSED: <cache>
+/// (<invariant>)` on stderr and exit code 1 — never a silent restage.
+#[derive(Debug, PartialEq, Eq)]
+enum CacheAdmission {
+    Trusted,
+    Refused(&'static str),
+}
+
+/// Typed poison-rejection exit (MAX1): on any invariant failure, clean the
+/// untrusted entry so the NEXT run restages from empty, print the literal
+/// stderr contract line, and abort the process with exit code 1. This
+/// replaces the pre-MAX1 warn+restage demotion, which silently swallowed
+/// poison and served a freshly-staged fallback with no typed signal.
+fn poison_state_refuse(versioned_cache: &Path, invariant: &'static str) -> ! {
+    eprintln!(
+        "POISON_STATE_REFUSED: {} ({})",
+        versioned_cache.display(),
+        invariant
+    );
+    std::process::exit(1)
+}
+
 /// Trusted-hit law for a versioned cache entry (DT1 refactor of the
 /// ensure_binary hit block): the ENGINE_VERSION marker must carry the
 /// builder's own pin, the `.size` sidecar must match the dylib's actual
 /// length (AD1: `lipo -archs` reads only the Mach-O header, so a truncated
 /// dylib still slice-verifies), and the slice must verify.
 ///
-/// `Ok(true)` = serve the cached dylib. `Ok(false)` = demote to a REAL MISS —
-/// the pre-refactor code logged "restaging" and then `return Ok(binary_path)`,
-/// serving the exact unverified dylib it had just declared untrusted.
+/// `Ok(Trusted)` = serve the cached dylib. `Ok(Refused(invariant))` = the
+/// entry failed the named invariant; the caller aborts via
+/// `poison_state_refuse` (typed stderr + exit 1) after the untrusted files
+/// are removed so the next run restages from a genuinely empty entry.
 /// `Err` = hard failure the caller propagates.
 fn accept_cached_entry(
     versioned_cache: &Path,
     binary_path: &Path,
     arch: &str,
     min_bytes: u64,
-) -> Result<bool> {
+) -> Result<CacheAdmission> {
     // C2 strictness (AD6 siege): the label law is BYTE-EXACT. `stage_engine_marker`
     // writes the pin with no trailing bytes, so a marker whose raw payload is
     // `v{VERSION}\n` or `v{VERSION}\r\n` was NOT staged by this builder and
-    // demotes to MISS like any foreign label. `read_engine_marker`'s trim stays
+    // is refused like any foreign label. `read_engine_marker`'s trim stays
     // for display only. The DT1 regular-file law is preserved: symlinks and
-    // directories demote before their contents are even read.
+    // directories are refused before their contents are even read.
     let marker_path = engine_marker_path(versioned_cache);
-    let is_regular = fs::symlink_metadata(&marker_path)
-        .map(|m| m.is_file())
-        .unwrap_or(false);
-    let raw = is_regular.then(|| fs::read(&marker_path).ok()).flatten();
+    let marker_state = match fs::symlink_metadata(&marker_path) {
+        Err(_) => ("missing-marker", None),
+        Ok(m) if !m.is_file() => ("symlinked-marker", None),
+        Ok(_) => ("foreign-marker", fs::read(&marker_path).ok()),
+    };
+    let (invariant, raw) = marker_state;
     let marker_label = raw
         .as_deref()
         .map(|bytes| String::from_utf8_lossy(bytes).trim().to_string())
         .unwrap_or_else(|| "<absent>".to_string());
     if raw.as_deref() != Some(expected_engine_marker().as_bytes()) {
         warn!(
-            "cache entry labeled v{} carries marker '{}'; restaging",
-            VERSION, marker_label
+            "cache entry labeled v{} carries marker '{}' ({}); restaging",
+            VERSION, marker_label, invariant
         );
-        return Ok(false);
+        return Ok(CacheAdmission::Refused(invariant));
     }
 
     match read_library_size_pin(binary_path) {
         Some(pin) if pin == library_len(binary_path) => {}
         pin => {
             warn!(
-                "cache binary {} length {} mismatches its size pin {:?}; demoting to MISS",
+                "cache binary {} length {} mismatches its size pin {:?}; refusing",
                 binary_path.display(),
                 library_len(binary_path),
                 pin
             );
-            // Fail-closed demotion: remove the untrusted dylib and its pin so
+            // Fail-closed refusal: remove the untrusted dylib and its pin so
             // no concurrent or retried reader can be served them, and so the
-            // restage starts from a genuinely empty entry.
+            // next run's restage starts from a genuinely empty entry.
             let _ = fs::remove_file(binary_path);
             let _ = fs::remove_file(library_size_pin_path(binary_path));
-            return Ok(false);
+            return Ok(CacheAdmission::Refused("truncated-dylib"));
         }
     }
 
     // A cache written before TR7 closed may hold the wrong slice under this
     // label (x86_64 bytes in v{VER}-arm64/libduckdb_arm64.dylib).
-    verify_library_slice_for(target_os_name(), binary_path, arch, min_bytes)
-        .map(|_| ())
-        .with_context(|| {
-            format!(
-                "stale cached binary does not match its label; remove {} and rebuild",
-                versioned_cache.display()
-            )
-        })?;
+    if let Err(_e) = verify_library_slice_for(target_os_name(), binary_path, arch, min_bytes) {
+        return Ok(CacheAdmission::Refused("slice-magic-or-floor"));
+    }
 
     // KD-15 self-heal: a cache written before the install-ID stamp existed is
     // still accepted, then stamped in place (idempotent). Stamping changes the
@@ -441,7 +476,7 @@ fn accept_cached_entry(
     if ensure_install_id(binary_path)? {
         stage_library_size_pin(binary_path)?;
     }
-    Ok(true)
+    Ok(CacheAdmission::Trusted)
 }
 
 /// Copy the vendored headers into the cache when missing.
@@ -2340,7 +2375,11 @@ mod tests {
         fs::write(&dest, &full[..full.len() / 2]).unwrap();
 
         let hit = accept_cached_entry(&cache, &dest, "arm64", 1).unwrap();
-        assert!(!hit, "pin-mismatched entry must demote, never serve");
+        assert_eq!(
+            hit,
+            CacheAdmission::Refused("truncated-dylib"),
+            "pin-mismatched entry must refuse, never serve"
+        );
         assert!(
             !dest.exists(),
             "untrusted dylib must be removed, not served"
@@ -2369,7 +2408,10 @@ mod tests {
         stage_library_size_pin(&dest).unwrap();
         stage_engine_marker(&cache).unwrap();
 
-        assert!(accept_cached_entry(&cache, &dest, "arm64", 1).unwrap());
+        assert_eq!(
+            accept_cached_entry(&cache, &dest, "arm64", 1).unwrap(),
+            CacheAdmission::Trusted
+        );
         assert!(dest.exists());
     }
 
@@ -2434,11 +2476,11 @@ mod tests {
         let dest = get_binary_path(&cache, "arm64");
         atomic_write_bytes(&dest, &poison_probe_payload(11, 8192)).unwrap();
         stage_engine_marker(&cache).unwrap();
-        // pin never staged: the pre-AD1 cache shape. Must demote (real MISS
-        // decision), not serve — and must NOT remove the dylib? No: the
-        // demote law removes it; assert the decision is MISS.
-        assert!(
-            !accept_cached_entry(&cache, &dest, "arm64", 1).unwrap(),
+        // pin never staged: the pre-AD1 cache shape. Must refuse (typed MISS
+        // decision), not serve — and the demote law removes the dylib.
+        assert_eq!(
+            accept_cached_entry(&cache, &dest, "arm64", 1).unwrap(),
+            CacheAdmission::Refused("truncated-dylib"),
             "marker without a pin is not a trusted hit"
         );
         assert!(!dest.exists(), "demoted entry is removed fail-closed");
@@ -2449,10 +2491,12 @@ mod tests {
     //
     // Drives the REAL decision layer (`accept_cached_entry`, the function
     // ensure_binary routes every cache hit through) against every poison
-    // state the 13:22-class attacks can produce. Decision vocabulary:
-    //   Ok(true)  = SERVE    (link the cached dylib)
-    //   Ok(false) = RESTAGE  (demote to a real MISS; slot rebuilt)
-    //   Err(_)    = FAIL     (fail-closed, build refused)
+    // state the 13:22-class attacks can produce. Decision vocabulary (MAX1):
+    //   Trusted             = SERVE   (link the cached dylib)
+    //   Refused(invariant)  = REFUSED (typed poison rejection; ensure_binary
+    //                         aborts with `POISON_STATE_REFUSED: <cache>
+    //                         (<invariant>)` and exit code 1)
+    //   Err(_)              = FAIL    (fail-closed, build refused)
     //
     // Layering note (cases g2/h): the builder decision layer authenticates
     // LABEL/SIZE/SLICE — it cannot read a version string out of Mach-O
@@ -2470,13 +2514,13 @@ mod tests {
         #[derive(Debug, PartialEq, Eq)]
         enum Decision {
             Serve,
-            Restage,
+            Refused(&'static str),
             Fail,
         }
-        fn decide(r: Result<bool>) -> Decision {
+        fn decide(r: Result<CacheAdmission>) -> Decision {
             match r {
-                Ok(true) => Decision::Serve,
-                Ok(false) => Decision::Restage,
+                Ok(CacheAdmission::Trusted) => Decision::Serve,
+                Ok(CacheAdmission::Refused(inv)) => Decision::Refused(inv),
                 Err(_) => Decision::Fail,
             }
         }
@@ -2539,7 +2583,7 @@ mod tests {
             // returned Ok(binary_path)); the fix demotes to a real MISS.
             (
                 "(a) v1.5.5 dylib + v2.0.0-dev marker (13:22 attack)",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     fs::copy(&good, get_binary_path(v, arch)).unwrap();
                     stage_engine_marker(v).unwrap();
@@ -2549,7 +2593,7 @@ mod tests {
             // truncation): the size-pin gate must fire.
             (
                 "(b) truncated dylib + valid marker + stale .size",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     stage_lawful(v, &good);
                     let b = get_binary_path(v, arch);
@@ -2558,10 +2602,11 @@ mod tests {
                 }),
             ),
             // (b2) truncation with an adversarially recomputed pin: pins pass,
-            // the slice gate must FAIL closed (lipo on a mangled Mach-O).
+            // the slice gate must refuse closed (MAX1: typed slice refusal —
+            // still never a serve).
             (
-                "(b2) truncated dylib + recomputed pin -> slice FAIL",
-                Decision::Fail,
+                "(b2) truncated dylib + recomputed pin -> slice REFUSED",
+                Decision::Refused("slice-magic-or-floor"),
                 Box::new(|v: &Path| {
                     let b = get_binary_path(v, arch);
                     fs::copy(&good, &b).unwrap();
@@ -2574,7 +2619,7 @@ mod tests {
             // (c) valid dylib + MISSING marker.
             (
                 "(c) valid dylib + missing marker",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     fs::copy(&good, get_binary_path(v, arch)).unwrap();
                     stage_library_size_pin(&get_binary_path(v, arch)).unwrap();
@@ -2584,7 +2629,7 @@ mod tests {
             // (d) foreign marker.
             (
                 "(d) foreign marker v9.9.9",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     stage_lawful(v, &good);
                     fs::write(engine_marker_path(v), b"v9.9.9").unwrap();
@@ -2593,7 +2638,7 @@ mod tests {
             // (e) marker is a symlink to /dev/null.
             (
                 "(e) marker symlink -> /dev/null",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     stage_lawful(v, &good);
                     fs::remove_file(engine_marker_path(v)).unwrap();
@@ -2603,7 +2648,7 @@ mod tests {
             // (f) marker with trailing newline / CRLF: byte-exact label law.
             (
                 "(f) marker `v{VERSION}\\n` (trailing newline)",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     stage_lawful(v, &good);
                     let mut m = expected_engine_marker().into_bytes();
@@ -2613,7 +2658,7 @@ mod tests {
             ),
             (
                 "(f2) marker `v{VERSION}\\r\\n` (CRLF)",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     stage_lawful(v, &good);
                     let mut m = expected_engine_marker().into_bytes();
@@ -2629,7 +2674,7 @@ mod tests {
             let fat = fat_ref.clone();
             table.push((
                 "(g1) universal fat dylib + dev marker, no pins",
-                Decision::Restage,
+                Decision::Refused("poison"),
                 Box::new(move |v: &Path| {
                     fs::copy(&fat, get_binary_path(v, arch)).unwrap();
                     stage_engine_marker(v).unwrap();
@@ -2659,7 +2704,7 @@ mod tests {
         // (i) ENGINE_VERSION staged as a directory.
         table.push((
             "(i) ENGINE_VERSION is a directory",
-            Decision::Restage,
+            Decision::Refused("poison"),
             Box::new(|v: &Path| {
                 stage_lawful(v, &good);
                 fs::remove_file(engine_marker_path(v)).unwrap();
@@ -2681,7 +2726,10 @@ mod tests {
             poison(&versioned);
             let binary = get_binary_path(&versioned, arch);
             let got = decide(accept_cached_entry(&versioned, &binary, arch, 1));
-            let ok = got == *expected;
+            let ok = match (&got, expected) {
+                (Decision::Refused(_), Decision::Refused(_)) => true,
+                (a, b) => a == b,
+            };
             failed |= !ok;
             if got == Decision::Serve {
                 served += 1;
