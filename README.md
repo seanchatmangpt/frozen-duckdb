@@ -173,12 +173,30 @@ build script emits matching runtime rpaths — no `DYLD_*` variables needed.
 
 ## Platform Support (as of 2.0.0-dev)
 
-- **macOS**: per-architecture dylibs (arm64, x86_64). The prebuilt
-  download path requires a published GitHub Release — none exists for
-  `v2.0.0-dev` yet, so builds currently compile locally from pinned source
-  and cache. No `DYLD_*` setup either way.
-- **Linux / Windows**: pinned local-compile fallback. Prebuilt `.so`
-  assets are planned.
+- **macOS**: per-architecture dylibs (arm64, x86_64), published on the
+  GitHub Release (`v2.0.0-dev.3`). No `DYLD_*` setup — the builder stamps
+  install-ID + rpath at cache persist and self-heals older caches
+  (KD-15). Consumers: plain dynamic link, no flags.
+- **Linux**: prebuilt `.so` assets (arm64, x86_64) published on the same
+  release. **Consumer floor: glibc ≥ 2.38** (`__isoc23_*@GLIBC_2.38`,
+  `GLIBCXX_3.4.32`) — Ubuntu 24.04+, Debian trixie, or newer (KD-16;
+  Debian bookworm-class cannot link the asset). Linux consumers also need
+  the cached `.so` on the loader path at runtime
+  (`LD_LIBRARY_PATH` / rpath — the KD-CLEANROOM-RPATH contract; the
+  builder does not stamp ELF `LC_ID_DYLIB`).
+- **Windows**: pinned local-compile fallback (no published asset).
+- Source fallback for every platform: local compile from the pinned
+  upstream SHA when no release asset serves.
+
+## Release Assets (witnessed 2026-10-20)
+
+`v2.0.0-dev.3` ships `libduckdb_{arm64,x86_64}.dylib` and
+`libduckdb_{arm64,x86_64}.so` (66–83 MB each), all built by CI with the
+version guard accepting dev-suffix tags. The download path is proven
+end-to-end in a fresh container: empty cache → release download →
+sha256(served) == sha256(published asset) → dynamic link →
+`SELECT version()` = `v2.0.0-dev88595`, `SELECT 42` = 42
+(`docs/sjira/v2.0.0-dev/receipts/DG4-download-court.md`).
 
 ## Built-in Extensions
 
