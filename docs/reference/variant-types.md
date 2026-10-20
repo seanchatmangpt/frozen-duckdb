@@ -33,7 +33,15 @@ never a panic.
   is `Text`; Variant-ness is recovered at the value layer.
 - `serde_json` arm (`src/duckdb/types/serde_json.rs`):
   `ValueRef::Variant(arr, idx)` parses the Utf8 payload (StringArray
-  or LargeStringArray) directly as `serde_json::Value`.
+  or LargeStringArray) directly as `serde_json::Value`. Requires the
+  `serde_json` cargo feature. For a *live raw* VARIANT column (which
+  projects as the shredded Struct below) the arm does not fire:
+  `row.get::<Option<serde_json::Value>>` fails with a typed
+  `FromSqlConversionFailure` whose message names the shredded
+  `Struct(metadata, value)` projection and the `::VARCHAR` workaround
+  (U5 probe receipt: `docs/sjira/v2.0.0-dev/receipts/USER-FINDINGS-U5.md`).
+  A NULL variant read through `Option<serde_json::Value>` is
+  `Ok(None)` (DT3 guard holds on both the raw and cast paths).
 - Arrow bridge (`src/duckdb/vtab/arrow.rs`, `LogicalTypeId::Variant`
   arm): the variant payload is the JSON rendering in a
   varchar-style `duckdb_string_t`, so the flat-vector conversion is
@@ -64,6 +72,7 @@ Standing summary:
 | varchar binds into VARIANT | ALIVE |
 | Arrow projection as Struct(metadata, value) | ALIVE (bridge reality) |
 | Utf8 JSON payload arms (bind, serde_json, flat-vector) | ALIVE for text-payload columns |
+| serde_json read of a live raw VARIANT column | typed actionable error naming `::VARCHAR` (ALIVE, U5) |
 | `ValueRef::Variant` from live raw VARIANT columns | UNVERIFIED (open gap) |
 
 ## See Also
