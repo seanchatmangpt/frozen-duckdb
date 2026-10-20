@@ -137,10 +137,12 @@ mod transaction;
 #[cfg(feature = "extensions-full")]
 mod extension;
 
-pub mod types;
 /// The duckdb table function interface
 #[cfg(feature = "vtab")]
 pub mod host_vfs;
+pub mod types;
+/// Table-function (vtab) interface: trait-based registration of SQL
+/// table-producing functions against the DuckDB C API.
 #[cfg(feature = "vtab")]
 pub mod vtab;
 

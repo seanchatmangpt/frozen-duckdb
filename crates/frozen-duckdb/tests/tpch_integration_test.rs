@@ -48,12 +48,13 @@ fn test_tpch_data_generation() -> Result<()> {
     conn.execute_batch("INSTALL tpch; LOAD tpch;")?;
 
     // Generate TPC-H data with scale factor 0.01 (tiny dataset for fast tests)
-    let start = Instant::now();
+    let generation_time;
     {
         let _dbgen = lock_dbgen();
+        let start = Instant::now();
         conn.execute("CALL dbgen(sf = 0.01)", [])?;
+        generation_time = start.elapsed();
     }
-    let generation_time = start.elapsed();
 
     info!("🔄 TPC-H data generation took: {:?}", generation_time);
 
@@ -245,12 +246,13 @@ fn test_tpch_performance_characteristics() -> Result<()> {
     conn.execute_batch("INSTALL tpch; LOAD tpch;")?;
 
     // Generate TPC-H data
-    let start = Instant::now();
+    let generation_time;
     {
         let _dbgen = lock_dbgen();
+        let start = Instant::now();
         conn.execute("CALL dbgen(sf = 0.01)", [])?;
+        generation_time = start.elapsed();
     }
-    let generation_time = start.elapsed();
 
     // Test query performance on generated data
     let query_start = Instant::now();

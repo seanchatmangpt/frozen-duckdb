@@ -15,6 +15,9 @@
 //!   exact bytes of up-to-CHUNK emission.
 
 use crate::duckdb::core::{DataChunkHandle, Inserter, LogicalTypeHandle, LogicalTypeId};
+
+/// Table function struct for `read_local_range(file, offset, length)`.
+pub struct ReadLocalRangeVTab;
 use crate::duckdb::vtab::{BindInfo, InitInfo, TableFunctionInfo, VTab};
 use crate::duckdb::Result;
 use std::fs::File;
@@ -47,8 +50,6 @@ impl std::error::Error for HostRangeStatus {}
 pub struct ReadLocalRangeBindData {
     data: Vec<u8>,
     resolved_offset: u64,
-    /// True when offset >= file size (EOF -> empty result).
-    at_eof: bool,
 }
 
 /// Init data: scan progress across func invocations.
@@ -61,7 +62,7 @@ const CHUNK: u64 = 2048;
 
 fn param_i64(
     v: &crate::duckdb::vtab::Value,
-    name: &str,
+    _name: &str,
 ) -> std::result::Result<i64, Box<dyn std::error::Error>> {
     Ok(v.to_int64())
 }
@@ -71,6 +72,15 @@ impl VTab for ReadLocalRangeVTab {
     type BindData = ReadLocalRangeBindData;
 
     fn bind(bind: &BindInfo) -> Result<Self::BindData, Box<dyn std::error::Error>> {
+        bind.add_result_column("data", LogicalTypeHandle::from(LogicalTypeId::Blob));
+        bind.add_result_column(
+            "byte_offset",
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+        );
+        bind.add_result_column(
+            "byte_length",
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+        );
         if bind.get_parameter_count() != 3 {
             return Err(Box::new(HostRangeStatus::InvalidInput(format!(
                 "read_local_range expects 3 parameters, got {}",
@@ -95,8 +105,9 @@ impl VTab for ReadLocalRangeVTab {
 
         // open callback analog: resolve the path (no wire I/O).
         let f = File::open(&path).map_err(|e| {
-            Box::new(HostRangeStatus::InvalidInput(format!("open '{path}' failed: {e}")))
-                as Box<dyn std::error::Error>
+            Box::new(HostRangeStatus::InvalidInput(format!(
+                "open '{path}' failed: {e}"
+            ))) as Box<dyn std::error::Error>
         })?;
         // size callback analog: content length via metadata, resolved
         // once per handle.
@@ -107,7 +118,6 @@ impl VTab for ReadLocalRangeVTab {
             return Ok(ReadLocalRangeBindData {
                 data: Vec::new(),
                 resolved_offset: offset,
-                at_eof: true,
             });
         }
 
@@ -143,6 +153,14 @@ impl VTab for ReadLocalRangeVTab {
         })
     }
 
+    fn parameters() -> Option<Vec<LogicalTypeHandle>> {
+        Some(vec![
+            LogicalTypeHandle::from(LogicalTypeId::Varchar),
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+        ])
+    }
+
     fn func(
         func: &TableFunctionInfo<Self>,
         output: &mut DataChunkHandle,
@@ -164,9 +182,12 @@ impl VTab for ReadLocalRangeVTab {
         for row in start_row..end_row {
             let s = (row * CHUNK) as usize;
             let e = bind_data.data.len().min(s + CHUNK as usize);
-            output.flat_vector(0).insert(n as usize, &bind_data.data[s..e]);
-            output.flat_vector(1).insert(n as usize, (bind_data.resolved_offset + s as u64) as i64);
-            output.flat_vector(2).insert(n as usize, (e - s) as i64);
+            output
+                .flat_vector(0)
+                .insert(n as usize, &bind_data.data[s..e]);
+            output.flat_vector(1).as_mut_slice::<i64>()[n as usize] =
+                (bind_data.resolved_offset + s as u64) as i64;
+            output.flat_vector(2).as_mut_slice::<i64>()[n as usize] = (e - s) as i64;
             n += 1;
         }
         init_data.emitted.store(end_row, Ordering::Relaxed);

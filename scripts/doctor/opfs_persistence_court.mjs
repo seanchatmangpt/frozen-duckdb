@@ -171,11 +171,12 @@ class CDP {
   }
   send(method, params = {}, sessionId) {
     const id = ++this.id;
-    return new Promise((resolve, reject) => {
-      this.whole = id;
+    const op = new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
       this.ws.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
     });
+    return Promise.race([op, new Promise((_, rej) =>
+      setTimeout(() => rej(new Error(`CDP ${method} timed out (session likely crashed)`)), 15_000))]);
   }
   on(fn) { this.listeners.push(fn); }
   close() { this.ws.close(); }
@@ -315,7 +316,7 @@ try {
   receipts.legs.readBack = r;
 
   // --- typed verdicts -------------------------------------------------------
-  const lw = receipts.legs.write || {};
+  const lw = (receipts.legs.write && receipts.legs.write.result) || {};
   const lr = (r.result && r.result.opfsRead) || {};
   const l1 = lw.crossOriginIsolated === true && lw.sab === "function";
   const l3 = !!(lw.opfsWrite && lw.opfsWrite.ok);

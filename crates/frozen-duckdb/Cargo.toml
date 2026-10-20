@@ -72,6 +72,11 @@ strum = { version = "0.27", features = ["derive"] }
 frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.0-dev" }
 
 [features]
+# CL13 (KD-06 local slice): declares the previously-undeclared cfg gate
+# `feature = "vtab"` used throughout src/duckdb/vtab/ and host_vfs.rs.
+# Without this declaration the cfg was always-false and the whole vtab
+# surface (table-function registration) was unreachable dead code.
+vtab = []
 # PB10-F2: load-bearing — cfg(feature = "serde_json") at src/duckdb/types/mod.rs:20
 # gates the FromSql/ToSql impls for serde_json::Value (src/duckdb/types/serde_json.rs)
 # AND the optional dependency itself: with the feature off, consumers do not
