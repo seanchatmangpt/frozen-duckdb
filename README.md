@@ -248,6 +248,9 @@ cargo test --workspace
 cargo clippy --workspace -- -D warnings
 cargo fmt --check
 just doctor          # 13-stage verification battery
+
+# Pre-publish verification gate (receipt written to target/publish-gate-receipt.txt)
+bash scripts/publish_gate.sh
 ```
 
 Contributing: [coding standards](docs/contributing/coding-standards.md).
@@ -286,7 +289,9 @@ mechanical, scripted edit set — no hand-editing of pins. Five steps:
    re-render via `ggen sync run`.
 3. Run the full gate: `make verify` (verify-gates + ggen receipt verify)
    plus the test ladder (`cargo test --workspace`, clippy `-D warnings`,
-   `fmt --check`).
+   `fmt --check`), and the fail-closed publish gate:
+   `bash scripts/publish_gate.sh` (validates clean tree, versions, workspace
+   dry-run, and the 32 MiB WASM ceiling).
 4. Commit per lane and follow the rehearsed cut/publish sequence:
    `docs/sjira/v2.0.0-dev/TAG-REHEARSAL.md` (tag → release assets →
    builder → sys → crate publishes, with index-wait polls and an abort

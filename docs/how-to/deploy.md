@@ -15,3 +15,25 @@ To push the tag to trigger the release build, run:
 git push origin v2.0.0-dev
 ```
 
+## Pre-publish verification
+
+Before publishing crates or cutting release assets, verify publish readiness with
+the pre-publish gate:
+
+```bash
+bash scripts/publish_gate.sh
+```
+
+This verifies:
+- Tree porcelain status (`tree-clean`)
+- Workspace package version alignment across crates (`versions-aligned`)
+- Workspace compilation (`build`)
+- Formatting (`fmt`)
+- Clippy passes with no warnings (`clippy`)
+- Full test suite passes (`tests`)
+- Publication dry-run for all dependent workspace crates in dependency order (`publish-dry-run`)
+- WASM binary remains strictly below the 32 MiB ceiling (`wasm-ceiling-32MiB`)
+
+Standing is emitted to `target/publish-gate-receipt.txt` (`PUBLISH_READY` or `REFUSED`).
+
+

@@ -22,3 +22,10 @@ chain check) runs as a single command:
 make verify
 ```
 
+To run the fail-closed pre-publish gate (checks clean tree, aligned package versions,
+clippy, workspace tests, workspace dry-run, and the 32 MiB WASM ceiling):
+
+```bash
+bash scripts/publish_gate.sh
+```
+
