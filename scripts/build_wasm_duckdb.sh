@@ -65,19 +65,27 @@ log "PROBE OK: ${EMCC_VERSION}"
 mkdir -p "${BUILD_ROOT}"
 DUCKDB_DIR="${BUILD_ROOT}/duckdb"
 
+# Shallow, SHA-addressed fetch with retries (full clones drop on flaky links).
 if [ ! -d "${DUCKDB_DIR}/.git" ]; then
-  log "CLONE: ${DUCKDB_REPO}"
-  git clone --no-checkout "${DUCKDB_REPO}" "${DUCKDB_DIR}" 2>&1 \
-    | sed 's/^/  /' || fail2 "git clone failed"
+  log "INIT: ${DUCKDB_REPO}"
+  git init --quiet "${DUCKDB_DIR}"
+  git -C "${DUCKDB_DIR}" remote add origin "${DUCKDB_REPO}"
 fi
 
-log "CHECKOUT: pinned SOURCE_PIN ${SOURCE_PIN}"
-if ! git -C "${DUCKDB_DIR}" checkout --quiet "${SOURCE_PIN}"; then
-  git -C "${DUCKDB_DIR}" fetch origin "${SOURCE_PIN}" 2>&1 | sed 's/^/  /' \
-    || fail2 "fetch of pinned SHA failed"
-  git -C "${DUCKDB_DIR}" checkout --quiet "${SOURCE_PIN}" \
-    || fail2 "checkout of pinned SHA ${SOURCE_PIN} failed"
+log "FETCH+CHECKOUT: pinned SOURCE_PIN ${SOURCE_PIN} (depth 1)"
+if ! git -C "${DUCKDB_DIR}" cat-file -e "${SOURCE_PIN}^{commit}" 2>/dev/null; then
+  fetched=0
+  for attempt in 1 2 3 4 5; do
+    if git -C "${DUCKDB_DIR}" fetch --depth 1 origin "${SOURCE_PIN}" 2>&1 | sed 's/^/  /' \
+       && git -C "${DUCKDB_DIR}" cat-file -e "${SOURCE_PIN}^{commit}" 2>/dev/null; then
+      fetched=1; break
+    fi
+    log "fetch attempt ${attempt} failed; retrying"; sleep $((attempt * 3))
+  done
+  [ "${fetched}" = "1" ] || fail2 "fetch of pinned SHA failed after retries"
 fi
+git -C "${DUCKDB_DIR}" checkout --quiet "${SOURCE_PIN}" \
+  || fail2 "checkout of pinned SHA ${SOURCE_PIN} failed"
 ACTUAL_SHA="$(git -C "${DUCKDB_DIR}" rev-parse HEAD)"
 [ "${ACTUAL_SHA}" = "${SOURCE_PIN}" ] || fail2 \
   "subject mismatch: HEAD ${ACTUAL_SHA} != pinned ${SOURCE_PIN}"
@@ -86,12 +94,14 @@ log "PIN VERIFIED: HEAD == ${SOURCE_PIN}"
 # ---------------------------------------------------------------------------
 # Phase 3: emcmake configure + build (operator blueprint, verbatim flags)
 # ---------------------------------------------------------------------------
-log "CONFIGURE (emcmake)"
+BUILD_EXTS="parquet;json"
+
+log "CONFIGURE (emcmake) extensions=${BUILD_EXTS}"
 emcmake cmake -S "${DUCKDB_DIR}" -B "${BUILD_ROOT}/build" \
   -DCMAKE_CXX_STANDARD=17 \
   -DCMAKE_CXX_FLAGS="-O3 -flto -sUSE_PTHREADS=1" \
   -DDUCKDB_EXPLICIT_PLATFORM=wasm_eh \
-  -DBUILD_EXTENSIONS="parquet;json" \
+  -DBUILD_EXTENSIONS="${BUILD_EXTS}" \
   -DENABLE_EXTENSION_AUTOLOADING=OFF \
   -DENABLE_EXTENSION_AUTOINSTALL=OFF \
   -DBUILD_HTTPFS=OFF \
@@ -112,6 +122,11 @@ WASM_OUT="$(find "${BUILD_ROOT}/build" -name '*.wasm' -type f | head -1)"
 cp "${WASM_OUT}" "${ARTIFACT}"
 
 ART_BYTES="$(wc -c < "${ARTIFACT}" | tr -d ' ')"
+# Admission ceiling (Full/Threaded profile): 32 MiB. Over => REFUSED, never PASS.
+CEILING_BYTES="${CEILING_BYTES:-33554432}"
+if [ "${ART_BYTES}" -gt "${CEILING_BYTES}" ]; then
+  fail2 "artifact ${ART_BYTES} bytes exceeds ceiling ${CEILING_BYTES} (32 MiB)"
+fi
 ART_SHA="$(sha256sum "${ARTIFACT}" 2>/dev/null | awk '{print $1}' \
   || shasum -a 256 "${ARTIFACT}" | awk '{print $1}')"
 
@@ -126,7 +141,7 @@ source_pin:    ${SOURCE_PIN}
 emcc:          ${EMCC_VERSION}
 platform:      DUCKDB_EXPLICIT_PLATFORM=wasm_eh
 cxx_standard:  17
-extensions:    parquet;json (autoload OFF, autoinstall OFF, httpfs OFF)
+extensions:    ${BUILD_EXTS} (autoload OFF, autoinstall OFF, httpfs OFF)
 opt:           -O3 -flto
 standing:      ALIVE (real build, real artifact)
 =======================================================================
