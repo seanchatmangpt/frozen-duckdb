@@ -56,16 +56,17 @@ pub enum ProfileError {
     /// The feature combination is not a modeled profile (e.g. threads
     /// combined with icu but without parquet is not currently a modeled
     /// matrix cell — refused, never coerced).
-    UnmodeledCombination {
-        features: Vec<String>,
-    },
+    UnmodeledCombination { features: Vec<String> },
 }
 
 impl fmt::Display for ProfileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ProfileError::UnknownFeature(feat) => {
-                write!(f, "unknown profile feature: {feat:?} (known: core, threads, icu, parquet)")
+                write!(
+                    f,
+                    "unknown profile feature: {feat:?} (known: core, threads, icu, parquet)"
+                )
             }
             ProfileError::UnmodeledCombination { features } => {
                 write!(f, "unmodeled profile combination: {features:?}")

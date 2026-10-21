@@ -65,6 +65,11 @@ arrow = { version = "56", default-features = false, features = ["ffi", "prettypr
 # module was previously unreachable (undeclared vtab-arrow gate) so the
 # missing dep never surfaced. Optional, compiled only under vtab-arrow.
 num = { version = "0.4", optional = true }
+# Lane WO2 (KD-06 class): required by src/duckdb/types/chrono.rs (`div_mod_floor`)
+# — that module was unreachable (undeclared `chrono` gate) so this dep never
+# surfaced. Optional, compiled only under the chrono feature. Version 0.1 to
+# match the num-integer already in the graph via num 0.4 (no duplicate version).
+num-integer = { version = "0.1", optional = true }
 cast = "0.3"
 fallible-iterator = "0.3"
 fallible-streaming-iterator = "0.1"
@@ -78,6 +83,13 @@ frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.0-dev" }
 [[test]]
 name = "host_vfs_local"
 required-features = ["vtab"]
+
+# Lane MAX3's court exercises the variant_json_udf surface, which is
+# cfg(all(serde_json, vscalar)) — without required-features the plain
+# workspace `cargo test` fails E0432 (witnessed: make verify 2/5).
+[[test]]
+name = "variant_shredded_bind"
+required-features = ["serde_json", "vscalar"]
 
 [features]
 # CL13 (KD-06 local slice): declares the previously-undeclared cfg gate
@@ -100,6 +112,14 @@ vtab-arrow = ["dep:num"]
 # cfg(test) code does not touch serde_json outside the gated module; the CLI
 # bin is required-features-gated above.
 serde_json = ["dep:serde_json"]
+# Lane WO2 (KD-06 class): declares the previously-undeclared cfg gate
+# `feature = "chrono"` at src/duckdb/types/mod.rs:17 (also appender/mod.rs:308,
+# types/from_sql.rs:195-204) — always-false before, leaving the whole
+# NaiveDate/NaiveTime/NaiveDateTime/DateTime<Tz>/Duration ToSql+FromSql surface
+# (src/duckdb/types/chrono.rs) unreachable. chrono itself stays a non-optional
+# dep (src/cli/flock_manager.rs uses it unconditionally); the feature opens the
+# cfg gate and pulls num-integer for the gated module's math.
+chrono = ["dep:num-integer"]
 
 [dev-dependencies]
 # Used by vendored cfg(test) modules ported from duckdb-rs (do not churn)

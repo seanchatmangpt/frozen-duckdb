@@ -82,7 +82,7 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
     let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    ((if m <= 2 { y + 1 } else { y }), m as u32, d)
+    ((if m <= 2 { y + 1 } else { y }), m, d)
 }
 
 /// Microseconds since epoch -> "YYYY-MM-DD HH:MM:SS.UUUUUU" (UTC).
@@ -222,7 +222,7 @@ fn main_rows(conn: &Connection, frames: &[EdgeFrame]) -> (f64, u64) {
         monotonic_gate(&mut prev_ts, i, f.event_ts_us).expect("gate on lawful stream");
         ingest_frame(&mut app, f).expect("append");
         total += 1;
-        if total % BATCH_ROWS as u64 == 0 {
+        if total.is_multiple_of(BATCH_ROWS as u64) {
             app.flush().expect("flush");
         }
     }

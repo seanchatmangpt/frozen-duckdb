@@ -1345,6 +1345,14 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
 
     // Copy library to cache directory with proper name
     let binary_path = get_binary_path(cache_dir, arch);
+
+    // KD-01 fence-restage: apply the export fence to the freshly built dylib
+    // BEFORE it is persisted to the cache, so a local compile can no longer
+    // produce (or a restage silently revert to) the 27,682-mangled-export
+    // dylib. See crates/frozen-duckdb-builder/export_fence/README.md.
+    fence_exports_for(&built_lib, &binary_path)
+        .context("KD-01 export fence failed on locally compiled dylib")?;
+
     atomic_copy(&built_lib, &binary_path).context("Failed to copy built library to cache")?;
 
     // Also copy header files for FFI bindings generation
@@ -1371,6 +1379,228 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     stage_library_size_pin(&binary_path)?;
     stage_engine_marker(cache_dir)?;
     Ok(binary_path)
+}
+
+/// Committed KD-01 export-fence allowlist: exactly the C-ABI surface
+/// (`_duckdb_*`) a fenced dylib may export. Provenance + refresh law:
+/// `crates/frozen-duckdb-builder/export_fence/README.md`.
+const EXPORT_FENCE_LIST: &str = include_str!("../export_fence/exports.list");
+
+/// Census of a Mach-O dylib's exported (`nm -gU`) symbol surface:
+/// `(mangled_cxx, duckdb_c_abi, total_t)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ExportCensus {
+    mangled_cxx: usize,
+    duckdb_c_abi: usize,
+    total_t: usize,
+}
+
+/// Parse `nm -gU` output (one symbol per line: address/type/name).
+fn parse_export_census(nm_output: &str) -> ExportCensus {
+    let mut c = ExportCensus {
+        mangled_cxx: 0,
+        duckdb_c_abi: 0,
+        total_t: 0,
+    };
+    for line in nm_output.lines() {
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        // external defined text symbols look like "<addr> T _name" (or
+        // "<addr>, T _name" — nm prints a literal comma for some symbols).
+        if fields.len() < 2 || (fields[1] != "T" && fields[1] != "t") {
+            continue;
+        }
+        let name = fields
+            .iter()
+            .skip(2)
+            .find(|f| f.starts_with('_'))
+            .copied()
+            .unwrap_or("");
+        let name = name.trim_end_matches(',');
+        if name.is_empty() {
+            continue;
+        }
+        if fields[1] == "t" {
+            continue; // local text symbols are not exports
+        }
+        c.total_t += 1;
+        if name.starts_with("__Z") {
+            c.mangled_cxx += 1;
+        }
+        if name.starts_with("_duckdb_") {
+            c.duckdb_c_abi += 1;
+        }
+    }
+    c
+}
+
+/// Run `nm -gU` on a Mach-O binary and census its export surface.
+fn export_census(dylib_path: &Path) -> Result<ExportCensus> {
+    let out = Command::new("nm")
+        .args(["-gU"])
+        .arg(dylib_path)
+        .output()
+        .context("Failed to run nm for export census")?;
+    anyhow::ensure!(
+        out.status.success(),
+        "nm -gU failed on {} (exit {:?})",
+        dylib_path.display(),
+        out.status.code()
+    );
+    Ok(parse_export_census(&String::from_utf8_lossy(&out.stdout)))
+}
+
+/// Locate the static DuckDB archive a dylib can be relinked from. The
+/// local-compile flow lays `libduckdb.dylib` and `libduckdb_static.a` in the
+/// same cmake output directory; the search walks up a bounded number of
+/// levels so alternate layouts still fence.
+fn find_static_archive(dylib_path: &Path) -> Option<PathBuf> {
+    let mut dir = dylib_path.parent()?;
+    for _ in 0..3 {
+        let candidate = dir.join("libduckdb_static.a");
+        if candidate.exists() {
+            return Some(candidate);
+        }
+        dir = dir.parent()?;
+    }
+    None
+}
+
+/// Architectures present in a static archive, via `lipo -archs` (falls back
+/// to the host arch when `lipo` cannot read the file). Preserves the
+/// TR7 cross-arch local-compile law: the relinked dylib must match the
+/// architecture the cmake build produced.
+fn static_archive_archs(archive: &Path) -> Result<Vec<String>> {
+    let out = Command::new("lipo").args(["-archs"]).arg(archive).output();
+    if let Ok(out) = out {
+        if out.status.success() {
+            let text = String::from_utf8_lossy(&out.stdout);
+            let archs: Vec<String> = text.split_whitespace().map(String::from).collect();
+            if !archs.is_empty() {
+                return Ok(archs);
+            }
+        }
+    }
+    Ok(vec![host_architecture()?])
+}
+
+/// Write the embedded allowlist to a temp file for the linker.
+fn export_fence_list_file(temp_dir: &Path) -> Result<PathBuf> {
+    let path = temp_dir.join("exports.list");
+    fs::write(&path, EXPORT_FENCE_LIST).context("Failed to write export fence list")?;
+    Ok(path)
+}
+
+/// KD-01 export fence (macOS only): relink `dylib_path` in place from its
+/// sibling `libduckdb_static.a` with `-Wl,-exported_symbols_list`, so the
+/// exports trie carries exactly the 1,177 `_duckdb_*` C-ABI symbols and zero
+/// C++-mangled exports. Darwin has no post-hoc tool for this (`strip -x`
+/// leaves the trie; no objcopy) — hence relink, per KD-01/ADV3 and lane
+/// X1r's recipe (`docs/sjira/v2.0.0-dev/receipts/X1r-kd01-fence.md`).
+///
+/// - Non-macOS (Linux ELF): typed no-op SKIP — the fence is Mach-O-specific
+///   and Linux is out of scope (KD-15 scope note).
+/// - No static archive found: the dylib cannot be relinked; it is admitted
+///   only if it ALREADY passes the fence census (0 mangled exports) — an
+///   idempotent no-op. An unfenced dylib without an archive is a typed
+///   `Err`, never a silent pass.
+#[cfg(test)]
+pub(crate) fn fence_exports(dylib_path: &Path) -> Result<()> {
+    fence_exports_for(dylib_path, dylib_path)
+}
+
+/// Like [`fence_exports`], but stamps `install_name` (the final cache path)
+/// into the relinked dylib, mirroring X1r's relink (the cache dylib's
+/// `LC_ID_DYLIB` must name the cache slot, not the temp build directory).
+pub(crate) fn fence_exports_for(dylib_path: &Path, install_name: &Path) -> Result<()> {
+    if target_os_name() != "macos" {
+        info!(
+            "[SKIP] KD-01 export fence: macOS-only (subject {} is a {} binary) — Linux ELF out of scope per KD-15",
+            dylib_path.display(),
+            target_os_name()
+        );
+        return Ok(());
+    }
+
+    // Census BEFORE: decide between relink, idempotent no-op, and typed refusal.
+    if find_static_archive(dylib_path).is_none() {
+        let census = export_census(dylib_path)?;
+        anyhow::ensure!(
+            census.mangled_cxx == 0,
+            "KD-01 export fence: {} exports {} C++-mangled symbols but no libduckdb_static.a \
+             sibling exists to relink from — rebuild the cache (local compile) so the fence \
+             can relink, then re-verify",
+            dylib_path.display(),
+            census.mangled_cxx
+        );
+        debug!(
+            "KD-01 export fence: {} already fenced ({} C-ABI exports, 0 mangled) — no-op",
+            dylib_path.display(),
+            census.duckdb_c_abi
+        );
+        return Ok(());
+    }
+
+    let temp_dir = tempfile::tempdir().context("Failed to create fence temp directory")?;
+    let temp_path = temp_dir.path();
+    let list_file = export_fence_list_file(temp_path)?;
+
+    let static_archive =
+        find_static_archive(dylib_path).expect("static archive existence checked above");
+    let archs = static_archive_archs(&static_archive)?;
+    let fenced_output = temp_path.join("libduckdb_fenced.dylib");
+    let mut relink = Command::new("clang++");
+    relink
+        .arg("-dynamiclib")
+        .args(["-Wl,-exported_symbols_list"])
+        .arg(&list_file)
+        .args(["-install_name"])
+        .arg(install_name)
+        .args(["-o"])
+        .arg(&fenced_output)
+        .arg(&static_archive)
+        .args(["-lc++", "-liconv", "-lz", "-ldl"]);
+    for arch in &archs {
+        relink.arg("-arch").arg(arch);
+    }
+    let relink = relink
+        .output()
+        .context("Failed to run clang++ relink for export fence")?;
+    anyhow::ensure!(
+        relink.status.success(),
+        "KD-01 export fence relink failed (exit {:?}):\n{}",
+        relink.status.code(),
+        String::from_utf8_lossy(&relink.stderr)
+    );
+
+    let codesign = Command::new("codesign")
+        .args(["--force", "-s", "-"])
+        .arg(&fenced_output)
+        .output()
+        .context("Failed to run codesign on fenced dylib")?;
+    anyhow::ensure!(
+        codesign.status.success(),
+        "KD-01 export fence codesign failed (exit {:?}):\n{}",
+        codesign.status.code(),
+        String::from_utf8_lossy(&codesign.stderr)
+    );
+
+    // Census AFTER: the fence must actually fence. A relink that still leaks
+    // mangled exports is a typed failure, not a persisted artifact.
+    let after = export_census(&fenced_output)?;
+    anyhow::ensure!(
+        after.mangled_cxx == 0,
+        "KD-01 export fence produced a dylib that still exports {} C++-mangled symbols — \
+         refusing to persist",
+        after.mangled_cxx
+    );
+
+    atomic_copy(&fenced_output, dylib_path).context("Failed to persist fenced dylib")?;
+    info!(
+        "KD-01 export fence applied: {} now exports {} C-ABI symbols, 0 mangled",
+        dylib_path.display(),
+        after.duckdb_c_abi
+    );
+    Ok(())
 }
 
 /// Find the built library in the build directory
@@ -2953,5 +3183,110 @@ mod tests {
         stage_engine_marker(&cache).unwrap();
         let hit = wait_for_staged_entry(&cache, &binary, "arm64", Duration::ZERO).unwrap();
         assert!(hit);
+    }
+
+    // ---- KD-01 export fence (WO1) ----
+
+    #[test]
+    fn kd01_fence_list_is_present_and_nonempty() {
+        // include_str! makes the file a compile-time dependency: a missing or
+        // empty allowlist cannot compile this crate at all.
+        assert!(
+            !EXPORT_FENCE_LIST.trim().is_empty(),
+            "export fence list must be non-empty"
+        );
+        let entries: Vec<&str> = EXPORT_FENCE_LIST.lines().map(str::trim).collect();
+        assert_eq!(entries.len(), 1177, "fence list line count drifted");
+        assert!(
+            entries.iter().all(|l| l.starts_with("_duckdb_")),
+            "every fence entry must be a _duckdb_* C-ABI symbol"
+        );
+        let mut sorted: Vec<&str> = entries.clone();
+        sorted.sort_unstable();
+        assert_eq!(entries, sorted, "fence list must stay sorted (refresh law)");
+        let mut deduped = sorted.clone();
+        deduped.dedup();
+        assert_eq!(sorted, deduped, "fence list must have no duplicates");
+    }
+
+    #[test]
+    fn kd01_census_parser_counts_mangled_and_c_abi() {
+        let nm = "\
+0000000000010000 T __ZN6duckdb8DatabaseD1Ev\n\
+0000000000012000 T __ZZ6duckdb3fooENK3barEv\n\
+0000000000014000 T _duckdb_create_config\n\
+0000000000016000 T _duckdb_free\n\
+0000000000018000 D _duckdb_version\n\
+000000000001a000 t _local_only\n";
+        let c = parse_export_census(nm);
+        assert_eq!(c.mangled_cxx, 2);
+        assert_eq!(c.duckdb_c_abi, 2);
+        assert_eq!(c.total_t, 4); // t (local) and D (non-text) excluded
+    }
+
+    #[test]
+    fn kd01_census_parser_handles_nm_comma_form() {
+        // nm prints some symbols as "<addr>, T _name" — the parser must not
+        // classify those as mangled.
+        let nm = "0000000000010000, T __ZN6duckdb3BarC1Ev\n0000000000020000 T _duckdb_open\n";
+        let c = parse_export_census(nm);
+        assert_eq!(c.mangled_cxx, 1);
+        assert_eq!(c.duckdb_c_abi, 1);
+    }
+
+    /// Opt-in (expensive) court: run the fence on a COPY of the current cache
+    /// dylib in /tmp and census the result. With the cache currently holding
+    /// the UNFENCED dylib and no static archive sibling, `fence_exports` must
+    /// fail closed with a typed refusal naming the mangled count.
+    #[test]
+    #[ignore = "expensive court: real nm census + fence pass on a /tmp copy of the cache dylib"]
+    fn kd01_court_cache_copy_census_and_fence_standing() {
+        let cache = PathBuf::from(std::env::var("HOME").unwrap_or_default())
+            .join(".frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib");
+        let Some(_) = std::fs::metadata(&cache).ok().filter(|m| m.is_file()) else {
+            eprintln!("[SKIP] cache dylib absent");
+            return;
+        };
+        let tmp = tempfile::tempdir().unwrap();
+        let subject = tmp.path().join("subject.dylib");
+        fs::copy(&cache, &subject).unwrap();
+
+        let before = export_census(&subject).unwrap();
+        eprintln!(
+            "court: cache-copy census BEFORE: mangled={} c_abi={} total_t={}",
+            before.mangled_cxx, before.duckdb_c_abi, before.total_t
+        );
+
+        // No static archive sibling in a bare /tmp dir: an unfenced copy must
+        // be REFUSED (typed Err), never admitted.
+        let fenced = fence_exports(&subject);
+        match (&before, &fenced) {
+            (c, Err(e)) if c.mangled_cxx > 0 => {
+                let msg = format!("{:#}", e);
+                assert!(
+                    msg.contains("libduckdb_static.a"),
+                    "refusal must name the missing archive: {}",
+                    msg
+                );
+                eprintln!("court: unfenced copy REFUSED as expected — {}", msg);
+            }
+            (c, Ok(())) if c.mangled_cxx == 0 => {
+                eprintln!(
+                    "court: already-fenced copy admitted idempotently ({} C-ABI exports)",
+                    c.duckdb_c_abi
+                );
+            }
+            (c, outcome) => panic!(
+                "court: illegal standing census={:?} outcome={:?}",
+                c, outcome
+            ),
+        }
+
+        let after = export_census(&subject).unwrap();
+        assert_eq!(
+            before, after,
+            "a refused or no-op fence must not mutate the subject"
+        );
+        eprintln!("court: subject unmutated after fence pass (sha-stable census)");
     }
 }

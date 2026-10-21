@@ -11,7 +11,10 @@
 //! `cargo clippy -p frozen-duckdb -- -D warnings` exit 0. See final message
 //! of the authoring lane for the exact run output.
 
-use frozen_duckdb::duckdb::{Connection, precondition::{PreconditionError, PreconditionGuard}};
+use frozen_duckdb::duckdb::{
+    precondition::{PreconditionError, PreconditionGuard},
+    Connection,
+};
 use std::path::PathBuf;
 use tempfile::TempDir;
 

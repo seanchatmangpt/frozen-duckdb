@@ -201,11 +201,21 @@ impl RawStatement {
         }
     }
 
-    // FIXME(mlafeldt): This currently panics if the query has not been executed yet.
-    // The C API doesn't have a function to get the column count without executing the query first.
+    // SHIM-COURT fix (MAX4): previously panicked via `result_unwrap()` when the
+    // statement had not been executed yet. The C API exposes
+    // `duckdb_prepared_statement_column_count` (stable since v1.5.6), which
+    // returns the result column count directly from the prepared statement, so
+    // the pre-execution case now takes that path instead of panicking.
+    // Contract: returns the number of result columns whether or not the
+    // statement has been executed; post-execution it still reads the executed
+    // arrow result (identical to the old behavior).
     #[inline]
     pub fn column_count(&self) -> usize {
-        unsafe { ffi::duckdb_arrow_column_count(self.result_unwrap()) as usize }
+        if let Some(result) = self.result {
+            unsafe { ffi::duckdb_arrow_column_count(result) as usize }
+        } else {
+            unsafe { ffi::duckdb_prepared_statement_column_count(self.ptr) as usize }
+        }
     }
 
     #[inline]

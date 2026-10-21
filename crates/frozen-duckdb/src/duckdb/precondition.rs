@@ -107,12 +107,11 @@ impl PreconditionGuard {
         table: &str,
         mutation_sql: &str,
     ) -> Result<ExecutionOutcome, PreconditionError> {
-        let expected = extract_precondition(mutation_sql).ok_or_else(|| {
-            PreconditionError::Stale {
+        let expected =
+            extract_precondition(mutation_sql).ok_or_else(|| PreconditionError::Stale {
                 expected: String::new(),
                 got: String::new(),
-            }
-        })?;
+            })?;
         Self::execute_if_unchanged(conn, table, &expected, mutation_sql)
     }
 }
@@ -130,10 +129,7 @@ pub fn extract_precondition(sql: &str) -> Option<String> {
 /// Canonical, order-stable rendering of a table's contents: every row, in a
 /// deterministic order, every column, deterministic NULL/text encoding.
 fn render_table(conn: &Connection, table: &str) -> Result<String, PreconditionError> {
-    if !table
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_')
-    {
+    if !table.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err(PreconditionError::DuckDb(
             crate::duckdb::Error::InvalidParameterName(table.to_string()),
         ));
@@ -165,14 +161,13 @@ fn render_table(conn: &Connection, table: &str) -> Result<String, PreconditionEr
                 ValueRef::UBigInt(n) => canonical.push_str(&n.to_string()),
                 ValueRef::TinyInt(n) => canonical.push_str(&n.to_string()),
                 ValueRef::SmallInt(n) => canonical.push_str(&n.to_string()),
-                ValueRef::Text(b) => canonical.push_str(&format!("'{}'", String::from_utf8_lossy(b))),
+                ValueRef::Text(b) => {
+                    canonical.push_str(&format!("'{}'", String::from_utf8_lossy(b)))
+                }
                 ValueRef::Boolean(b) => canonical.push_str(if b { "t" } else { "f" }),
                 ValueRef::Float(f) => canonical.push_str(&format!("{f:?}")),
                 ValueRef::Double(d) => canonical.push_str(&format!("{d:?}")),
-                other => canonical.push_str(&format!(
-                    "raw:{:?}",
-                    other
-                )),
+                other => canonical.push_str(&format!("raw:{:?}", other)),
             }
             canonical.push('|');
         }

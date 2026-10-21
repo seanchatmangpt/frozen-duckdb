@@ -45,8 +45,7 @@ fn test_tpch_load_and_dbgen_smoke() -> Result<()> {
         conn.execute("CALL dbgen(sf = 0.01)", [])?;
     }
 
-    let nation_count: i64 =
-        conn.query_row("SELECT COUNT(*) FROM nation", [], |row| row.get(0))?;
+    let nation_count: i64 = conn.query_row("SELECT COUNT(*) FROM nation", [], |row| row.get(0))?;
     assert!(nation_count > 0, "nation should be populated by dbgen");
 
     // Query smoke: run one TPC-H query against the generated data.

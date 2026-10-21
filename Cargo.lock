@@ -814,6 +814,7 @@ dependencies = [
  "frozen-duckdb-sys",
  "hashlink",
  "num",
+ "num-integer",
  "pretty_assertions",
  "reqwest",
  "rust_decimal",

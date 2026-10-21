@@ -136,14 +136,14 @@ fn dfg_cut_detection_court() -> Result<(), Box<dyn std::error::Error>> {
     let mut stmt = conn.prepare(DFG_SQL)?;
     let mut dfg_rows: Vec<(String, String, i64)> = Vec::new();
     {
-        let mut iter = stmt.query_map([], |r| {
+        let iter = stmt.query_map([], |r| {
             Ok((
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, i64>(2)?,
             ))
         })?;
-        while let Some(row) = iter.next() {
+        for row in iter {
             dfg_rows.push(row?);
         }
     }
@@ -173,17 +173,17 @@ fn dfg_cut_detection_court() -> Result<(), Box<dyn std::error::Error>> {
     let mut bottleneck_groups: usize = 0;
     let mut worst: Option<(String, String, f64)> = None;
     {
-        let mut iter = stmt.query_map([], |r| {
+        let iter = stmt.query_map([], |r| {
             Ok((
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, f64>(2)?,
             ))
         })?;
-        while let Some(row) = iter.next() {
+        for row in iter {
             let (s, t, p95) = row?;
             bottleneck_groups += 1;
-            if worst.as_ref().map_or(true, |w| p95 > w.2) {
+            if worst.as_ref().is_none_or(|w| p95 > w.2) {
                 worst = Some((s, t, p95));
             }
         }
@@ -207,7 +207,7 @@ fn dfg_cut_detection_court() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let mut raw: Vec<(i64, String, String, i64, bool, bool)> = Vec::new();
     {
-        let mut iter = subset.query_map([], |r| {
+        let iter = subset.query_map([], |r| {
             Ok((
                 r.get(0)?,
                 r.get(1)?,
@@ -217,7 +217,7 @@ fn dfg_cut_detection_court() -> Result<(), Box<dyn std::error::Error>> {
                 r.get(5)?,
             ))
         })?;
-        while let Some(row) = iter.next() {
+        for row in iter {
             raw.push(row?);
         }
     }
@@ -243,14 +243,14 @@ fn dfg_cut_detection_court() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let mut sql_support: HashMap<(String, String), i64> = HashMap::new();
     {
-        let mut iter = stmt.query_map([], |r| {
+        let iter = stmt.query_map([], |r| {
             Ok((
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, i64>(2)?,
             ))
         })?;
-        while let Some(row) = iter.next() {
+        for row in iter {
             let (s, t, sup) = row?;
             sql_support.insert((s, t), sup);
         }
@@ -274,14 +274,14 @@ fn dfg_cut_detection_court() -> Result<(), Box<dyn std::error::Error>> {
             "SELECT source_act, target_act, (t_end_us - t_start_us) AS dwell_us \
              FROM pot_edge_events WHERE (event_id * 7919) % 1000000 < 10000",
         )?;
-        let mut iter = stmt.query_map([], |r| {
+        let iter = stmt.query_map([], |r| {
             Ok((
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, i64>(2)?,
             ))
         })?;
-        while let Some(row) = iter.next() {
+        for row in iter {
             let (s, t, d) = row?;
             durations.entry((s, t)).or_default().push(d as f64);
         }
@@ -303,14 +303,14 @@ fn dfg_cut_detection_court() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let mut sql_p95: HashMap<(String, String), f64> = HashMap::new();
     {
-        let mut iter = stmt.query_map([], |r| {
+        let iter = stmt.query_map([], |r| {
             Ok((
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, f64>(2)?,
             ))
         })?;
-        while let Some(row) = iter.next() {
+        for row in iter {
             let (s, t, p) = row?;
             sql_p95.insert((s, t), p);
         }

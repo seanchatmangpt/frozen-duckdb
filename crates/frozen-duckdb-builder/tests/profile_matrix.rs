@@ -97,17 +97,20 @@ fn ceilings_match_spec_mib_bounds() {
 
 #[test]
 fn ceilings_are_strictly_increasing() {
-    assert!(ceilings::CORE_MAX_BYTES < ceilings::FULL_MAX_BYTES);
-    assert!(ceilings::FULL_MAX_BYTES < ceilings::ENTERPRISE_MAX_BYTES);
+    // clippy assertions_on_constants fires on literal-vs-literal asserts;
+    // bind the constants to locals so the comparison stays dynamic.
+    let (core, full, enterprise) = (
+        ceilings::CORE_MAX_BYTES,
+        ceilings::FULL_MAX_BYTES,
+        ceilings::ENTERPRISE_MAX_BYTES,
+    );
+    assert!(core < full);
+    assert!(full < enterprise);
 }
 
 #[test]
 fn feature_sets_are_consistent_with_selection() {
-    for p in [
-        Profile::Core,
-        Profile::Threaded,
-        Profile::AllExtensions,
-    ] {
+    for p in [Profile::Core, Profile::Threaded, Profile::AllExtensions] {
         let feats = p.features();
         assert_eq!(
             Profile::from_features(feats),
@@ -140,7 +143,11 @@ fn shim_court_profile_mapping_can_flip() {
         &format!("\"frozen-duckdb-{marker}-shimmed.wasm\""),
         1,
     );
-    assert_ne!(mutated, String::from_utf8(baseline.clone()).unwrap(), "shim must actually mutate");
+    assert_ne!(
+        mutated,
+        String::from_utf8(baseline.clone()).unwrap(),
+        "shim must actually mutate"
+    );
 
     // The flip is proven structurally: under the mutated subject the
     // mapping no longer satisfies the spec string.
