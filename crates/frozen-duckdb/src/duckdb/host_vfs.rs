@@ -236,7 +236,9 @@ fn fetch_http_range(
     if offset as usize >= bytes.len() {
         return Ok(Vec::new());
     }
-    let end_i = (offset as usize).saturating_add(length as usize).min(bytes.len());
+    let end_i = (offset as usize)
+        .saturating_add(length as usize)
+        .min(bytes.len());
     Ok(bytes[offset as usize..end_i].to_vec())
 }
 
