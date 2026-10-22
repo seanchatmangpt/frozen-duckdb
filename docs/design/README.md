@@ -1,5 +1,9 @@
 # README — Blueprint Design Index (BP16)
 
+Archived design record for the v2.0.0-dev campaign. Consumer documentation
+is [README.md](../../README.md). The published crate version is 2.0.0.
+The engine pin in these notes is still 2.0.0-dev.
+
 Index of the frozen-duckdb 2.0 blueprint layer (v2.0.0-dev campaign).
 Status vocabulary per repo law: all items PROPOSED — no court has flipped
 for any item yet (no lane receipt claims otherwise as of 2026-10-19).

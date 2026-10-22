@@ -3,8 +3,8 @@
 //! Contract: `docs/design/host-range-vfs-contract.md` (ARD §3.2.A).
 //! This slice proves the open/read/size callback mechanism against a
 //! local file (`std::fs`) via the table function
-//! `read_local_range(file, offset, length)`. The HTTP host-callback
-//! delegation (real `host-range://` scheme) remains KD-06-open.
+//! `read_local_range(file, offset, length)`. `read_http_range(url, offset, length)`
+//! issues `Range: bytes=` and applies the same row contract.
 //!
 //! Semantics (contract + local-slice reading):
 //! - unreadable file -> typed `InvalidInput` bind error, no silent-zero row
@@ -200,9 +200,140 @@ fn output_flat_capacity() -> usize {
     2048
 }
 
-/// Registers `read_local_range` on the connection. Idempotent per
-/// connection; re-registration with a different implementation under
-/// the same name is the engine's `InvalidInput` path (contract).
+/// HTTP range read. Same row shape as [`ReadLocalRangeVTab`].
+pub struct ReadHttpRangeVTab;
+
+fn fetch_http_range(
+    url: &str,
+    offset: u64,
+    length: u64,
+) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let end = offset.saturating_add(length).saturating_sub(1);
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| HostRangeStatus::InvalidInput(format!("http client: {e}")))?;
+    let response = client
+        .get(url)
+        .header("Range", format!("bytes={offset}-{end}"))
+        .send()
+        .map_err(|e| HostRangeStatus::InvalidInput(format!("GET '{url}' failed: {e}")))?;
+    let status = response.status();
+    if status.as_u16() == 416 {
+        return Ok(Vec::new());
+    }
+    if status.as_u16() != 200 && status.as_u16() != 206 {
+        return Err(Box::new(HostRangeStatus::InvalidInput(format!(
+            "GET '{url}' returned {status}"
+        ))));
+    }
+    let bytes = response
+        .bytes()
+        .map_err(|e| HostRangeStatus::InvalidInput(format!("GET '{url}' body: {e}")))?;
+    if status.as_u16() == 206 {
+        return Ok(bytes.to_vec());
+    }
+    if offset as usize >= bytes.len() {
+        return Ok(Vec::new());
+    }
+    let end_i = (offset as usize).saturating_add(length as usize).min(bytes.len());
+    Ok(bytes[offset as usize..end_i].to_vec())
+}
+
+impl VTab for ReadHttpRangeVTab {
+    type InitData = ReadLocalRangeInitData;
+    type BindData = ReadLocalRangeBindData;
+
+    fn bind(bind: &BindInfo) -> Result<Self::BindData, Box<dyn std::error::Error>> {
+        bind.add_result_column("data", LogicalTypeHandle::from(LogicalTypeId::Blob));
+        bind.add_result_column(
+            "byte_offset",
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+        );
+        bind.add_result_column(
+            "byte_length",
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+        );
+        if bind.get_parameter_count() != 3 {
+            return Err(Box::new(HostRangeStatus::InvalidInput(format!(
+                "read_http_range expects 3 parameters, got {}",
+                bind.get_parameter_count()
+            ))));
+        }
+        let url = bind.get_parameter(0).to_string();
+        let offset = param_i64(&bind.get_parameter(1), "offset")?;
+        let length = param_i64(&bind.get_parameter(2), "length")?;
+        if offset < 0 {
+            return Err(Box::new(HostRangeStatus::InvalidInput(format!(
+                "offset must be >= 0, got {offset}"
+            ))));
+        }
+        if length <= 0 {
+            return Err(Box::new(HostRangeStatus::InvalidInput(format!(
+                "length must be > 0, got {length}"
+            ))));
+        }
+        let data = fetch_http_range(&url, offset as u64, length as u64)?;
+        Ok(ReadLocalRangeBindData {
+            data,
+            resolved_offset: offset as u64,
+        })
+    }
+
+    fn init(_init: &InitInfo) -> Result<Self::InitData, Box<dyn std::error::Error>> {
+        Ok(ReadLocalRangeInitData {
+            emitted: AtomicU64::new(0),
+        })
+    }
+
+    fn parameters() -> Option<Vec<LogicalTypeHandle>> {
+        Some(vec![
+            LogicalTypeHandle::from(LogicalTypeId::Varchar),
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+            LogicalTypeHandle::from(LogicalTypeId::Bigint),
+        ])
+    }
+
+    fn func(
+        func: &TableFunctionInfo<Self>,
+        output: &mut DataChunkHandle,
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        emit_range_rows(func.get_init_data(), func.get_bind_data(), output)
+    }
+}
+
+fn emit_range_rows(
+    init_data: &ReadLocalRangeInitData,
+    bind_data: &ReadLocalRangeBindData,
+    output: &mut DataChunkHandle,
+) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let total_rows = bind_data.data.len().div_ceil(CHUNK as usize) as u64;
+    let start_row = init_data.emitted.load(Ordering::Relaxed);
+    if start_row >= total_rows {
+        output.set_len(0);
+        return Ok(());
+    }
+    let capacity = output_flat_capacity();
+    let end_row = total_rows.min(start_row + capacity as u64);
+    let mut n = 0u64;
+    for row in start_row..end_row {
+        let s = (row * CHUNK) as usize;
+        let e = bind_data.data.len().min(s + CHUNK as usize);
+        output
+            .flat_vector(0)
+            .insert(n as usize, &bind_data.data[s..e]);
+        output.flat_vector(1).as_mut_slice::<i64>()[n as usize] =
+            (bind_data.resolved_offset + s as u64) as i64;
+        output.flat_vector(2).as_mut_slice::<i64>()[n as usize] = (e - s) as i64;
+        n += 1;
+    }
+    init_data.emitted.store(end_row, Ordering::Relaxed);
+    output.set_len(n as usize);
+    Ok(())
+}
+
+/// Registers `read_local_range` and `read_http_range` on the connection.
 pub fn register(conn: &crate::duckdb::Connection) -> crate::duckdb::Result<()> {
-    conn.register_table_function::<ReadLocalRangeVTab>("read_local_range")
+    conn.register_table_function::<ReadLocalRangeVTab>("read_local_range")?;
+    conn.register_table_function::<ReadHttpRangeVTab>("read_http_range")
 }

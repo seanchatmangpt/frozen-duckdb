@@ -4,25 +4,18 @@ Learn frozen-duckdb by shipping a working query in five lines of Rust. You
 need only Rust; no C compiler, no DuckDB install, no `DYLD_*` setup beyond
 one documented caveat below.
 
-Prerelease note: `2.0.0-dev` is a **prerelease version**. Cargo semver
-matches a prerelease requirement only when the requirement itself names a
-prerelease, so pin it exactly:
-
 ```bash
 cargo new fd-quickstart && cd fd-quickstart
-cargo add frozen-duckdb@2.0.0-dev
+cargo add frozen-duckdb
 ```
-
-Honest availability note (as of 2026-10-19): `cargo search frozen-duckdb`
-reports only `0.1.0` on crates.io; `2.0.0-dev` is **not published yet**.
-Until the first `v2.0.0-dev` tag and crates.io release land, consume the
-prerelease from a checkout:
 
 ```toml
 [dependencies]
-frozen-duckdb = { path = "/path/to/frozen-duckdb/crates/frozen-duckdb" }
-# or: frozen-duckdb = { git = "https://github.com/seanchatmangpt/frozen-duckdb" }
+frozen-duckdb = "2.0.0"
 ```
+
+`0.1.0` is the previous stable crate. `2.0.0-dev` is published as a
+prerelease and is not what `cargo add` selects.
 
 ## The program
 

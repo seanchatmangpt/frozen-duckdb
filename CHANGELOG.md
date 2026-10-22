@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-10-22
+
+### Changed
+
+- Crate version is **2.0.0** so crates.io treats this line as the default
+  stable release. The bundled DuckDB engine stays `v2.0.0-dev88595` at
+  `b6013f7aa2f36caabb9466ce1791667ea8a280bb`. `0.1.0` remains the previous
+  stable crate. `2.0.0-dev` remains a published prerelease.
+
 ## [2.0.0-dev] - 2026-10-19
 
 

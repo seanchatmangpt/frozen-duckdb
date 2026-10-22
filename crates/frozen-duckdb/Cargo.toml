@@ -78,7 +78,7 @@ rust_decimal = "1.14"
 strum = { version = "0.27", features = ["derive"] }
 
 # Use our FFI crate instead of duckdb-rs
-frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.0-dev" }
+frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.0" }
 
 [[test]]
 name = "host_vfs_local"

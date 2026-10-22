@@ -177,3 +177,35 @@ fn known_content_via_sql() {
     assert_eq!(assembled.len(), 4500);
     assert_eq!(&assembled[..], &payload[100..4600]);
 }
+
+/// HTTP range: a local server answers 206 and SQL returns those bytes.
+#[test]
+fn http_range_reads_partial_body() {
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    let body = b"abcdefghij";
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        let (mut sock, _) = listener.accept().unwrap();
+        let mut buf = [0u8; 2048];
+        let _ = sock.read(&mut buf);
+        let header = format!(
+            "HTTP/1.1 206 Partial Content\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        sock.write_all(header.as_bytes()).unwrap();
+        sock.write_all(body).unwrap();
+    });
+
+    let url = format!("http://127.0.0.1:{port}/blob");
+    let conn = open_conn();
+    let mut stmt = conn
+        .prepare("select data from read_http_range(?, 0, 10)")
+        .unwrap();
+    let mut rows = stmt.query([&url]).unwrap();
+    let row = rows.next().unwrap().unwrap();
+    let data: Vec<u8> = row.get(0).unwrap();
+    assert_eq!(data, body);
+}

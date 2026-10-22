@@ -16,7 +16,7 @@ description = "Low-level FFI bindings to the DuckDB analytical database for froz
 links = "duckdb"
 
 [build-dependencies]
-frozen-duckdb-builder = { path = "../frozen-duckdb-builder", version = "2.0.0-dev" }
+frozen-duckdb-builder = { path = "../frozen-duckdb-builder", version = "2.0.0" }
 bindgen = "0.69"
 
 [dependencies]

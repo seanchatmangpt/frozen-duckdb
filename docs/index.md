@@ -38,7 +38,7 @@ Pre-compiled DuckDB binaries for Rust: drop-in duckdb-rs replacement
 ## Project docs
 
 - [Quickstart](../QUICKSTART.md)
-- [Troubleshooting](../TROUBLESHOOTING.md)
+- [Troubleshooting (archived, v1.4-era)](archive/pre-2.0/TROUBLESHOOTING.md)
 - [Migration guide](../MIGRATION_GUIDE.md)
 
 ## Meta

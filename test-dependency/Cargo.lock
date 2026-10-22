@@ -786,7 +786,7 @@ dependencies = [
 
 [[package]]
 name = "frozen-duckdb"
-version = "2.0.0-dev"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "arrow",
@@ -807,7 +807,7 @@ dependencies = [
 
 [[package]]
 name = "frozen-duckdb-builder"
-version = "2.0.0-dev"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "flate2",
@@ -820,7 +820,7 @@ dependencies = [
 
 [[package]]
 name = "frozen-duckdb-sys"
-version = "2.0.0-dev"
+version = "2.0.0"
 dependencies = [
  "bindgen",
  "frozen-duckdb-builder",

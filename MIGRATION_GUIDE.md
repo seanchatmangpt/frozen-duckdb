@@ -1,29 +1,24 @@
-# 🚀 Migration Guide: duckdb-rs → frozen-duckdb
+# Migration: duckdb-rs to frozen-duckdb
 
-**Migrate from slow duckdb-rs builds to 99% faster frozen-duckdb builds in 2 minutes!**
+Crate version **2.0.0**. The bundled engine remains DuckDB `2.0.0-dev`
+(`b6013f7aa2f36caabb9466ce1791667ea8a280bb`).
 
-> **Prerelease note (2.0.0-dev):** this line is a prerelease and is NOT
-> publishable to crates.io (prerelease versions like `2.0.0-dev` cannot be
-> published while the upstream `v2.0.0-dev` tag/release assets do not exist;
-> see `docs/sjira/v2.0.0-dev/TAG-REHEARSAL.md`). Until the final 2.0.0 bump
-> lands, consumers should pin the git/path dependency or wait for the final
-> release. The upstream DuckDB 2.0 calendar (Oct 21) is not a commitment
-> date for this crate.
+`0.1.0` is an older generation. `2.0.0-dev` is a prerelease already on
+crates.io; Cargo will not select it from `frozen-duckdb = "2"`. Depend on
+`2.0.0`.
 
-## Quick Migration (2 minutes)
+## Quick migration
 
 ### Step 1: Replace the dependency
-```bash
-# Remove duckdb-rs
-cargo remove duckdb
 
-# Add frozen-duckdb (2.0.0-dev)
-#
-# DO NOT `cargo add frozen-duckdb` yet: crates.io's `frozen-duckdb` is an
-# unrelated 0.1.0, and 2.0.0-dev is an unpublished prerelease. Until the
-# final 2.0.0 lands, pin the path/git dependency:
-cargo add --path /path/to/frozen-duckdb/crates/frozen-duckdb
-# (or) frozen-duckdb = { git = "https://github.com/seanchatmangpt/frozen-duckdb" }
+```bash
+cargo remove duckdb
+cargo add frozen-duckdb
+```
+
+```toml
+[dependencies]
+frozen-duckdb = "2.0.0"
 ```
 
 ### Step 2: Update imports (if needed)

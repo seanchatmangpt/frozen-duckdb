@@ -969,8 +969,70 @@ fn ensure_install_id(path: &Path) -> Result<bool> {
     Ok(true)
 }
 
-/// Non-macOS: the LC_ID_DYLIB/@rpath mechanism does not exist; nothing to stamp.
-#[cfg(not(target_os = "macos"))]
+/// Linux: stamp `DT_SONAME` to the absolute cache path, the ELF counterpart
+/// of the Mach-O install id. Consumers record that path in `DT_NEEDED` and
+/// load the cache without `LD_LIBRARY_PATH` or a forwarded rpath.
+/// Non-ELF payloads (unit-test fixtures) are skipped. Missing `patchelf` or
+/// `readelf` warns and leaves the file untouched, same as a Mach-O that has
+/// no header pad.
+#[cfg(target_os = "linux")]
+fn ensure_install_id(path: &Path) -> Result<bool> {
+    let mut magic = [0u8; 4];
+    fs::File::open(path)
+        .and_then(|mut f| f.read_exact(&mut magic))
+        .with_context(|| format!("failed to read magic for SONAME check: {}", path.display()))?;
+    if magic != [0x7f, b'E', b'L', b'F'] {
+        debug!("SONAME stamp skipped (not ELF): {}", path.display());
+        return Ok(false);
+    }
+
+    let wanted = fs::canonicalize(path)?;
+    let wanted_str = wanted.to_str().context("non-UTF8 path")?;
+    let path_str = path.to_str().context("non-UTF8 path")?;
+
+    let out = Command::new("readelf")
+        .args(["-d", path_str])
+        .output()
+        .context("failed to run readelf -d")?;
+    if !out.status.success() {
+        warn!(
+            "KD-15 SONAME stamp skipped (readelf failed) on {}: {}",
+            path.display(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+        return Ok(false);
+    }
+    let dump = String::from_utf8_lossy(&out.stdout);
+    let current = dump
+        .lines()
+        .find(|line| line.contains("(SONAME)"))
+        .and_then(|line| line.split('[').nth(1))
+        .and_then(|rest| rest.split(']').next())
+        .unwrap_or("")
+        .trim();
+    if current == wanted_str {
+        debug!("SONAME already stamped: {}", path.display());
+        return Ok(false);
+    }
+
+    let out = Command::new("patchelf")
+        .args(["--set-soname", wanted_str, path_str])
+        .output()
+        .context("failed to run patchelf")?;
+    if !out.status.success() {
+        warn!(
+            "KD-15 SONAME stamp UNSUCCESSFUL on {} (consumers will need LD_LIBRARY_PATH or an rpath): {}",
+            path.display(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+        return Ok(false);
+    }
+    info!("SONAME stamped to {}: {}", wanted.display(), path.display());
+    Ok(true)
+}
+
+/// Windows and other hosts: no install-id stamp.
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn ensure_install_id(_path: &Path) -> Result<bool> {
     Ok(false)
 }
