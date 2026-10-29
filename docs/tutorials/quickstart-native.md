@@ -11,7 +11,7 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0"
+frozen-duckdb = "2.0.1"
 ```
 
 `0.1.0` is the previous stable crate. `2.0.0-dev` is published as a
@@ -119,7 +119,8 @@ install_name_tool -add_rpath ~/.frozen-duckdb/cache/v2.0.0-dev-arm64 \
 ## Where to next
 
 - Full feature surface: `docs/reference/` and `docs/how-to/`
-- Builder/cache internals: `docs/architecture/binary-management.md`
+- Builder/cache internals: `docs/archive/pre-2.0/architecture/binary-management.md`
+  (pre-2.0, archived)
 - Browser target (Web Worker + OPFS): it is BLOCKED (KD-05) as of
   2026-10-19 — see
   `docs/tutorials/quickstart-browser-opfs.md` for the contract, not a

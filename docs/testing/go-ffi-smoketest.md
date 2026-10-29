@@ -10,7 +10,7 @@
 > The maintained FFI validation path is `frozen-duckdb-cli validate-ffi`
 > (audited 2026-09-22: the `--skip-llm` flag is accepted but **not yet
 > wired** — LLM validation layers run regardless, so Ollama is always
-> needed for a fully green run; see `docs/api/cli.md`).
+> needed for a fully green run; see `docs/archive/pre-2.0/api/cli.md`).
 
 ## Overview
 

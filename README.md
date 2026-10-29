@@ -4,11 +4,11 @@ Drop-in replacement for the [`duckdb`](https://crates.io/crates/duckdb) crate.
 Same Rust API. The DuckDB engine is a prebuilt library, cached after the
 first build, so later builds link instead of compiling C++.
 
-Crate version **2.0.0**. The bundled engine is DuckDB `v2.0.0-dev88595`,
+Crate version **2.0.2**. The bundled engine is DuckDB `v2.0.0-dev88595`,
 upstream commit `b6013f7aa2f36caabb9466ce1791667ea8a280bb`.
 
-`frozen-duckdb` **0.1.0** on crates.io is an older generation. Depend on
-`2.0.0`.
+`frozen-duckdb` **0.1.0**, **2.0.0**, and **2.0.1** on crates.io are older generations. Depend on
+`2.0.2`.
 
 ## Install
 
@@ -18,7 +18,7 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0"
+frozen-duckdb = "2.0.1"
 ```
 
 Rust 1.88 or newer.
@@ -73,12 +73,12 @@ Optional features (off by default): `serde_json`, `chrono`, `vtab`,
   2.38 or newer (Ubuntu 24.04+, Debian trixie). The cached `.so` must be
   on the loader path at runtime.
 - **Windows**: local compile from the pinned source. No release asset.
+- **wasm32-wasip1**: static `libduckdb.a`. The build script compiles it with wasi-sdk (`WASI_SDK_PATH`) into `~/.frozen-duckdb/cache/v2.0.0-dev-wasm32-wasip1/libduckdb.a`. That archive is the core library (`BUILD_EXTENSIONS` empty, threads off). It is not a GitHub Release asset and it is not the host dylib.
 
 ## Limits
 
-- WebAssembly and browser OPFS are not part of this release.
-- Excel and VSS are not in the static extension set. The static set is
-  parquet, json, icu, httpfs, tpch, tpcds, fts, inet, and sqlsmith.
+- Browser OPFS is not part of this release.
+- The host static extension set is parquet, json, icu, httpfs, tpch, tpcds, fts, inet, and sqlsmith. Excel and VSS are not in that set. The wasip1 archive is core-only.
 - Registered differences from upstream `duckdb-rs` are listed in
   [KNOWN_DIVERGENCES.md](KNOWN_DIVERGENCES.md).
 

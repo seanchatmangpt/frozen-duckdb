@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-10-29
+
+### Fixed
+
+- Engine-level WASI virtual file system compatibility layer: eliminates advisory `fcntl` locking failures (`F_SETLK`/`F_GETLK`) and maps Linux `O_*` open flags to WASI preview1 bitmasks in DuckDB's `local_file_system.cpp` under `#if defined(__wasi__)`. Statically linking `libduckdb.a` into a `wasm32-wasip1` module achieves correct file semantics with zero consumer shims and zero `--wrap` link arguments.
+- The wasm32 archive probe reads past the ar symbol index. A full-engine `libduckdb.a` puts the first wasm object about 10.6 MB in, so a 256 KiB window rejected a real archive.
+- wasi-sdk 34's toolchain is `share/cmake/wasi-sdk-p1.cmake`, and its libc++ lives at `share/wasi-sysroot/lib/wasm32-wasip1/eh`. The wasip1 compile uses those paths and turns off `CMAKE_POSITION_INDEPENDENT_CODE` in the pinned DuckDB checkout.
+- wasm32-wasip1 links `libduckdb_wasi_posix` (`wasi_posix.c`). wasi-libc does not provide `mmap`, `mlock`, `getpid`, `kill`, `getrlimit`, or `sched_getcpu`. The stubs fail closed. Added no-op stub for `flock(fd, op)`.
+
+## [2.0.1] - 2026-10-22
+
+### Fixed
+
+- `wasm32-wasip1` links `static=duckdb` (`libduckdb.a` built with wasi-sdk) instead of the host dylib. The 2.0.0 build script always emitted `cargo:rustc-link-lib=dylib=duckdb`, so wasm-ld failed with `unable to find library -lduckdb`. The host dylib is not a substitute. Set `WASI_SDK_PATH` to compile the archive into `~/.frozen-duckdb/cache/v2.0.0-dev-wasm32-wasip1/libduckdb.a`.
+
 ## [2.0.0] - 2026-10-22
 
 ### Changed

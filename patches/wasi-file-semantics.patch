@@ -1,0 +1,66 @@
+diff --git a/src/common/local_file_system.cpp b/src/common/local_file_system.cpp
+index 664659e76aa..9a8f9c3c92f 100644
+--- a/src/common/local_file_system.cpp
++++ b/src/common/local_file_system.cpp
+@@ -59,6 +59,24 @@ extern "C" WINBASEAPI BOOL QueryFullProcessImageNameW(HANDLE, DWORD, LPWSTR, PDW
+ #include <restartmanager.h>
+ #endif
+ 
++#if defined(__wasi__)
++static inline int TranslateWasiOpenFlags(int flags) {
++	int out;
++	switch (flags & 3) {
++	case 1:  out = 0x10000000; break; /* O_WRONLY */
++	case 2:  out = 0x0C000000; break; /* O_RDWR   */
++	default: out = 0x04000000; break; /* O_RDONLY */
++	}
++	if (flags & 0100)    out |= 0x1000;     /* O_CREAT */
++	if (flags & 0200)    out |= 0x4000;     /* O_EXCL */
++	if (flags & 01000)   out |= 0x8000;     /* O_TRUNC */
++	if (flags & 0200000) out |= 0x2000;     /* O_DIRECTORY */
++	if (flags & 0400000) out |= 0x01000000; /* O_NOFOLLOW */
++	if (flags & 02000)   out |= 0x0001;     /* O_APPEND */
++	return out;
++}
++#endif
++
+ namespace duckdb {
+ 
+ #ifndef _WIN32
+@@ -290,6 +308,10 @@ static void TryAcquireFileLock(FileSystem &fs, int fd, const string &path, FileO
+ 	if (flags.Lock() == FileLockType::NO_LOCK) {
+ 		return;
+ 	}
++#if defined(__wasi__)
++	(void)fs; (void)fd; (void)path;
++	return;
++#endif
+ 	// only attempt locking on regular files (not FIFOs/sockets)
+ 	auto file_type = StatsInternal(fd, path).file_type;
+ 	if (file_type == FileType::FILE_TYPE_FIFO || file_type == FileType::FILE_TYPE_SOCKET) {
+@@ -424,7 +446,12 @@ unique_ptr<FileHandle> LocalFileSystem::OpenFile(const string &path_p, FileOpenF
+ 
+ 	// Open the file
+ 	ApplyLocalFileSystemDelay(opener);
++	#if defined(__wasi__)
++	int wasi_flags = TranslateWasiOpenFlags(open_flags);
++	int fd = open(path.c_str(), wasi_flags, filesec);
++#else
+ 	int fd = open(path.c_str(), open_flags, filesec);
++#endif
+ 
+ 	if (fd == -1) {
+ 		if (flags.ReturnNullIfNotExists() && errno == ENOENT) {
+@@ -968,7 +995,12 @@ unique_ptr<MemoryMappedFile> LocalFileSystem::MemoryMapFile(const OpenFileInfo &
+ 		open_flags |= O_CREAT;
+ 	}
+ 
++	#if defined(__wasi__)
++	int wasi_flags = TranslateWasiOpenFlags(open_flags);
++	int fd = open(path.c_str(), wasi_flags, 0666);
++#else
+ 	int fd = open(path.c_str(), open_flags, 0666);
++#endif
+ 	if (fd == -1) {
+ 		if (flags.ReturnNullIfNotExists() && errno == ENOENT) {
+ 			return nullptr;

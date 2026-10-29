@@ -16,6 +16,7 @@ DUCKDB_SRC="${DUCKDB_SRC:-/Users/sac/rel4r/duckdb-src}"
 DUCKDB_PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
 STAGING="${STAGING:-$HOME/.frozen-duckdb/cache/v2.0.0-dev-wasm32-wasip1}"
 COMPAT_SRC="${COMPAT_SRC:-/Users/sac/frozen-duckdb/crates/frozen-duckdb-sys/wasi_posix.c}"
+PATCH_SRC="${PATCH_SRC:-/Users/sac/frozen-duckdb/patches/wasi-file-semantics.patch}"
 # wasi libc for standalone clang links (rust ships a wasi-sdk-compatible libc.a
 # in its self-contained wasm32-wasip1 component; used for the EH probe only).
 WASI_LIBC_SRC="${WASI_LIBC_SRC:-$HOME/.rustup/toolchains/1.96.0-aarch64-apple-darwin/lib/rustlib/wasm32-wasip1/lib/self-contained}"
@@ -193,8 +194,87 @@ verify_staging() {
   else
     fail "EH probe compile/link failed (exit $rc): $(tail -2 "$tmp/err" | tr '\n' ' ')"
   fi
+
+  # 6. Shim-less DuckDB link probe & TC08 COPY egress court
+  run_duckdb_wasi_egress_court "$tmp"
   rm -rf "$tmp"
   return 0
+}
+
+run_duckdb_wasi_egress_court() {
+  local tmp="$1"
+  local egress_file="/tmp/duckdb_wasi_egress_$$.csv"
+  rm -f "$egress_file"
+
+  cat > "$tmp/egress.cpp" <<EOF
+#include <duckdb.h>
+#include <cstdio>
+#include <cstdlib>
+
+int main() {
+    duckdb_database db;
+    duckdb_connection con;
+    if (duckdb_open(nullptr, &db) == DuckDBError) {
+        fprintf(stderr, "duckdb_open failed\n");
+        return 1;
+    }
+    if (duckdb_connect(db, &con) == DuckDBError) {
+        fprintf(stderr, "duckdb_connect failed\n");
+        return 1;
+    }
+    duckdb_state state;
+    state = duckdb_query(con, "CREATE TABLE t (id INT, val VARCHAR);", nullptr);
+    if (state == DuckDBError) {
+        fprintf(stderr, "CREATE TABLE failed\n");
+        return 1;
+    }
+    state = duckdb_query(con, "INSERT INTO t VALUES (42, 'test_val');", nullptr);
+    if (state == DuckDBError) {
+        fprintf(stderr, "INSERT failed\n");
+        return 1;
+    }
+    duckdb_result res;
+    state = duckdb_query(con, "COPY t TO '$egress_file' (HEADER, DELIMITER ',');", &res);
+    if (state == DuckDBError) {
+        fprintf(stderr, "COPY failed: %s\n", duckdb_result_error(&res));
+        return 1;
+    }
+    duckdb_disconnect(&con);
+    duckdb_close(&db);
+    printf("DUCKDB-EGRESS-OK\n");
+    return 0;
+}
+EOF
+
+  local wrap="$STAGING/bin/clang"
+  "$wrap" --target=wasm32-wasip1 -O1 \
+    -fwasm-exceptions -mllvm -wasm-use-legacy-eh=0 -std=c++17 \
+    -I"$STAGING/share/wasi-sysroot/include/c++/v1" \
+    -I"$DUCKDB_SRC/src/include" \
+    -o "$tmp/egress.wasm" "$tmp/egress.cpp" \
+    -L"$STAGING" \
+    -lduckdb -lcore_functions_extension -lduckdb_wasi_compat \
+    -lc++ -lc++abi -lunwind 2>"$tmp/egress_err"
+  local rc=$?
+  if [ $rc -eq 0 ] && have_wasm_magic "$tmp/egress.wasm"; then
+    pass "DuckDB probe module linked with zero consumer shims / zero --wrap flags"
+  else
+    fail "DuckDB probe link failed (exit $rc): $(tail -5 "$tmp/egress_err" | tr '\n' ' ')"
+    return 1
+  fi
+
+  if command -v wasmtime >/dev/null 2>&1; then
+    wasmtime run --dir=/tmp "$tmp/egress.wasm" > "$tmp/egress.out" 2>"$tmp/egress.err"
+    rc=$?
+    if [ $rc -eq 0 ] && grep -q '^DUCKDB-EGRESS-OK$' "$tmp/egress.out" && [ -s "$egress_file" ] && grep -q '42,test_val' "$egress_file"; then
+      pass "DuckDB WASI COPY egress court (1/0 class) PASSED under wasmtime"
+    else
+      fail "DuckDB WASI COPY egress court failed under wasmtime (exit $rc, out: $(cat "$tmp/egress.out" 2>/dev/null), err: $(cat "$tmp/egress.err" 2>/dev/null))"
+    fi
+  else
+    skip "DuckDB WASI COPY egress court: wasmtime not installed"
+  fi
+  rm -f "$egress_file"
 }
 
 run_eh_smoke() {
@@ -335,6 +415,12 @@ build_archives() {
   local cm_file="$srcdir/CMakeLists.txt"
   grep -q 'set(CMAKE_POSITION_INDEPENDENT_CODE ON)' "$cm_file" || die "PIC policy unknown in pinned CMakeLists"
   sed -i '' 's/set(CMAKE_POSITION_INDEPENDENT_CODE ON)/set(CMAKE_POSITION_INDEPENDENT_CODE OFF)/' "$cm_file"
+  if [ -f "$PATCH_SRC" ]; then
+    patch -d "$srcdir" -p1 < "$PATCH_SRC" || die "failed to apply wasi-file-semantics.patch"
+    pass "wasi-file-semantics.patch applied to duckdb source"
+  else
+    die "patch file missing at $PATCH_SRC"
+  fi
   write_toolchain "$scratch/wasi-toolchain.cmake" "$out"
   bdir="$srcdir/build-wasip1"
   unset SCCACHE CCACHE 2>/dev/null || true

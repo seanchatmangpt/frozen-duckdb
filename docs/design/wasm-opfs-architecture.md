@@ -140,7 +140,7 @@ deliberately kept open until a build proves one path.
    out-of-disk error — never a hang, silent short-write admitted as success,
    or worker wedge.
 
-See Also: `docs/architecture/binary-management.md` ·
+See Also: `docs/archive/pre-2.0/architecture/binary-management.md` ·
 `scripts/build_duckdb_optimized.sh` ·
 `crates/frozen-duckdb-builder/vendored-headers/duckdb.h` ·
 `crates/frozen-duckdb-builder/src/lib.rs`

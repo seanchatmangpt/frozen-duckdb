@@ -34,7 +34,7 @@ prebuilt/setup_env.sh and the architecture helper module
 
 macOS uses prebuilt per-arch dylibs (arm64 and x86_64). Linux uses
 prebuilt `.so` files and needs glibc 2.38 or newer. Windows compiles the
-pinned DuckDB 2.0.0-dev source locally. The crate version is 2.0.0.
+pinned DuckDB 2.0.0-dev source locally. `wasm32-wasip1` compiles a core-only static archive when `WASI_SDK_PATH` is set. The crate version is 2.0.1.
 
 #### Why is it called frozen?
 

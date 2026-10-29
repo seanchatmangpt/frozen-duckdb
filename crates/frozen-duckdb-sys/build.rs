@@ -1,3 +1,4 @@
+use std::process::Command;
 use std::{env, fs, path::Path, path::PathBuf};
 
 /// Tells whether we're building for Windows. This is more suitable than a plain
@@ -27,8 +28,17 @@ fn main() {
     // The standard DOCS_RS pattern instead: generate bindings from the
     // builder's vendored headers and emit no linking directives, so rustdoc
     // can typecheck without any library present.
+    println!("cargo:rerun-if-env-changed=TARGET");
     if env::var("DOCS_RS").is_ok() {
         docs_rs_main();
+        return;
+    }
+
+    let target = env::var("TARGET").unwrap_or_default();
+    if frozen_duckdb_builder::link_kind_for_target(&target)
+        == frozen_duckdb_builder::LinkKind::StaticArchive
+    {
+        wasip1_static_main(&target);
         return;
     }
 
@@ -80,6 +90,137 @@ fn main() {
         "cargo:warning=Using prebuilt DuckDB binary: {}",
         binary_path.display()
     );
+}
+
+/// wasm32-wasip1: link `libduckdb.a`, never the host dylib.
+fn wasip1_static_main(target: &str) {
+    let archive = frozen_duckdb_builder::ensure_static_archive(target).unwrap_or_else(|e| {
+        panic!("wasm32 staticlib for {target}: {e}");
+    });
+    let sdk = env::var("WASI_SDK_PATH").unwrap_or_else(|_| {
+        panic!(
+            "WASI_SDK_PATH is required to link libc++ into {target} (the staticlib references the C++ runtime)"
+        );
+    });
+    let cxx = frozen_duckdb_builder::wasi_sdk_cxx_lib_dir(Path::new(&sdk)).unwrap_or_else(|e| {
+        panic!("wasm32 C++ runtime for {target}: {e}");
+    });
+    let lib_dir = archive
+        .parent()
+        .expect("static archive path has no parent directory");
+
+    println!("cargo:rustc-link-search=native={}", lib_dir.display());
+    println!("cargo:rustc-link-search=native={}", cxx.display());
+    println!("cargo:rustc-link-lib=static=duckdb");
+    let out_dir = env::var("OUT_DIR").unwrap();
+    if let Ok(entries) = fs::read_dir(lib_dir) {
+        let mut extensions: Vec<String> = entries
+            .flatten()
+            .filter_map(|entry| entry.file_name().into_string().ok())
+            .filter(|name| name.starts_with("lib") && name.ends_with("_extension.a"))
+            .collect();
+        extensions.sort();
+        for name in extensions {
+            let stem = name.trim_start_matches("lib").trim_end_matches(".a");
+            println!("cargo:rustc-link-lib=static={stem}");
+        }
+    }
+    let stubs = compile_wasi_posix_stubs(Path::new(&sdk), Path::new(&out_dir));
+    println!(
+        "cargo:rustc-link-search=native={}",
+        stubs.parent().expect("stub archive parent").display()
+    );
+    println!("cargo:rustc-link-lib=static=duckdb_wasi_posix");
+    // Engine-level WASI VFS layer translates open flags and neutralizes
+    // advisory fcntl locking; no consumer-side --wrap link args needed.
+    println!("cargo:rustc-link-lib=static=c++");
+    println!("cargo:rustc-link-lib=static=c++abi");
+    if cxx.join("libunwind.a").is_file() {
+        println!("cargo:rustc-link-lib=static=unwind");
+    }
+    // No rpath. wasm-ld does not load a host dylib, and `-Wl,-rpath` is not
+    // a wasip1 link argument.
+    println!("cargo:DUCKDB_LIB_DIR={}", lib_dir.display());
+    println!("cargo:DUCKDB_INCLUDE_DIR={}", lib_dir.display());
+    println!("cargo:DUCKDB_LINK_KIND=static");
+
+    let out_path = Path::new(&out_dir).join("bindgen.rs");
+    let headers = find_vendored_headers().unwrap_or_else(|| {
+        panic!("wasm32 build: cannot locate frozen-duckdb-builder vendored-headers");
+    });
+    let include_dir = stage_vendored_headers(&out_dir, &headers);
+    build_linked::main(&out_dir, &out_path, &include_dir);
+
+    println!("cargo:rerun-if-changed={}", archive.display());
+    println!("cargo:rerun-if-env-changed=WASI_SDK_PATH");
+    println!("cargo:rerun-if-env-changed=TARGET");
+    println!("cargo:rerun-if-env-changed=DOCS_RS");
+    println!(
+        "cargo:warning=wasm32 static link: {} (libc++ from {})",
+        archive.display(),
+        cxx.display()
+    );
+}
+
+/// wasi-libc has no mmap/mlock/getpid. DuckDB calls them and checks the
+/// error, so a failing stub is enough for the in-memory engine.
+fn compile_wasi_posix_stubs(sdk: &Path, out_dir: &Path) -> PathBuf {
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("wasi_posix.c");
+    let obj = out_dir.join("wasi_posix.o");
+    let archive = out_dir.join("libduckdb_wasi_posix.a");
+    let clang = sdk.join("bin/clang");
+    let clang = if clang.is_file() {
+        clang
+    } else {
+        PathBuf::from("clang")
+    };
+    let ar = sdk.join("bin/llvm-ar");
+    let ar = if ar.is_file() {
+        ar
+    } else {
+        PathBuf::from("llvm-ar")
+    };
+    let compile = Command::new(&clang)
+        .args(["--target=wasm32-wasip1", "-O2", "-c", "-o"])
+        .arg(&obj)
+        .arg(&src)
+        .status()
+        .unwrap_or_else(|e| panic!("running {} for wasi posix stubs: {e}", clang.display()));
+    if !compile.success() {
+        panic!(
+            "compiling wasi posix stubs failed (exit {:?}). WASI_SDK_PATH must provide bin/clang, or clang must be on PATH.",
+            compile.code()
+        );
+    }
+    let packed = Command::new(&ar)
+        .arg("rcs")
+        .arg(&archive)
+        .arg(&obj)
+        .status()
+        .unwrap_or_else(|e| panic!("running {} for wasi posix stubs: {e}", ar.display()));
+    if !packed.success() {
+        panic!(
+            "archiving wasi posix stubs failed (exit {:?})",
+            packed.code()
+        );
+    }
+    println!("cargo:rerun-if-changed={}", src.display());
+    archive
+}
+
+fn stage_vendored_headers(out_dir: &str, vendored: &Path) -> PathBuf {
+    let include_dir = Path::new(out_dir).join("headers");
+    let staged = include_dir.join("duckdb");
+    fs::create_dir_all(&staged).expect("Failed to create staged header directory");
+    for header_name in ["duckdb.h", "duckdb.hpp"] {
+        let src = vendored.join(header_name);
+        let contents = fs::read(&src).unwrap_or_else(|e| {
+            panic!("missing vendored header {}: {}", src.display(), e);
+        });
+        fs::write(staged.join(header_name), contents)
+            .unwrap_or_else(|e| panic!("failed to stage {header_name}: {e}"));
+    }
+    include_dir
 }
 
 /// docs.rs path: bindings from the vendored headers, zero linking directives.

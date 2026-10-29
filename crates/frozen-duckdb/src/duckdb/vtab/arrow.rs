@@ -590,7 +590,7 @@ pub fn data_chunk_to_arrow(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    Ok(RecordBatch::try_from_iter(columns.into_iter())?)
+    Ok(RecordBatch::try_from_iter(columns)?)
 }
 
 struct DataChunkHandleSlice<'a> {

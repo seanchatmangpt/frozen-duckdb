@@ -214,7 +214,9 @@ SELECT llm_embedding(
 > cached under `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`. No `.dylib` is
 > committed to the repository (`prebuilt/` carries only the vendored headers
 > and `setup_env.sh`), so the LFS decision below is historical. See
-> `docs/architecture/binary-management.md` for the current mechanism.
+> `docs/archive/pre-2.0/architecture/binary-management.md` for the
+> pre-2.0 mechanism (historical; the file was archived in the 2.0.0
+> restructure).
 
 ### Decision (historical)
 

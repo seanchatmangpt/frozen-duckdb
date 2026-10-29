@@ -3,7 +3,7 @@
 This directory is the v2.0.0-dev evidence record (receipts, lanes, and
 publish rehearsals). It is not rewritten for the 2.0.0 crate publish.
 
-The crate version on crates.io is **2.0.0**. The DuckDB engine described
+The crate version on crates.io is **2.0.1**. The DuckDB engine described
 here is still `v2.0.0-dev88595` at
 `b6013f7aa2f36caabb9466ce1791667ea8a280bb`.
 

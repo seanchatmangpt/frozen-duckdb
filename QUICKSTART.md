@@ -9,7 +9,7 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0"
+frozen-duckdb = "2.0.1"
 ```
 
 ```rust
@@ -28,9 +28,9 @@ The first build downloads a prebuilt DuckDB library for macOS or Linux
 engine if no release asset matches the host. Later builds link the cache.
 
 `cargo add frozen-duckdb` without a version constraint resolves the newest
-stable release. That is `2.0.0` once this version is on crates.io. The
-older stable release is `0.1.0`. The prerelease `2.0.0-dev` is on the
-index and is not selected by a bare `cargo add`.
+stable release. That is `2.0.1`. The older stable releases are `2.0.0`
+and `0.1.0`. The prerelease `2.0.0-dev` is on the index and is not
+selected by a bare `cargo add`.
 
 Working from a clone of this repository:
 

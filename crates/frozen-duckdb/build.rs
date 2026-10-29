@@ -9,6 +9,15 @@ fn main() {
     let lib_dir = env::var("DEP_DUCKDB_DUCKDB_LIB_DIR")
         .expect("frozen-duckdb-sys must expose DEP_DUCKDB_DUCKDB_LIB_DIR (links = \"duckdb\")");
 
+    // wasm32-wasip1 links libduckdb.a. An rpath argument is for the host
+    // dylib and is not a wasm-ld flag.
+    let target = env::var("TARGET").unwrap_or_default();
+    let static_link = env::var("DEP_DUCKDB_DUCKDB_LINK_KIND").ok().as_deref() == Some("static");
+    if static_link || target.starts_with("wasm32-") {
+        println!("cargo:rerun-if-env-changed=TARGET");
+        return;
+    }
+
     // The unscoped rustc-link-arg is deliberate: the scoped variants
     // (-bins/-tests/-examples) skip the lib's unit-test binary, which then
     // dies in dyld with "Library not loaded: @rpath/libduckdb.dylib".

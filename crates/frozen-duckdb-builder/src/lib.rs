@@ -17,6 +17,53 @@ use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 pub const VERSION: &str = "2.0.0-dev";
+
+/// How `frozen-duckdb-sys` must link the engine for a Cargo target triple.
+///
+/// Host triples use the cached shared library. `wasm32-wasip1` (and the older
+/// `wasm32-wasi` / `wasm32-wasip2` names) must use a wasm32 static archive:
+/// wasm-ld cannot load a macOS dylib or a Linux `.so`, and `dylib=duckdb`
+/// makes it search for `-lduckdb` and fail.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinkKind {
+    /// `libduckdb.dylib` / `libduckdb.so`.
+    Shared,
+    /// `libduckdb.a` built for wasm32-wasip1.
+    StaticArchive,
+}
+
+/// Link kind for `target` (`$TARGET` in a build script).
+pub fn link_kind_for_target(target: &str) -> LinkKind {
+    match target {
+        "wasm32-wasip1" | "wasm32-wasip2" | "wasm32-wasi" => LinkKind::StaticArchive,
+        _ => LinkKind::Shared,
+    }
+}
+
+/// Cache-relative path of the wasip1 static archive for `target`.
+pub fn static_archive_cache_name(target: &str) -> String {
+    format!("v{VERSION}-{target}/libduckdb.a")
+}
+
+/// True when `bytes` is an `ar` archive of wasm32 objects, not a Mach-O or
+/// ELF archive. A host `libduckdb_static.a` starts with the same `!<arch>`
+/// magic and must not be handed to wasm-ld.
+pub fn archive_is_wasm32(bytes: &[u8]) -> bool {
+    if !bytes.starts_with(b"!<arch>\n") {
+        return false;
+    }
+    // The symbol index of a full-engine archive is ~10.6 MB, so the first
+    // wasm member sits past a 256 KiB window. Scan the whole prefix the
+    // caller read (ensure_static_archive reads 64 MiB).
+    let window = bytes;
+    let has = |magic: &[u8]| window.windows(magic.len()).any(|w| w == magic);
+    has(b"\0asm")
+        && !has(&[0xcf, 0xfa, 0xed, 0xfe])
+        && !has(&[0xfe, 0xed, 0xfa, 0xcf])
+        && !has(&[0xca, 0xfe, 0xba, 0xbe])
+        && !has(b"\x7fELF")
+}
+
 /// Pinned upstream duckdb/duckdb main commit this dev build stages/compiles
 /// from (dev heads move — load-bearing pin).
 const SOURCE_PIN: &str = "b6013f7aa2f36caabb9466ce1791667ea8a280bb";
@@ -236,6 +283,301 @@ impl Drop for BuildLock {
             }
         }
     }
+}
+
+/// `libc++.a` directory inside a wasi-sdk install.
+///
+/// wasi-sdk 22+ uses `lib/wasm32-wasip1`. Older SDKs use `lib/wasm32-wasi`.
+pub fn wasi_sdk_cxx_lib_dir(sdk: &Path) -> Result<PathBuf> {
+    // wasi-sdk 24 and earlier: lib/wasm32-wasip1. wasi-sdk 25+ moved the
+    // sysroot under share/wasi-sysroot and split exception variants. DuckDB
+    // throws, so the eh archive is the one the link needs.
+    for rel in [
+        "lib/wasm32-wasip1",
+        "lib/wasm32-wasi",
+        "share/wasi-sysroot/lib/wasm32-wasip1/eh",
+        "share/wasi-sysroot/lib/wasm32-wasi/eh",
+    ] {
+        let dir = sdk.join(rel);
+        if dir.join("libc++.a").is_file() && dir.join("libc++abi.a").is_file() {
+            return Ok(dir);
+        }
+    }
+    anyhow::bail!(
+        "WASI_SDK_PATH {} has no libc++.a and libc++abi.a under lib/wasm32-wasip1 or share/wasi-sysroot/lib/wasm32-wasip1/eh",
+        sdk.display()
+    )
+}
+
+/// Toolchain file for a wasi-sdk install. SDK 34 names it `wasi-sdk-p1.cmake`.
+/// Older SDKs ship `wasi-sdk.cmake`.
+pub fn wasi_sdk_toolchain_file(sdk: &Path) -> Result<PathBuf> {
+    for rel in [
+        "share/cmake/wasi-sdk-p1.cmake",
+        "share/cmake/wasi-sdk.cmake",
+    ] {
+        let path = sdk.join(rel);
+        if path.is_file() {
+            return Ok(path);
+        }
+    }
+    anyhow::bail!(
+        "wasi-sdk toolchain file missing under {} (looked for share/cmake/wasi-sdk-p1.cmake and wasi-sdk.cmake)",
+        sdk.display()
+    )
+}
+
+/// Cached `libduckdb.a` for a wasm32 static target.
+///
+/// A missing archive is compiled with wasi-sdk when `WASI_SDK_PATH` is set.
+/// The host dylib is never returned: linking it is what makes wasm-ld report
+/// `unable to find library -lduckdb`.
+pub fn ensure_static_archive(target: &str) -> Result<PathBuf> {
+    anyhow::ensure!(
+        link_kind_for_target(target) == LinkKind::StaticArchive,
+        "{target} links the shared library, not a static archive"
+    );
+    let cache = get_cache_dir()?.join(format!("v{VERSION}-{target}"));
+    let archive = cache.join("libduckdb.a");
+    if archive.is_file() {
+        // The ar symbol index of a full-engine archive runs to tens of MB
+        // (measured: 10.6 MB of symbol table before the first `!<arch>` member
+        // payload), so the wasm-magic probe must see past it. 256 KiB falsely
+        // rejected a genuine wasm32 archive.
+        let prefix = read_prefix(&archive, 64 * 1024 * 1024)?;
+        if archive_is_wasm32(&prefix) {
+            return Ok(archive);
+        }
+        anyhow::bail!(
+            "{} is not a wasm32 archive. A host libduckdb_static.a cannot be linked by wasm-ld. Remove it and rebuild with WASI_SDK_PATH set.",
+            archive.display()
+        );
+    }
+    let sdk = env::var("WASI_SDK_PATH").with_context(|| {
+        format!(
+            "no wasm32 staticlib at {} and WASI_SDK_PATH is unset. \
+             {target} cannot link the host dylib (that search is `-lduckdb` and fails). \
+             Install wasi-sdk, export WASI_SDK_PATH, and rebuild.",
+            archive.display()
+        )
+    })?;
+    compile_wasip1_static(&cache, Path::new(&sdk), target)
+}
+
+fn read_prefix(path: &Path, max: usize) -> Result<Vec<u8>> {
+    let mut file = fs::File::open(path).with_context(|| format!("opening {}", path.display()))?;
+    let mut buf = vec![0u8; max];
+    let n = file
+        .read(&mut buf)
+        .with_context(|| format!("reading {}", path.display()))?;
+    buf.truncate(n);
+    Ok(buf)
+}
+
+/// Turn off `CMAKE_POSITION_INDEPENDENT_CODE` in a pinned DuckDB checkout.
+fn disable_wasip1_pic(duckdb_dir: &Path) -> Result<()> {
+    let cmake_lists = duckdb_dir.join("CMakeLists.txt");
+    let text = fs::read_to_string(&cmake_lists)
+        .with_context(|| format!("reading {}", cmake_lists.display()))?;
+    let needle = "set(CMAKE_POSITION_INDEPENDENT_CODE ON)";
+    anyhow::ensure!(
+        text.contains(needle),
+        "{} does not set CMAKE_POSITION_INDEPENDENT_CODE ON; refusing to configure a wasm archive whose PIC policy is unknown",
+        cmake_lists.display()
+    );
+    fs::write(
+        &cmake_lists,
+        text.replacen(needle, "set(CMAKE_POSITION_INDEPENDENT_CODE OFF)", 1),
+    )
+    .with_context(|| format!("writing {}", cmake_lists.display()))?;
+    Ok(())
+}
+
+/// Compile the pinned DuckDB sources to `libduckdb.a` for wasm32-wasip1.
+fn compile_wasip1_static(cache_dir: &Path, sdk: &Path, target: &str) -> Result<PathBuf> {
+    anyhow::ensure!(
+        link_kind_for_target(target) == LinkKind::StaticArchive,
+        "refusing to wasi-compile for {target}"
+    );
+    let _cxx = wasi_sdk_cxx_lib_dir(sdk)?;
+    let toolchain = wasi_sdk_toolchain_file(sdk)?;
+
+    info!(
+        "Compiling DuckDB staticlib for {} with {}",
+        target,
+        sdk.display()
+    );
+    fs::create_dir_all(cache_dir).context("Failed to create wasip1 cache directory")?;
+    let temp_dir = tempfile::tempdir().context("Failed to create temporary directory")?;
+    let duckdb_dir = temp_dir.path().join("duckdb");
+    checkout_pinned_duckdb(&duckdb_dir)?;
+    // DuckDB's root CMakeLists sets POSITION_INDEPENDENT_CODE ON, which
+    // compiles wasm objects as -fPIC (`env.__memory_base`). A plain set()
+    // overrides -D, so the checkout is patched before configure.
+    disable_wasip1_pic(&duckdb_dir)?;
+
+    let build_dir = duckdb_dir.join("build-wasip1");
+    fs::create_dir_all(&build_dir).context("Failed to create wasip1 build directory")?;
+    let duckdb_src = duckdb_dir
+        .to_str()
+        .context("duckdb path is not utf-8")?
+        .to_string();
+    let build_src = build_dir
+        .to_str()
+        .context("build path is not utf-8")?
+        .to_string();
+    let toolchain_arg = format!("-DCMAKE_TOOLCHAIN_FILE={}", toolchain.display());
+    let configure = Command::new("cmake")
+        .args([
+            "-S",
+            &duckdb_src,
+            "-B",
+            &build_src,
+            &toolchain_arg,
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-DBUILD_EXTENSIONS=",
+            "-DBUILD_SHELL=OFF",
+            "-DBUILD_UNITTESTS=OFF",
+            "-DENABLE_EXTENSION_AUTOLOADING=OFF",
+            "-DENABLE_EXTENSION_AUTOINSTALL=OFF",
+            "-DBUILD_HTTPFS=OFF",
+            "-DBUILD_JEMALLOC=OFF",
+            "-DDISABLE_THREADS=ON",
+        ])
+        .output()
+        .context("Failed to run cmake for wasm32-wasip1")?;
+    anyhow::ensure!(
+        configure.status.success(),
+        "wasm32-wasip1 cmake configure failed (exit {:?}):\n{}",
+        configure.status.code(),
+        String::from_utf8_lossy(&configure.stderr)
+    );
+
+    let jobs = std::thread::available_parallelism()
+        .map(|n| n.get().to_string())
+        .unwrap_or_else(|_| "1".into());
+    let built = Command::new("cmake")
+        .args([
+            "--build",
+            &build_src,
+            "--target",
+            "duckdb_static",
+            "-j",
+            &jobs,
+        ])
+        .output()
+        .context("Failed to run cmake --build for wasm32-wasip1")?;
+    if !built.status.success() {
+        // Some DuckDB generations name the static target `duckdb` when
+        // BUILD_SHARED_LIBS=OFF.
+        let fallback = Command::new("cmake")
+            .args(["--build", &build_src, "--target", "duckdb", "-j", &jobs])
+            .output()
+            .context("Failed to run cmake --build fallback for wasm32-wasip1")?;
+        anyhow::ensure!(
+            fallback.status.success(),
+            "wasm32-wasip1 cmake build failed (exit {:?}):\n{}\nfallback:\n{}",
+            built.status.code(),
+            String::from_utf8_lossy(&built.stderr),
+            String::from_utf8_lossy(&fallback.stderr)
+        );
+    }
+
+    let produced = find_wasip1_archive(&build_dir)?;
+    // Same symbol-index law as ensure_static_archive: the ar symbol table of
+    // a full-engine archive precedes the first wasm member payload.
+    let prefix = read_prefix(&produced, 64 * 1024 * 1024)?;
+    anyhow::ensure!(
+        archive_is_wasm32(&prefix),
+        "cmake produced {} but it is not a wasm32 archive",
+        produced.display()
+    );
+    let dest = cache_dir.join("libduckdb.a");
+    fs::copy(&produced, &dest)
+        .with_context(|| format!("copying {} to {}", produced.display(), dest.display()))?;
+    copy_extension_archives(&build_dir, cache_dir)?;
+    info!("Cached wasm32 staticlib at {}", dest.display());
+    Ok(dest)
+}
+
+fn copy_extension_archives(build_dir: &Path, cache_dir: &Path) -> Result<()> {
+    let mut stack = vec![build_dir.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+                continue;
+            }
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
+            if name.starts_with("lib") && name.ends_with("_extension.a") {
+                fs::copy(&path, cache_dir.join(name))
+                    .with_context(|| format!("copying extension archive {}", path.display()))?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn find_wasip1_archive(build_dir: &Path) -> Result<PathBuf> {
+    let candidates = [
+        build_dir.join("src/libduckdb_static.a"),
+        build_dir.join("src/libduckdb.a"),
+        build_dir.join("libduckdb_static.a"),
+        build_dir.join("libduckdb.a"),
+    ];
+    for path in &candidates {
+        if path.is_file() {
+            return Ok(path.clone());
+        }
+    }
+    anyhow::bail!(
+        "wasm32-wasip1 build finished but libduckdb.a was not found under {}",
+        build_dir.display()
+    )
+}
+
+fn checkout_pinned_duckdb(duckdb_dir: &Path) -> Result<()> {
+    let parent = duckdb_dir
+        .parent()
+        .context("duckdb checkout path has no parent")?;
+    let clone_out = Command::new("git")
+        .args([
+            "clone",
+            "--filter=blob:none",
+            "https://github.com/duckdb/duckdb.git",
+        ])
+        .arg(duckdb_dir)
+        .current_dir(parent)
+        .output()
+        .context("Failed to clone DuckDB repository")?;
+    anyhow::ensure!(
+        clone_out.status.success(),
+        "DuckDB git clone failed (exit {:?}):\n{}",
+        clone_out.status.code(),
+        String::from_utf8_lossy(&clone_out.stderr)
+    );
+    let checkout_out = Command::new("git")
+        .args(["-C"])
+        .arg(duckdb_dir)
+        .args(["checkout", SOURCE_PIN])
+        .output()
+        .context("Failed to run git checkout of pinned DuckDB commit")?;
+    anyhow::ensure!(
+        checkout_out.status.success(),
+        "Failed to check out pinned DuckDB commit {} (exit {:?}):\n{}",
+        SOURCE_PIN,
+        checkout_out.status.code(),
+        String::from_utf8_lossy(&checkout_out.stderr)
+    );
+    Ok(())
 }
 
 /// Ensure the prebuilt DuckDB binary is available
@@ -1721,6 +2063,56 @@ fn find_built_library(build_dir: &Path, _arch: &str) -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wasip1_targets_link_a_static_archive() {
+        assert_eq!(
+            link_kind_for_target("wasm32-wasip1"),
+            LinkKind::StaticArchive
+        );
+        assert_eq!(
+            link_kind_for_target("wasm32-wasip2"),
+            LinkKind::StaticArchive
+        );
+        assert_eq!(link_kind_for_target("wasm32-wasi"), LinkKind::StaticArchive);
+        assert_eq!(
+            link_kind_for_target("aarch64-apple-darwin"),
+            LinkKind::Shared
+        );
+        assert_eq!(
+            link_kind_for_target("x86_64-unknown-linux-gnu"),
+            LinkKind::Shared
+        );
+        assert_eq!(
+            static_archive_cache_name("wasm32-wasip1"),
+            format!("v{VERSION}-wasm32-wasip1/libduckdb.a")
+        );
+    }
+
+    #[test]
+    fn wasm_archive_magic_rejects_host_objects() {
+        let mut wasm = b"!<arch>\n".to_vec();
+        wasm.extend_from_slice(&[0u8; 60]);
+        wasm.extend_from_slice(b"\0asm");
+        assert!(archive_is_wasm32(&wasm));
+
+        // Full-engine ar symbol index: the first wasm member is past 256 KiB.
+        let mut deep = b"!<arch>\n".to_vec();
+        deep.resize(deep.len() + 300 * 1024, 0u8);
+        deep.extend_from_slice(b"\0asm");
+        assert!(archive_is_wasm32(&deep));
+
+        let mut macho = b"!<arch>\n".to_vec();
+        macho.extend_from_slice(&[0xcf, 0xfa, 0xed, 0xfe]);
+        macho.extend_from_slice(b"\0asm");
+        assert!(!archive_is_wasm32(&macho));
+
+        let mut elf = b"!<arch>\n".to_vec();
+        elf.extend_from_slice(b"\x7fELF");
+        elf.extend_from_slice(b"\0asm");
+        assert!(!archive_is_wasm32(&elf));
+        assert!(!archive_is_wasm32(b"\0asm"));
+    }
 
     #[test]
     fn test_detect_architecture() {
