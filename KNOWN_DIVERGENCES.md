@@ -1,7 +1,7 @@
 # KNOWN_DIVERGENCES
 
 Registered divergences between claimed and witnessed behavior.
-The published crate version is **2.0.1**. These rows are the v2.0.0-dev
+The published crate version is **2.0.3**. These rows are the v2.0.0-dev
 engine campaign and still apply to that engine pin
 (`b6013f7aa2f36caabb9466ce1791667ea8a280bb`).
 

@@ -11,7 +11,7 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.1"
+frozen-duckdb = "2.0.3"
 ```
 
 `0.1.0` is the previous stable crate. `2.0.0-dev` is published as a

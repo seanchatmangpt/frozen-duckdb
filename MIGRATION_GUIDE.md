@@ -1,11 +1,11 @@
 # Migration: duckdb-rs to frozen-duckdb
 
-Crate version **2.0.1**. The bundled engine remains DuckDB `2.0.0-dev`
+Crate version **2.0.3**. The bundled engine remains DuckDB `2.0.0-dev`
 (`b6013f7aa2f36caabb9466ce1791667ea8a280bb`).
 
 `0.1.0` and `2.0.0` are older generations. `2.0.0-dev` is a prerelease
 already on crates.io; Cargo will not select it from `frozen-duckdb = "2"`.
-Depend on `2.0.1`.
+Depend on `2.0.3`.
 
 ## Quick migration
 
@@ -18,7 +18,7 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.1"
+frozen-duckdb = "2.0.3"
 ```
 
 ### Step 2: Update imports (if needed)
@@ -164,7 +164,7 @@ grep "frozen-duckdb" Cargo.toml
 
 # Should show your path/git pin, e.g.:
 # frozen-duckdb = { path = ".../crates/frozen-duckdb" }
-# (the crate version is 2.0.1; the engine reports
+# (the crate version is 2.0.3; the engine reports
 #  `SELECT version()` -> `v2.0.0-dev88595`, NOT 1.5.5)
 ```
 
