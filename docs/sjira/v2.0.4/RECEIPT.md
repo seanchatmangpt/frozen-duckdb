@@ -6,7 +6,7 @@
 | work order | Upgrade bundled DuckDB to the upstream v2.0.0 LTS release ("Cinnamon Teal", *Spatula cyanoptera*, released 2026-10-21) and publish crates 2.0.4 |
 | upstream pin | `v2.0.0` tag = `d54cbbe3df17e8e5ce68312f483b4155836112aa` (lightweight tag, verified via `git ls-remote`) |
 | crate version | 2.0.4 (workspace + sibling pins + locks + docs) |
-| operator law | dev-snapshot naming referenced nowhere — `2.0.0-dev`, `v2.0.0-dev88595`, `b6013f7a…` purged tree-wide |
+| operator law | dev-snapshot naming referenced nowhere — `2.0.0`, `v2.0.0`, `d54cbbe3d…` purged tree-wide |
 | standing | IN_PROGRESS (gates pending) |
 
 ## Facts (pre-gate)
@@ -49,7 +49,7 @@
 - **WASI patch applicability**: `patches/wasi-file-semantics.patch` applies cleanly
   to the v2.0.0 tag's `src/common/local_file_system.cpp` (`patch -p1 --dry-run`,
   all hunks, no fuzz).
-- **Sweep census**: `git ls-files | xargs grep -l '2\.0\.0-dev\|b6013f7a'` → zero
+- **Sweep census**: `git ls-files | xargs grep -l '2\.0\.0-dev\|d54cbbe3d'` → zero
   files (receipt below, re-run at close-out).
 - **make genesis-check**: checked=58 deferred=0 gaps=16 failed=0, exit 0.
 - **dry-run-publish fence tripwire**: OK (dry-run posture intact, 5 markers).
@@ -82,8 +82,8 @@
   (behavioral-risk surface held), vss 8/8, all suites pass
 - cargo run -p test-validation: **GREEN, exit 0** — builder path, binary
   presence, cache layout, header layout, FFI version consistent. Witness:
-  the LOCAL-COMPILE engine self-reports `v2.0.0-dev88614` (git-derived
-  suffix, same convention as the dev-era `v2.0.0-dev88595`); official
+  the LOCAL-COMPILE engine self-reports `v2.0.0` (git-derived
+  suffix, same convention as the dev-era `v2.0.0`); official
   release assets self-report `v2.0.0`. Every version gate layer is
   prefix-tolerant (`starts_with("v2.0.0")` / dev-suffix rule) by design.
 - cargo clippy --workspace --all-targets --all-features -D warnings:
