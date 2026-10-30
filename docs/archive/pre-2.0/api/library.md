@@ -55,7 +55,7 @@ assert!(!architecture::is_supported("unknown"));
 - `arm64`: Apple Silicon processors
 - `aarch64`: ARM 64-bit processors (same as arm64)
 
-Each 2.0.0-dev release asset is built for a single architecture (`libduckdb_arm64.dylib` or `libduckdb_x86_64.dylib`, ~117MB per asset); the builder downloads the asset matching the current machine. (The development cache currently carries universal binaries, but released assets are per-architecture.)
+Each 2.0.0 release asset is built for a single architecture (`libduckdb_arm64.dylib` or `libduckdb_x86_64.dylib`, ~117MB per asset); the builder downloads the asset matching the current machine. (The development cache currently carries universal binaries, but released assets are per-architecture.)
 
 #### `get_binary_name() -> String`
 
@@ -149,10 +149,10 @@ if let Some(include_dir) = env_setup::get_include_dir() {
 ```
 
 **Expected Directory Contents:**
-- `duckdb.h` (244KB) - C header file for DuckDB 2.0.0-dev
-- `duckdb.hpp` (2.0MB) - C++ header file for DuckDB 2.0.0-dev
+- `duckdb.h` (244KB) - C header file for DuckDB 2.0.0
+- `duckdb.hpp` (2.0MB) - C++ header file for DuckDB 2.0.0
 
-The same 2.0.0-dev headers are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works offline.
+The same 2.0.0 headers are vendored inside `crates/frozen-duckdb-builder/vendored-headers/`, so bindgen works offline.
 
 #### `validate_binary() -> Result<()>`
 

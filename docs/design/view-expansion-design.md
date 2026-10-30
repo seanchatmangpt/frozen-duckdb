@@ -23,7 +23,7 @@ All expansion SQL below descends from BP12's executed work
   duplicates, time floor: `true | true | true` on fixtures.
 
 Standing: all queries are **VERIFIED-SYNTAX on the v1.4.1 CLI;
-UNVERIFIED on the pinned v1.5.5/2.0.0-dev engine** (BP12's
+UNVERIFIED on the pinned v1.5.5/2.0.0 engine** (BP12's
 `test-validation` run failed on a staged-dylib version mismatch).
 Nothing here is claimed ALIVE on the repo subject until V-S1 passes
 through the pinned engine. This doc inherits that standing verbatim;
@@ -167,7 +167,7 @@ Court design (Chicago: real collaborators, assert on final state):
 4. **Engine gate.** The whole court runs through
    `cargo run -p test-validation` on the pinned engine. Current
    blocker: BP12's staged-dylib version mismatch (`v2.1.0-dev89402`
-   vs `v2.0.0-dev`). Until that run is green, V-S1 standing is
+   vs `v2.0.0`). Until that run is green, V-S1 standing is
    **BLOCKED(engine)**, view standing is VERIFIED-SYNTAX only.
 
 Pass output: the five predicate columns all `true` on fixture

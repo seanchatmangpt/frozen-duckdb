@@ -5,7 +5,7 @@ target/
 # Cargo.lock is COMMITTED (both root and test-dependency): the workspace ships
 # binaries (test-validation bin, repo doctor tooling), so the lockfile is
 # required for reproducible builds — cargo's library-only exception does not
-# apply. Decision recorded in docs/sjira/v2.0.0-dev/COMMIT-PLAN.md (Z3 close).
+# apply. Decision recorded in docs/sjira/v2.0.0/COMMIT-PLAN.md (Z3 close).
 !Cargo.lock
 !test-dependency/Cargo.lock
 

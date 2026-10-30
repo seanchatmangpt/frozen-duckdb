@@ -61,7 +61,7 @@ fallback: `JSON` type, same DDL shape otherwise, insert and
 `json_extract` read-back both green. The sovereign spec's VARIANT pipeline
 (see `variant-shredding-design.md`, `DUCKDB_TYPE_VARIANT=41`) remains
 UNVERIFIED on this substrate; re-run Q1/Q4 against the repo-linked 1.5.5 /
-2.0.0-dev engine when the dylib rebuild lands.
+2.0.0 engine when the dylib rebuild lands.
 
 ### D2 — spec-literal NULLIF guard silently drops singleton segments (spec defect, real)
 
@@ -103,7 +103,7 @@ DuckDB `/` on integers yields DOUBLE.
 | §3.3 DDL, VARIANT spec form (Q1, Q4) | BLOCKED — typed engine refusal, receipt above |
 | §3.4 rehydration view, hardened COALESCE form (Q5', Q6, Q7, Q8) | VERIFIED on 1.4.1 (conservation 16/16 and 17/17) |
 | §3.4 rehydration view, spec-literal NULLIF-only form | REFUTED — silent singleton drop, receipt above |
-| all of the above on the repo-linked 1.5.5 / 2.0.0-dev engine | UNKNOWN — re-run required when the native dylib rebuild lands |
+| all of the above on the repo-linked 1.5.5 / 2.0.0 engine | UNKNOWN — re-run required when the native dylib rebuild lands |
 
 ## Falsifier
 

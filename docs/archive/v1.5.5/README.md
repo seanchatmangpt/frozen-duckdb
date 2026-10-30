@@ -1,7 +1,7 @@
 # docs/archive/v1.5.5
 
 Legacy documentation snapshots from the v1.4.x/v1.5.5 era, archived intact at
-the v1.5.5 → 2.0.0-dev milestone. Content is preserved byte-for-byte; only the
+the v1.5.5 → 2.0.0 milestone. Content is preserved byte-for-byte; only the
 paths changed.
 
 ## Provenance

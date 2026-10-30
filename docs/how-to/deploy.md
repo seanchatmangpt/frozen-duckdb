@@ -6,13 +6,13 @@
 To tag the release, run:
 
 ```bash
-git tag v2.0.0-dev
+git tag v2.0.0
 ```
 
 To push the tag to trigger the release build, run:
 
 ```bash
-git push origin v2.0.0-dev
+git push origin v2.0.0
 ```
 
 ## Pre-publish verification

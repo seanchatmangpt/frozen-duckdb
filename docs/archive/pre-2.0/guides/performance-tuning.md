@@ -10,7 +10,7 @@ This guide provides **comprehensive performance tuning** strategies for Frozen D
 
 **Fastest Setup: none.** `cargo build` is the whole setup — the builder
 (`frozen-duckdb-builder::ensure_binary()`) acquires the dylib into
-`~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/` on first build and every later build
+`~/.frozen-duckdb/cache/v2.0.0-{arch}/` on first build and every later build
 reuses it. The emitted `-Wl,-rpath` loads the dylib at runtime, so there is
 nothing to export:
 
@@ -577,7 +577,7 @@ ls -lah ~/.frozen-duckdb/cache/
 # Confirm the build linked the cached prebuilt binary (RUST_LOG is not
 # read — use cargo's -v and grep the build log)
 cargo build -v 2>&1 | grep -i duckdb
-# A local DuckDB compile (pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag)) only happens when
+# A local DuckDB compile (pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag)) only happens when
 # no release asset is reachable — on macOS that means a network problem
 ```
 
@@ -675,7 +675,7 @@ CREATE MODEL('fast_coder', 'qwen3-coder:7b', 'ollama');
 ### 1. Build Setup
 
 - **No environment setup needed** — the builder acquires the dylib automatically on first build and reuses the cache afterwards
-- **Keep the cache warm** — `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/` makes subsequent builds near-instant
+- **Keep the cache warm** — `~/.frozen-duckdb/cache/v2.0.0-{arch}/` makes subsequent builds near-instant
 - **No CI/CD setup step** — binaries, tests, and examples load the dylib via the emitted `@rpath`
 - **Monitor build times** and investigate anomalies
 

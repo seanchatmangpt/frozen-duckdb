@@ -7,7 +7,7 @@ export DUCKDB_INCLUDE_DIR="$(dirname "$(realpath "$0")")"
 # Asset law (TR7): macOS ships libduckdb_{arch}.dylib, Linux ships
 # libduckdb_{arch}.so (Windows is on the documented local-compile fallback).
 # NOTE: frozen-duckdb release assets for Linux (.so) do not exist until the
-# release AFTER 2.0.0-dev; until then Linux users compile locally
+# release AFTER 2.0.0; until then Linux users compile locally
 # (compile_duckdb_locally) and place libduckdb_{arch}.so in this directory.
 ARCH=${ARCH:-$(uname -m)}
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -55,7 +55,7 @@ else
 fi
 
 # Report the MEASURED size of the actual selected library (never a hardcoded
-# guess — sizes differ per release and per arch; 2.0.0-dev thin arm64 dylib
+# guess — sizes differ per release and per arch; 2.0.0 thin arm64 dylib
 # is ~66MB unstripped, 52.4MB stripped)
 if [[ -f "$DUCKDB_LIB_DIR/$DUCKDB_LIB" ]]; then
     echo "📏 Measured library size: $(du -h "$DUCKDB_LIB_DIR/$DUCKDB_LIB" | awk '{print $1}') ($DUCKDB_LIB)"

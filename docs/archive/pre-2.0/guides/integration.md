@@ -12,15 +12,15 @@ Update your `Cargo.toml` to use frozen-duckdb (the crate version mirrors the bun
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0-dev"   # bundles DuckDB 2.0.0-dev
+frozen-duckdb = "2.0.0"   # bundles DuckDB 2.0.0
 ```
 
 ### 2. Build
 
 No custom build script and no environment variables are needed. On first build,
 `frozen-duckdb-builder::ensure_binary()` downloads `libduckdb_{arch}.dylib` from this
-repository's GitHub Releases into `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`, normalizes the
-cache (vendored 2.0.0-dev headers under `duckdb/`, a plain `libduckdb.dylib` link name), and
+repository's GitHub Releases into `~/.frozen-duckdb/cache/v2.0.0-{arch}/`, normalizes the
+cache (vendored 2.0.0 headers under `duckdb/`, a plain `libduckdb.dylib` link name), and
 `frozen-duckdb`'s build script emits the runtime `@rpath` so your binaries and tests run
 without any `DYLD_*` configuration:
 
@@ -140,7 +140,7 @@ jobs:
     strategy:
       matrix:
         # Prebuilt release assets are macOS-only; on Linux the builder
-        # falls back to a local DuckDB compile pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag)
+        # falls back to a local DuckDB compile pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag)
         os: [macos-latest, ubuntu-latest]
         rust: [stable]
 
@@ -186,7 +186,7 @@ test:
 
 Prebuilt release assets are currently macOS-only (universal arm64 + x86_64 dylibs), so a
 Linux container cannot use them directly — inside a Linux container the builder uses the
-local-compile fallback (cloning upstream DuckDB at the pinned upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag)), which is slow
+local-compile fallback (cloning upstream DuckDB at the pinned upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag)), which is slow
 but functional:
 
 ```dockerfile
@@ -197,7 +197,7 @@ FROM rust:latest as builder
 WORKDIR /app
 COPY . .
 
-# The builder compiles DuckDB locally (pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag))
+# The builder compiles DuckDB locally (pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag))
 # because no Linux prebuilt asset exists yet
 RUN cargo build --release
 
@@ -220,7 +220,7 @@ dylib once and every subsequent build reuses it:
 #!/bin/bash
 # setup_dev.sh
 cargo build
-echo "✅ Ready — dylib cached in ~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/"
+echo "✅ Ready — dylib cached in ~/.frozen-duckdb/cache/v2.0.0-{arch}/"
 ```
 
 ### VS Code Integration
@@ -238,7 +238,7 @@ itself and runtime loading goes through the emitted `@rpath` (no `DYLD_*` variab
 ### Step-by-Step Migration
 
 1. **Backup current setup** (optional but recommended)
-2. **Swap the dependency** (`duckdb = "1.10505.0"` → `frozen-duckdb = "2.0.0-dev"`)
+2. **Swap the dependency** (`duckdb = "1.10505.0"` → `frozen-duckdb = "2.0.0"`)
 3. **Remove any custom build script / env setup** (not needed with frozen-duckdb)
 4. **Test build** (verify faster builds)
 5. **Update documentation** (mention performance improvements)
@@ -250,7 +250,7 @@ crate (`frozen_duckdb::`) and the upstream crate (`duckdb::`) are separate types
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0-dev"
+frozen-duckdb = "2.0.0"
 duckdb = "1.10505.0"   # remove once migration completes
 ```
 
@@ -265,7 +265,7 @@ duckdb = "1.10505.0"   # remove once migration completes
 **Solution:**
 ```bash
 # Check whether a release asset is reachable
-ls -la ~/.frozen-duckdb/cache/v2.0.0-dev-*/
+ls -la ~/.frozen-duckdb/cache/v2.0.0-*/
 
 # If the cache is empty, the builder downloads libduckdb_{arch}.dylib from
 # GitHub Releases; it falls back to a local compile pinned at upstream
@@ -283,17 +283,17 @@ cargo clean && cargo build
 find ~/.frozen-duckdb/cache -name 'libduckdb*'
 
 # Verify the universal binary for your platform
-lipo -info ~/.frozen-duckdb/cache/v2.0.0-dev-*/libduckdb_*.dylib
+lipo -info ~/.frozen-duckdb/cache/v2.0.0-*/libduckdb_*.dylib
 ```
 
 #### 3. Architecture Mismatch
 
-The builder detects the architecture via `uname -m` and each 2.0.0-dev asset is a universal
+The builder detects the architecture via `uname -m` and each 2.0.0 asset is a universal
 binary (arm64 + x86_64), so a mismatch cannot strand you on macOS. Verify with:
 
 ```bash
 uname -m
-lipo -info ~/.frozen-duckdb/cache/v2.0.0-dev-*/libduckdb_*.dylib
+lipo -info ~/.frozen-duckdb/cache/v2.0.0-*/libduckdb_*.dylib
 ```
 
 #### 4. Runtime Crashes: "Library not loaded"
@@ -322,7 +322,7 @@ otool -L target/debug/your-binary
 otool -l target/debug/your-binary | grep -A2 LC_RPATH
 
 # Check the cache layout (headers under duckdb/, plain libduckdb.dylib link name)
-ls -la ~/.frozen-duckdb/cache/v2.0.0-dev-*/
+ls -la ~/.frozen-duckdb/cache/v2.0.0-*/
 ```
 
 ## Performance Validation
@@ -395,7 +395,7 @@ mod integration_tests {
 
 - **No setup script needed** — the builder acquires the binary inside the cargo build
 - **No environment variables** — runtime loading goes through the emitted `@rpath`
-- **Trust the cache** — `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/` is reused across projects
+- **Trust the cache** — `~/.frozen-duckdb/cache/v2.0.0-{arch}/` is reused across projects
 - **CI/CD needs no setup step** either
 
 ### 2. Build Configuration
@@ -410,7 +410,7 @@ mod integration_tests {
 - **No environment setup**: Configure nothing before `cargo build`
 - **Cached binaries**: The builder reuses the cache within a runner; prime it once for large fleets
 - **Parallel builds**: Take advantage of faster build times
-- **Platform awareness**: Prebuilt assets are macOS-only; Linux/Windows use the local-compile fallback (pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag))
+- **Platform awareness**: Prebuilt assets are macOS-only; Linux/Windows use the local-compile fallback (pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag))
 
 ### 4. Team Collaboration
 
@@ -429,7 +429,7 @@ mod integration_tests {
 members = ["project1", "project2", "shared"]
 
 [workspace.dependencies]
-frozen-duckdb = "2.0.0-dev"
+frozen-duckdb = "2.0.0"
 ```
 
 No workspace-level build script is needed — every member that depends on
@@ -444,7 +444,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     cargo build
 else
     # Linux/Windows: builder falls back to a local DuckDB compile
-    # pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag) (slow but functional)
+    # pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag) (slow but functional)
     cargo build
 fi
 ```
@@ -456,7 +456,7 @@ apply in development and production:
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.0-dev"
+frozen-duckdb = "2.0.0"
 ```
 
 ## Performance Monitoring
@@ -504,8 +504,8 @@ fn check_integration_health() -> Result<(), Box<dyn std::error::Error>> {
 Integrating Frozen DuckDB into your Rust project is **straightforward** and delivers **immediate performance benefits**. Swap the dependency and build — no code changes beyond the import, no build script, and no environment setup — while retaining **complete compatibility** with existing `duckdb-rs` usage.
 
 **Key Integration Points:**
-- **Dependency**: `frozen-duckdb = "2.0.0-dev"` (crate version mirrors bundled DuckDB 2.0.0-dev)
-- **Binary acquisition**: automatic — GitHub Release download, cached in `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/`, normalized with vendored 2.0.0-dev headers
+- **Dependency**: `frozen-duckdb = "2.0.0"` (crate version mirrors bundled DuckDB 2.0.0)
+- **Binary acquisition**: automatic — GitHub Release download, cached in `~/.frozen-duckdb/cache/v2.0.0-{arch}/`, normalized with vendored 2.0.0 headers
 - **Runtime**: emitted `@rpath` — no `DYLD_*` variables for binaries, tests, or examples
 - **CI/CD**: no setup steps needed
 

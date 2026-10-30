@@ -1,6 +1,6 @@
 # Warehouse-Sim Testbed — Design
 
-Part of the frozen-duckdb v2.0.0-dev campaign. Source of truth:
+Part of the frozen-duckdb v2.0.0 campaign. Source of truth:
 `warehouse-sim/schema/warehouse_sim.ttl`. Companion docs:
 `docs/design/economic-model.md` (two-arm measurement harness),
 `warehouse-sim/README.md`.

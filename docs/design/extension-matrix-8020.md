@@ -33,7 +33,7 @@ network stack.
 
 Operator claim: DuckDB 2.0 has native non-ICU timezone support, which would let
 `icu` drop out of the core set. Status: **UNVERIFIED-UPSTREAM-CLAIM**. The
-vendored headers are pinned at `b6013f7` reporting `2.0.0-dev`
+vendored headers are pinned at `b6013f7` reporting `2.0.0`
 (`crates/frozen-duckdb-builder/vendored-headers/`), but no receipt in this
 repo demonstrates native timezone coverage equivalent to `icu` (DST rules,
 named-zone lookup) without the extension. Until a falsifier runs — a build

@@ -60,7 +60,7 @@
     },
     "schema_ttl": "02046eb0c688a72c8f206683d5ce2fda5079f8084cc1268b4f09501cb168a8a9"
   },
-  "operator_pin": "b6013f7aa2f36caabb9466ce1791667ea8a280bb",
+  "operator_pin": "d54cbbe3df17e8e5ce68312f483b4155836112aa",
   "receipt": "warehouse-sim/g6-courts/v1",
   "validations": {
     "rdflib_rc": 0,

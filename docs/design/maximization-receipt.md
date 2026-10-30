@@ -1,8 +1,8 @@
 # Maximization-Spec Closure Receipt (MAX wave)
 
 Date: 2026-10-19. Lane MAX10 (consolidate). Window:
-`docs/sjira/v2.0.0-dev/`. Every claim below cites a receipt file on disk
-under `docs/sjira/v2.0.0-dev/receipts/` or a command run in this lane with
+`docs/sjira/v2.0.0/`. Every claim below cites a receipt file on disk
+under `docs/sjira/v2.0.0/receipts/` or a command run in this lane with
 its real output. Lanes without a receipt file (MAX2, MAX5, SP5, REL4r,
 REL6r) are listed under In-Flight, never cited as landed.
 
@@ -10,11 +10,11 @@ REL6r) are listed under In-Flight, never cited as landed.
 
 | boundary | nearest landed court | receipt path | standing + evidence |
 |---|---|---|---|
-| Zero-Poison | CacheAdmission typed-verdict poison exit court — 4 scenarios, each asserting process exit 1 + typed stderr (silent zero-exit on poison = court failure) | `docs/sjira/v2.0.0-dev/receipts/MAX1-poison-exit.md` | PASS: 46 lib + 1 court (4 scenarios) + 12 profile builder tests green |
+| Zero-Poison | CacheAdmission typed-verdict poison exit court — 4 scenarios, each asserting process exit 1 + typed stderr (silent zero-exit on poison = court failure) | `docs/sjira/v2.0.0/receipts/MAX1-poison-exit.md` | PASS: 46 lib + 1 court (4 scenarios) + 12 profile builder tests green |
 | Zero-Poison (stale-state leg) | STALE_PRECONDITION_REFUSED two-phase guard (analysis-time hash vs execution-time re-observed hash; mismatch aborts pre-execution) | `crates/frozen-duckdb/tests/precondition_guard.rs` (MAX5 receipt pending, in-flight) | 5 passed / 0 failed this lane, command in §2 |
-| Zero-Alloc | Memory-ceiling probe family (memory_limit=256MB, probe toward ~2GB nominal, typed OutOfMemory never crash); spec `docs/design/gate-v03-memory-ceiling.md` grounded in AC-3 / PRD-FR-05 | `docs/sjira/v2.0.0-dev/receipts/COURT-INDEX.md` rows `rev004.json` (OBSERVED, memory_limit=256MB), `fleet002_proxy.json` (latency MET, RSS WITHIN-BUDGET, proxy ceiling), `gate_v01_receipt.json` (p95 10.5088ms < 15ms) | PARTIAL_ALIVE — native legs receipted; wasm 256MB linear-memory leg is a separate future leg per the gate-v03 spec |
-| Zero-Leak | Package leak scan: per-crate ship-list + content sweep for `/Users/sac`, `/tmp/`, `target/`, `.env`, `secret`, lane fixture paths; all 3 crates clean, largest `.crate` 81 KB (limit 10 MB) | `docs/sjira/v2.0.0-dev/receipts/PB6-leakscan.md` | PASS (leak scan clean on all 3 crates) |
-| Zero-Drift | Generated-surface gate: `make gates` (ggen sync + genesis-check) + SP2 ABI-receipt baseline identity | run in this lane + `docs/sjira/v2.0.0-dev/receipts/SP2-abi-receipt.md` | `genesis-check: checked=58 deferred=0 gaps=16 failed=0` / `GATES GREEN: sync exit 0 + genesis-check exit 0` (exit 0, this lane); SP2 subject sha256 identical to BASELINE |
+| Zero-Alloc | Memory-ceiling probe family (memory_limit=256MB, probe toward ~2GB nominal, typed OutOfMemory never crash); spec `docs/design/gate-v03-memory-ceiling.md` grounded in AC-3 / PRD-FR-05 | `docs/sjira/v2.0.0/receipts/COURT-INDEX.md` rows `rev004.json` (OBSERVED, memory_limit=256MB), `fleet002_proxy.json` (latency MET, RSS WITHIN-BUDGET, proxy ceiling), `gate_v01_receipt.json` (p95 10.5088ms < 15ms) | PARTIAL_ALIVE — native legs receipted; wasm 256MB linear-memory leg is a separate future leg per the gate-v03 spec |
+| Zero-Leak | Package leak scan: per-crate ship-list + content sweep for `/Users/sac`, `/tmp/`, `target/`, `.env`, `secret`, lane fixture paths; all 3 crates clean, largest `.crate` 81 KB (limit 10 MB) | `docs/sjira/v2.0.0/receipts/PB6-leakscan.md` | PASS (leak scan clean on all 3 crates) |
+| Zero-Drift | Generated-surface gate: `make gates` (ggen sync + genesis-check) + SP2 ABI-receipt baseline identity | run in this lane + `docs/sjira/v2.0.0/receipts/SP2-abi-receipt.md` | `genesis-check: checked=58 deferred=0 gaps=16 failed=0` / `GATES GREEN: sync exit 0 + genesis-check exit 0` (exit 0, this lane); SP2 subject sha256 identical to BASELINE |
 
 ## 2. Net-New Implementations (this wave)
 
@@ -52,7 +52,7 @@ distribution candidate, with the full-spec path honestly closed at this pin:
   link exit 0 (em++; emcc attempt failed on C++ exception symbols — recorded).
 - `X3-kd05-close.md`: raw 25,886,446 <= 26,214,400 PASS; gzip -9 wire
   6,294,562 B = 6.00 MiB <= 9.5 MiB PASS (3.5 MiB headroom); node
-  instantiation re-witness, `v2.0.0-dev88595`.
+  instantiation re-witness, `v2.0.0`.
 - `MAX6-wasm-spec-flags.md`: operator exact flag set, full extensions
   (json;parquet) — raw 29,242,868 B = **27.89 MiB** vs 25 MiB gate: FAIL
   (+7.7%). Standing BLOCKED (size SLA FAIL), build/link/smoke PASS.

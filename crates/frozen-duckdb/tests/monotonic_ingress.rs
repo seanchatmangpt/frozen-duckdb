@@ -1,7 +1,7 @@
 //! First-Mile monotonic ingress gate — court (lane MAX8)
 //!
 //! NON-VACUITY RECEIPT (real runs, temp in-memory db, frozen DuckDB engine
-//! v2.0.0-dev; see `monotonic_ingress_gate` / `shim_court_gate_is_load_bearing`
+//! v2.0.0; see `monotonic_ingress_gate` / `shim_court_gate_is_load_bearing`
 //! for the live receipts):
 //!   BEFORE  : in-order frames accepted (real INSERTs, exit clean).
 //!   SHIM    : code-path mutation `enforce_gate=false` — the ingestion path

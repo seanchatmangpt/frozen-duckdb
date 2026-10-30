@@ -68,8 +68,8 @@ construction. The probe must be materializing (CTAS / ORDER BY
   arm64; subject: `frozen-duckdb` HEAD
   `e4cfbd38f9efe55dde549c67d558da9769584fa0`, tree
   `8c6d4aff4d4ef1257186542581750f0b80e6bb6c`; engine: prebuilt
-  `v2.0.0-dev-arm64` dylib
-  (`~/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib`).
+  `v2.0.0-arm64` dylib
+  (`~/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb_arm64.dylib`).
 - Rig: `/tmp/r7gate` (scratch cargo bin, path-dep on
   `crates/frozen-duckdb`; probe source sha256
   `b714e729ba8be48977bb7890ff3c0610319cd101939b5c6694d5c2b009f0eac7`).
@@ -131,7 +131,7 @@ needed a manual `cp` of the prebuilt dylib, see below).
 Exact replay (scratch form, verified working this session):
 
 ```
-cp ~/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib \
+cp ~/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb_arm64.dylib \
    <target_dir>/libduckdb.dylib
 cargo run  # rig: /tmp/r7gate, sha256 b714e729...9f0eac7
 ```

@@ -20,7 +20,7 @@
 #      with VERSION patched to a nonexistent version must FAIL to serve any
 #      binary (404 -> fallback failure -> build error, no .so in cache).
 #
-# Receipt: docs/sjira/v2.0.0-dev/receipts/DG4-download-court.md is written by
+# Receipt: docs/sjira/v2.0.0/receipts/DG4-download-court.md is written by
 # the lane from this script's real output; this script also writes
 # /tmp/dg4-receipt-<ts>.json + .log.
 #
@@ -31,13 +31,13 @@ REPO="${CLEANROOM_REPO:-/Users/sac/frozen-duckdb}"
 OWNER_REPO="seanchatmangpt/frozen-duckdb"
 # DG4_TAG: release tag under which assets are published (asset URLs).
 # DG4_BUILDER_VERSION: the builder's VERSION pin the download URL is keyed
-# from. The repo's builder pins "2.0.0-dev"; when the live release tag is a
-# dev-suffix (e.g. v2.0.0-dev.2), the real leg runs against a SCRATCH COPY of
+# from. The repo's builder pins "2.0.0"; when the live release tag is a
+# dev-suffix (e.g. v2.0.0), the real leg runs against a SCRATCH COPY of
 # the repo whose builder VERSION is sed-aligned to DG4_BUILDER_VERSION —
 # the only delta; the download->verify->pin->marker machinery is untouched.
 # Disclosed in the receipt whenever != the repo pin.
-TAG="${DG4_TAG:-v2.0.0-dev}"
-BUILDER_VERSION="${DG4_BUILDER_VERSION:-2.0.0-dev}"
+TAG="${DG4_TAG:-v2.0.0}"
+BUILDER_VERSION="${DG4_BUILDER_VERSION:-2.0.0}"
 ASSET_LINUX="libduckdb_arm64.so"
 ASSET_MAC="libduckdb_arm64.dylib"
 BASE_URL="https://github.com/${OWNER_REPO}/releases/download/${TAG}"
@@ -66,8 +66,8 @@ json.dump({
     "reason": reason,
     "exit_code": int(exit_code),
     "repo": "/Users/sac/frozen-duckdb",
-    "tag": __import__("os").environ.get("DG4_TAG", "v2.0.0-dev"),
-    "builder_version": __import__("os").environ.get("DG4_BUILDER_VERSION", "2.0.0-dev"),
+    "tag": __import__("os").environ.get("DG4_TAG", "v2.0.0"),
+    "builder_version": __import__("os").environ.get("DG4_BUILDER_VERSION", "2.0.0"),
     "asset_linux": "libduckdb_arm64.so",
     "asset_mac": "libduckdb_arm64.dylib",
     "evidence": evidence,
@@ -120,14 +120,14 @@ SCRATCH="$(mktemp -d "$SCRATCH_ROOT/dg4-court-XXXXXX")"
 note "EVID scratch ${SCRATCH}"
 W=/work
 mkdir -p "$SCRATCH/home/.frozen-duckdb"   # parent only; cache/ left ABSENT
-# Dev-suffix release: the repo's builder pins "2.0.0-dev", so the download
+# Dev-suffix release: the repo's builder pins "2.0.0", so the download
 # URL it constructs must be aligned to the published tag. Done CONTAINER-SIDE
 # as a SELECTIVE copy (root manifests + crates/ + test-validation/Cargo.toml
 # — the full path-dep closure, NOT target/ etc.) with ONLY the builder
 # VERSION sed-aligned; sole delta, disclosed in evidence. REPO_COPY=1 is
 # passed into the container; consumer Cargo.toml is repointed there.
 REPO_COPY=0
-[ "$BUILDER_VERSION" != "2.0.0-dev" ] && REPO_COPY=1
+[ "$BUILDER_VERSION" != "2.0.0" ] && REPO_COPY=1
 note "EVID builder-version ${BUILDER_VERSION} repo_copy=${REPO_COPY}"
 
 cat >"$SCRATCH/consumer-Cargo.toml" <<EOF
@@ -157,7 +157,7 @@ fn main() {
         .query_row("SELECT 42", [], |row| row.get(0))
         .expect("SELECT 42");
     println!("DUCKDB_VERSION={} FORTY_TWO={}", version, forty_two);
-    assert!(version.starts_with("v2.0.0-dev"), "unexpected version: {}", version);
+    assert!(version.starts_with("v2.0.0"), "unexpected version: {}", version);
     assert_eq!(forty_two, 42);
 }
 EOF
@@ -188,7 +188,7 @@ docker run --rm \
       cp /repo/Cargo.toml /repo/Cargo.lock /work/repo-copy/
       cp -r /repo/crates /work/repo-copy/crates
       cp -r /repo/test-validation /work/repo-copy/test-validation
-      sed -i "s/const VERSION: \&str = \"2.0.0-dev\";/const VERSION: \&str = \"${BUILDER_VERSION}\";/" \
+      sed -i "s/const VERSION: \&str = \"2.0.0\";/const VERSION: \&str = \"${BUILDER_VERSION}\";/" \
         /work/repo-copy/crates/frozen-duckdb-builder/src/lib.rs
       grep -n "const VERSION" /work/repo-copy/crates/frozen-duckdb-builder/src/lib.rs
       CONSUMER_PATH="/work/repo-copy/crates/frozen-duckdb"
@@ -228,7 +228,7 @@ fi
 RUN_LINE="$(grep '^DUCKDB_VERSION=' "$SCRATCH/run.log" || true)"
 note "EVID run-output ${RUN_LINE:-<missing>}"
 echo "$RUN_LINE" | grep -q "FORTY_TWO=42" || finish "FAIL" "SELECT 42 wrong: $RUN_LINE" 1
-echo "$RUN_LINE" | grep -q "DUCKDB_VERSION=v2.0.0-dev" || finish "FAIL" "version mismatch: $RUN_LINE" 1
+echo "$RUN_LINE" | grep -q "DUCKDB_VERSION=v2.0.0" || finish "FAIL" "version mismatch: $RUN_LINE" 1
 
 SO="$(find "$SCRATCH/home/.frozen-duckdb" -name 'libduckdb_*.so' -type f | head -1)"
 [ -n "$SO" ] || finish "FAIL" "no libduckdb_*.so staged in scratch cache" 1

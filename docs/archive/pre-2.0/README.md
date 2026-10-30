@@ -10,6 +10,6 @@ Current consumer docs:
 - [QUICKSTART.md](../../../QUICKSTART.md)
 - [MIGRATION_GUIDE.md](../../../MIGRATION_GUIDE.md)
 
-The v2.0.0-dev campaign receipts stay at `docs/sjira/v2.0.0-dev/`.
+The v2.0.0 campaign receipts stay at `docs/sjira/v2.0.0/`.
 They are historical evidence for the engine pin, not install instructions.
 The blueprint index is `docs/design/README.md`.

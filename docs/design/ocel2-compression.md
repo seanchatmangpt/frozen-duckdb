@@ -10,7 +10,7 @@ storage reduction vs naive per-event rows, with lossless on-demand
 rehydration of a standards-compliant OCEL 2.0 event stream via DuckDB SQL
 window functions.
 
-All DuckDB SQL in this document is UNVERIFIED against the 1.5.5 / 2.0.0-dev
+All DuckDB SQL in this document is UNVERIFIED against the 1.5.5 / 2.0.0
 engine until actually executed in this repo. Syntax is written to the
 documented dialect but carries no ALIVE standing until a receipt exists.
 

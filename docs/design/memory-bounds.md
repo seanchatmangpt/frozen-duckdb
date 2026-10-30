@@ -15,9 +15,9 @@ UNVERIFIED until the CDP RSS-polling court runs.
 - Key-name note: DuckDB's canonical knob is `memory_limit` — the
   string `memory_limit` and the hint "* Increasing the memory limit
   (SET memory_limit='...GB')" are both present in `strings` over
-  `~/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb.dylib`
+  `~/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb.dylib`
   (extracted 2026-10-19). Upstream, `max_memory` and `memory_limit`
-  are aliases; whether the v2.0.0-dev runtime accepts the
+  are aliases; whether the v2.0.0 runtime accepts the
   `max_memory` spelling is UNVERIFIED. Safe form until probed:
   `Config::with("memory_limit", "256MB")`.
 - `threads = 1` (`Config::with("threads", "1")`) is planned as part

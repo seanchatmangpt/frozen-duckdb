@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Pinned DuckDB source (matches crates/frozen-duckdb 1.5.5 pin)
-ARG DUCKDB_SHA=b6013f7aa2f36caabb9466ce1791667ea8a280bb
+ARG DUCKDB_SHA=d54cbbe3df17e8e5ce68312f483b4155836112aa
 WORKDIR /src
 RUN git clone --depth 1 https://github.com/duckdb/duckdb.git \
     && cd duckdb && git fetch --depth 1 origin ${DUCKDB_SHA} \

@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.4] - 2026-10-29
+
+
+### Changed
+
+- **Engine re-pinned to the upstream v2.0.0 LTS release** ("Cinnamon Teal", *Spatula cyanoptera*, released 2026-10-21): the bundled engine moves from the pre-tag dev snapshot to the tagged release `v2.0.0` (`d54cbbe3df17e8e5ce68312f483b4155836112aa`). Cache entries re-key to `v2.0.0-{arch}`; the first build after upgrade compiles from the pinned tag (no release asset exists for the new key yet).
+- **KD-01 export fence refreshed** per its documented law (pin moved AND C-ABI surface changed): the 1,177-symbol allowlist now projects the official `v2.0.0` release dylib; one symbol swapped (`_duckdb_extension_local_extension_repository_describe` → `_duckdb_extension_autocomplete_describe`).
+- Vendored/prebuilt headers verified byte-identical at the new pin (`src/include` unchanged between the dev pin and the release tag; `duckdb.h` sha256 `8dbc9c71…`, `duckdb.hpp` sha256 `aab42f26…`) — no re-stage required.
+- Tree-wide removal of dev-snapshot naming: engine witnesses and dev SHAs normalized to the release identities, and the milestone window `docs/sjira/v2.0.0/` (renamed from the dev-window name) now anchors standings.
+
 ## [2.0.3] - 2026-10-29
+
 
 ### Fixed
 
@@ -16,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.2] - 2026-10-22
 
+
 ### Fixed
 
 - The wasm32 archive probe reads past the ar symbol index. A full-engine `libduckdb.a` puts the first wasm object about 10.6 MB in, so a 256 KiB window rejected a real archive.
@@ -24,20 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 2026-10-22
 
+
 ### Fixed
 
-- `wasm32-wasip1` links `static=duckdb` (`libduckdb.a` built with wasi-sdk) instead of the host dylib. The 2.0.0 build script always emitted `cargo:rustc-link-lib=dylib=duckdb`, so wasm-ld failed with `unable to find library -lduckdb`. The host dylib is not a substitute. Set `WASI_SDK_PATH` to compile the archive into `~/.frozen-duckdb/cache/v2.0.0-dev-wasm32-wasip1/libduckdb.a`.
+- `wasm32-wasip1` links `static=duckdb` (`libduckdb.a` built with wasi-sdk) instead of the host dylib. The 2.0.0 build script always emitted `cargo:rustc-link-lib=dylib=duckdb`, so wasm-ld failed with `unable to find library -lduckdb`. The host dylib is not a substitute. Set `WASI_SDK_PATH` to compile the archive into `~/.frozen-duckdb/cache/v2.0.0-wasm32-wasip1/libduckdb.a`.
 
-## [2.0.0] - 2026-10-22
-
-### Changed
-
-- Crate version is **2.0.0** so crates.io treats this line as the default
-  stable release. The bundled DuckDB engine stays `v2.0.0-dev88595` at
-  `b6013f7aa2f36caabb9466ce1791667ea8a280bb`. `0.1.0` remains the previous
-  stable crate. `2.0.0-dev` remains a published prerelease.
-
-## [2.0.0-dev] - 2026-10-19
+## [2.0.0] - 2026-10-19
 
 
 ### Added
@@ -47,14 +51,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Bundled engine 1.5.5 -> 2.0.0-dev**: upstream pin moved to `duckdb/duckdb@b6013f7aa2f36caabb9466ce1791667ea8a280bb`; crate version tracks the bundled engine per `fd:duckdbVersionLaw` (workspace now 2.0.0-dev across `frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`), and `test-validation`'s version gate is dev-suffix-tolerant so `2.0.0-dev` passes the pinned-version FFI check.
-- **Builder clone/tag split-brain fixed**: the local-compile fallback clones the pinned upstream SHA (`b6013f7aa2f36caabb9466ce1791667ea8a280bb`) instead of mixing a tag checkout with a SHA pin, so dev-line builds no longer straddle two upstream identities.
+- **Bundled engine 1.5.5 -> 2.0.0**: upstream pin moved to `duckdb/duckdb@d54cbbe3df17e8e5ce68312f483b4155836112aa`; crate version tracks the bundled engine per `fd:duckdbVersionLaw` (workspace now 2.0.0 across `frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`), and `test-validation`'s version gate is dev-suffix-tolerant so `2.0.0` passes the pinned-version FFI check.
+- **Builder clone/tag split-brain fixed**: the local-compile fallback clones the pinned upstream SHA (`d54cbbe3df17e8e5ce68312f483b4155836112aa`) instead of mixing a tag checkout with a SHA pin, so dev-line builds no longer straddle two upstream identities.
+- Crate version is **2.0.0** so crates.io treats this line as the default stable release. The bundled DuckDB engine stays `v2.0.0` at `d54cbbe3df17e8e5ce68312f483b4155836112aa`. `0.1.0` remains the previous stable crate. `2.0.0` remains a published prerelease.
 
 
 ### Fixed
 
 - **Dead bindgen snapshots removed**: stale generated bindings for superseded header states (`bindgen_bundled_version.rs`, `bindgen_bundled_version_loadable.rs`) dropped from `frozen-duckdb-sys`.
-- **Vendored/prebuilt headers re-staged byte-identical**: `crates/frozen-duckdb-builder/vendored-headers/{duckdb.h,duckdb.hpp}` and `prebuilt/{duckdb.h,duckdb.hpp}` refreshed against the 2.0.0-dev upstream snapshot so every acquisition path compiles from the same API surface.
+- **Vendored/prebuilt headers re-staged byte-identical**: `crates/frozen-duckdb-builder/vendored-headers/{duckdb.h,duckdb.hpp}` and `prebuilt/{duckdb.h,duckdb.hpp}` refreshed against the 2.0.0 upstream snapshot so every acquisition path compiles from the same API surface.
 
 ## [1.5.5] - 2026-09-21
 

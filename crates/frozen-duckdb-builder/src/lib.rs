@@ -8,6 +8,7 @@
 pub mod profile;
 
 use anyhow::{Context, Result};
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::io::Read as _;
@@ -16,7 +17,7 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
-pub const VERSION: &str = "2.0.0-dev";
+pub const VERSION: &str = "2.0.0";
 
 /// How `frozen-duckdb-sys` must link the engine for a Cargo target triple.
 ///
@@ -64,9 +65,10 @@ pub fn archive_is_wasm32(bytes: &[u8]) -> bool {
         && !has(b"\x7fELF")
 }
 
-/// Pinned upstream duckdb/duckdb main commit this dev build stages/compiles
-/// from (dev heads move — load-bearing pin).
-const SOURCE_PIN: &str = "b6013f7aa2f36caabb9466ce1791667ea8a280bb";
+/// Pinned upstream duckdb/duckdb release commit this build stages/compiles
+/// from (the `v2.0.0` LTS tag, codename "Cinnamon Teal" / *Spatula
+/// cyanoptera*; released 2026-10-21).
+const SOURCE_PIN: &str = "d54cbbe3df17e8e5ce68312f483b4155836112aa";
 const CACHE_DIR: &str = ".frozen-duckdb";
 const BINARY_NAME: &str = "libduckdb";
 
@@ -122,7 +124,7 @@ fn library_extension() -> &'static str {
 /// at all — probed via the GitHub API and an anonymous asset-URL request
 /// (HTTP 404) — so download attempts return HTTP 404 on EVERY platform and
 /// `ensure_binary` falls back to `compile_duckdb_locally`, which is the
-/// operative path today. The v2.0.0-dev workflow is planned to ship the macOS
+/// operative path today. The v2.0.0 workflow is planned to ship the macOS
 /// asset set first; the Linux asset set lands with a later tag (TR2
 /// coordinates the workflow side).
 fn release_asset_name_for(os: &str, arch: &str) -> String {
@@ -1651,7 +1653,7 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
 
     // Dev builds clone the default branch, then check out the load-bearing
     // SOURCE_PIN commit. Nothing here is derived from VERSION (which is
-    // "2.0.0-dev"); the release-download path stays keyed to VERSION.
+    // "2.0.0"); the release-download path stays keyed to VERSION.
     let clone_out = Command::new("git")
         .args(["clone", "https://github.com/duckdb/duckdb.git"])
         .arg(&duckdb_dir)
@@ -1694,12 +1696,16 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
     // target a specific macOS arch (or arch list) instead of the host
     // default. The flag is only meaningful for Apple targets; cmake ignores
     // it elsewhere.
-    // CMake extension law for DuckDB v1.5.x, verified by the wave-3 release
-    // rehearsal (ticket TR2): BUILD_EXTENSIONS is an extension-NAME list, not a
-    // boolean — "-DBUILD_EXTENSIONS=ON" makes cmake try to load a literal "ON"
-    // extension and configure fails. visualizer/tpce are out-of-tree in 1.5.x;
-    // excel needs minizip-ng on the build host. Static in-tree set proven to
-    // configure + build:
+    // CMake extension law for DuckDB v2.0.0: BUILD_EXTENSIONS names
+    // extensions to BUILD (loadable by default); the statically-linked set
+    // (core_functions, icu, json, parquet — with their generated
+    // `_duckdb_extension_<name>_describe` definitions) comes from each
+    // extension's own default `duckdb_extension_statically_link` config, NOT
+    // from LINK_CORE_EXTENSIONS (turning that on at this tag drops the
+    // describe objects from the archives and the dylib link fails on
+    // undefined describes — witnessed 2026-10-29, build log in
+    // docs/sjira/v2.0.4/). Keep the v1.5-era BUILD_EXTENSIONS list: it works
+    // under the targeted `cmake --build` invocation below.
     let mut configure = Command::new("cmake");
     configure
         .args([
@@ -1729,15 +1735,23 @@ fn compile_duckdb_locally(cache_dir: &Path, arch: &str) -> Result<PathBuf> {
         );
     }
 
-    // Build with all available cores (use 4 as default)
-    let make_out = Command::new("make")
-        .args(["-j4"])
+    // Build the shared `duckdb` target explicitly. DuckDB v2.0.0's default
+    // `make` target (all) builds the loadable-extension variants alongside
+    // the static ones; during that run the static extension archives
+    // (libjson_extension.a etc.) were re-archived WITHOUT their generated
+    // `_duckdb_extension_<name>_describe` objects and the libduckdb.dylib
+    // link then failed on undefined describes. A targeted build of `duckdb`
+    // (+ deps) archives the describes and links cleanly — witnessed
+    // 2026-10-29 (probe: cmake --build --target duckdb exit 0; make all:
+    // describe-free archives, link exit 1).
+    let make_out = Command::new("cmake")
+        .args(["--build", ".", "--target", "duckdb", "--parallel", "4"])
         .current_dir(&build_dir)
         .output()
         .context("Failed to build DuckDB")?;
     if !make_out.status.success() {
         anyhow::bail!(
-            "DuckDB make failed (exit {:?}):\n{}",
+            "DuckDB build failed (exit {:?}):\n{}",
             make_out.status.code(),
             String::from_utf8_lossy(&make_out.stderr)
         );
@@ -1869,29 +1883,94 @@ fn find_static_archive(dylib_path: &Path) -> Option<PathBuf> {
     None
 }
 
-/// Architectures present in a static archive, via `lipo -archs` (falls back
-/// to the host arch when `lipo` cannot read the file). Preserves the
-/// TR7 cross-arch local-compile law: the relinked dylib must match the
-/// architecture the cmake build produced.
-fn static_archive_archs(archive: &Path) -> Result<Vec<String>> {
-    let out = Command::new("lipo").args(["-archs"]).arg(archive).output();
-    if let Ok(out) = out {
-        if out.status.success() {
-            let text = String::from_utf8_lossy(&out.stdout);
-            let archs: Vec<String> = text.split_whitespace().map(String::from).collect();
-            if !archs.is_empty() {
-                return Ok(archs);
+/// Locate the CMake-generated link command for the `duckdb` shared target
+/// (sibling of the core static archive). The v2.0.0 fence relink replays this
+/// exact link with the export fence injected — the CMake link already
+/// resolves the generated `_duckdb_extension_<name>_describe` machinery
+/// (capability + extension archives plus the duckdb-target objects), which a
+/// hand-assembled archive list cannot reconstruct reliably at this tag.
+fn find_duckdb_link_file(static_archive: &Path) -> Option<PathBuf> {
+    let build_src = static_archive.parent()?;
+    let candidate = build_src.join("CMakeFiles/duckdb.dir/link.txt");
+    candidate.exists().then_some(candidate)
+}
+
+/// Compute the effective export list for the fence relink: the KD-01
+/// allowlist ∩ the symbols the relink inputs actually define. ld64 treats
+/// `-exported_symbols_list` entries as required roots, so an allowlist entry
+/// with no definition in the inputs (upstream ships `autocomplete` in the
+/// static set; our local extension config does not) fails the link with
+/// "undefined symbol ... referenced from <initial-undefines>". Intersecting
+/// keeps the allowlist a ceiling without turning it into a requirement; the
+/// post-relink census still enforces zero C++-mangled exports.
+fn effective_export_list(allowlist: &str, inputs: &[String], cwd: &Path) -> Result<String> {
+    let mut defined: HashSet<String> = HashSet::new();
+    for input in inputs {
+        let path = cwd.join(input);
+        if !path.exists() {
+            continue;
+        }
+        let out = Command::new("nm")
+            .args(["--defined-only"])
+            .arg(&path)
+            .output()
+            .with_context(|| format!("nm failed on {}", path.display()))?;
+        if !out.status.success() {
+            continue;
+        }
+        for line in String::from_utf8_lossy(&out.stdout).lines() {
+            if let Some(name) = line.split_whitespace().nth(2) {
+                if name.starts_with("_duckdb_") {
+                    defined.insert(name.to_string());
+                }
             }
         }
     }
-    Ok(vec![host_architecture()?])
+    let effective: Vec<&str> = allowlist
+        .lines()
+        .filter(|l| defined.contains(l.trim()))
+        .collect();
+    Ok(effective.join("\n"))
 }
 
-/// Write the embedded allowlist to a temp file for the linker.
-fn export_fence_list_file(temp_dir: &Path) -> Result<PathBuf> {
-    let path = temp_dir.join("exports.list");
-    fs::write(&path, EXPORT_FENCE_LIST).context("Failed to write export fence list")?;
-    Ok(path)
+/// Patch the CMake link command for the fence relink: redirect the output to
+/// the fenced dylib, stamp the final cache install name, and inject the
+/// `-Wl,-exported_symbols_list` fence. Returns the argv to execute.
+fn patch_link_command(
+    link_file: &Path,
+    list_file: &Path,
+    install_name: &Path,
+    fenced_output: &Path,
+) -> Result<Vec<String>> {
+    let raw = fs::read_to_string(link_file)
+        .with_context(|| format!("Failed to read {}", link_file.display()))?;
+    let mut argv: Vec<String> = raw.split_whitespace().map(String::from).collect();
+    anyhow::ensure!(
+        !argv.is_empty(),
+        "empty link command in {}",
+        link_file.display()
+    );
+    // Drop the original output flag pair and re-emit ours, so the fence never
+    // overwrites the CMake-built dylib in place. Also drop the original
+    // -install_name pair — the linker takes the last one, so ours must be the
+    // only one.
+    for flag in ["-o", "-install_name"] {
+        if let Some(pos) = argv.iter().position(|a| a == flag) {
+            let end = (pos + 2).min(argv.len());
+            argv.drain(pos..end);
+        }
+    }
+    // Inject fence flags right after the compiler program name.
+    let inject = vec![
+        "-o".to_string(),
+        fenced_output.display().to_string(),
+        "-install_name".to_string(),
+        install_name.display().to_string(),
+        "-Wl,-exported_symbols_list".to_string(),
+        list_file.display().to_string(),
+    ];
+    argv.splice(1..1, inject);
+    Ok(argv)
 }
 
 /// KD-01 export fence (macOS only): relink `dylib_path` in place from its
@@ -1899,7 +1978,7 @@ fn export_fence_list_file(temp_dir: &Path) -> Result<PathBuf> {
 /// exports trie carries exactly the 1,177 `_duckdb_*` C-ABI symbols and zero
 /// C++-mangled exports. Darwin has no post-hoc tool for this (`strip -x`
 /// leaves the trie; no objcopy) — hence relink, per KD-01/ADV3 and lane
-/// X1r's recipe (`docs/sjira/v2.0.0-dev/receipts/X1r-kd01-fence.md`).
+/// X1r's recipe (`docs/sjira/v2.0.0/receipts/X1r-kd01-fence.md`).
 ///
 /// - Non-macOS (Linux ELF): typed no-op SKIP — the fence is Mach-O-specific
 ///   and Linux is out of scope (KD-15 scope note).
@@ -1946,29 +2025,49 @@ pub(crate) fn fence_exports_for(dylib_path: &Path, install_name: &Path) -> Resul
 
     let temp_dir = tempfile::tempdir().context("Failed to create fence temp directory")?;
     let temp_path = temp_dir.path();
-    let list_file = export_fence_list_file(temp_path)?;
+    let fenced_output = temp_path.join("libduckdb_fenced.dylib");
 
     let static_archive =
         find_static_archive(dylib_path).expect("static archive existence checked above");
-    let archs = static_archive_archs(&static_archive)?;
-    let fenced_output = temp_path.join("libduckdb_fenced.dylib");
-    let mut relink = Command::new("clang++");
-    relink
-        .arg("-dynamiclib")
-        .args(["-Wl,-exported_symbols_list"])
-        .arg(&list_file)
-        .args(["-install_name"])
-        .arg(install_name)
-        .args(["-o"])
-        .arg(&fenced_output)
-        .arg(&static_archive)
-        .args(["-lc++", "-liconv", "-lz", "-ldl"]);
-    for arch in &archs {
-        relink.arg("-arch").arg(arch);
-    }
-    let relink = relink
-        .output()
-        .context("Failed to run clang++ relink for export fence")?;
+    let link_file = find_duckdb_link_file(&static_archive).with_context(|| {
+        format!(
+            "KD-01 export fence: no CMake link command at {} — cannot relink",
+            static_archive
+                .parent()
+                .map(|p| p.join("CMakeFiles/duckdb.dir/link.txt"))
+                .map(|p| p.display().to_string())
+                .unwrap_or_default()
+        )
+    })?;
+    // Effective export list = KD-01 allowlist ∩ symbols the link inputs
+    // define (see effective_export_list — ld64 roots export-list entries).
+    let relink_dir = link_file
+        .parent()
+        .and_then(|d| d.parent())
+        .and_then(|d| d.parent())
+        .map(|p| p.to_path_buf());
+    let link_cwd = relink_dir
+        .as_deref()
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf();
+    let raw_link = fs::read_to_string(&link_file)
+        .with_context(|| format!("Failed to read {}", link_file.display()))?;
+    let inputs: Vec<String> = raw_link
+        .split_whitespace()
+        .filter(|a| a.ends_with(".a") || a.ends_with(".o"))
+        .map(String::from)
+        .collect();
+    let effective = effective_export_list(EXPORT_FENCE_LIST, &inputs, &link_cwd)?;
+    let list_file = temp_path.join("exports.list");
+    fs::write(&list_file, effective).context("Failed to write effective export fence list")?;
+    let argv = patch_link_command(&link_file, &list_file, install_name, &fenced_output)?;
+    debug!("KD-01 fence relink argv: {argv:?}");
+    // Replay the link from the directory CMake uses (link.txt is
+    // build/src-relative; see the relink_dir computation above).
+    let mut replay = Command::new(&argv[0]);
+    replay.args(&argv[1..]);
+    replay.current_dir(&link_cwd);
+    let relink = replay.output().context("Failed to run fence relink")?;
     anyhow::ensure!(
         relink.status.success(),
         "KD-01 export fence relink failed (exit {:?}):\n{}",
@@ -3130,7 +3229,7 @@ mod tests {
         let expected = expected_engine_marker();
 
         // CRLF: trimmed to the exact pin.
-        fs::write(engine_marker_path(tmp.path()), b"v2.0.0-dev\r\n").unwrap();
+        fs::write(engine_marker_path(tmp.path()), b"v2.0.0\r\n").unwrap();
         assert_eq!(read_engine_marker(tmp.path()).unwrap(), expected);
 
         // Directory: unreadable as a file -> MISS.
@@ -3262,11 +3361,11 @@ mod tests {
                 Decision::Serve,
                 Box::new(|v: &Path| stage_lawful(v, &good)),
             ),
-            // (a) the 13:22 attack: foreign dylib under a v2.0.0-dev label,
+            // (a) the 13:22 attack: foreign dylib under a v2.0.0 label,
             // no AD1-era pins. Pre-siege this SERVED (the demote branch
             // returned Ok(binary_path)); the fix demotes to a real MISS.
             (
-                "(a) v1.5.5 dylib + v2.0.0-dev marker (13:22 attack)",
+                "(a) v1.5.5 dylib + v2.0.0 marker (13:22 attack)",
                 Decision::Refused("poison"),
                 Box::new(|v: &Path| {
                     fs::copy(&good, get_binary_path(v, arch)).unwrap();
@@ -3696,7 +3795,7 @@ mod tests {
     #[ignore = "expensive court: real nm census + fence pass on a /tmp copy of the cache dylib"]
     fn kd01_court_cache_copy_census_and_fence_standing() {
         let cache = PathBuf::from(std::env::var("HOME").unwrap_or_default())
-            .join(".frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib");
+            .join(".frozen-duckdb/cache/v2.0.0-arm64/libduckdb_arm64.dylib");
         let Some(_) = std::fs::metadata(&cache).ok().filter(|m| m.is_file()) else {
             eprintln!("[SKIP] cache dylib absent");
             return;

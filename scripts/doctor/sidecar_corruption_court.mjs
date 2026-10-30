@@ -30,7 +30,7 @@ function sha256File(path) {
 
 const REPO = '/Users/sac/frozen-duckdb';
 const SUBJECT = join(REPO, 'target/wasm-min/kdc05-min.wasm');
-const EXPECT_VERSION = 'v2.0.0-dev88595';
+const EXPECT_VERSION = 'v2.0.0';
 
 let failures = 0;
 const records = [];

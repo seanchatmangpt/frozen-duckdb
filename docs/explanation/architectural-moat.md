@@ -91,9 +91,9 @@ itself moat evidence:
   cache-first resolution) rather than being redesigned in; the stale-
   cache guard (`lib.rs` ~line 101) fences the one failure mode of the
   cache hit — a wrong binary passing as instant — and this window's
-  cache-poison incident (v1.5.5 bytes staged into the v2.0.0-dev slot,
+  cache-poison incident (v1.5.5 bytes staged into the v2.0.0 slot,
   quarantined, rebuilt from pin `b6013f7`, identity re-witnessed via
-  strings probe `v2.0.0-dev88595`) proved the fence at production
+  strings probe `v2.0.0`) proved the fence at production
   scale. The fence was not removed because the poison was annoying; it
   was hardened.
 - Fail-closed gates were kept even when they blocked progress: doctor
@@ -125,4 +125,4 @@ Consistent with repo law, the strategy carries falsifiers:
 `docs/design/freeze-moat.md` (mechanism-level moat doc) -
 `docs/design/economic-model.md` (thesis + falsifier) -
 `docs/explanation/sovereign-economics.md` (the economics) -
-`docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md` (receipts cited)
+`docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md` (receipts cited)

@@ -6,8 +6,8 @@
 > standalone** — fails `WebAssembly.Instance(mod, {})`) and
 > `target/wasm-min/kdc05-min.wasm` (25,886,446 B / 24.69 MiB, standalone,
 > instantiable with a 22-symbol WASI/env shim; `duckdb_library_version()` =
-> `v2.0.0-dev88595` under real node instantiation — receipt
-> `docs/sjira/v2.0.0-dev/receipts/KDC-05-wasm-min.md`). Nothing here runs in
+> `v2.0.0` under real node instantiation — receipt
+> `docs/sjira/v2.0.0/receipts/KDC-05-wasm-min.md`). Nothing here runs in
 > a browser yet: the OPFS block layer (`openDuckDbOverOpfs`) and the shim are
 > unwritten — that is KD-11 and KD-05-closure work. The TypeScript below is
 > the RPC contract (it type-checks only with ambient declarations this page
@@ -21,7 +21,7 @@ A page that runs DuckDB entirely client-side: the engine lives in one Web
 Worker, the main thread sees only a promise-based RPC surface, and the
 database persists across reloads through OPFS synchronous access handles.
 
-- Engine: DuckDB 2.0.0-dev compiled to WebAssembly (pinned upstream SHA
+- Engine: DuckDB 2.0.0 compiled to WebAssembly (pinned upstream SHA
   `b6013f7`)
 - Isolation: one dedicated Worker per engine instance
 - Persistence: `FileSystemSyncAccessHandle` byte-range I/O (`pread`/`pwrite`
@@ -217,7 +217,7 @@ The wasm artifact closes KD-05 only by passing these (from the design doc's
 falsifier list):
 
 1. **Build falsifier.** The Emscripten/wasi build produces a `duckdb_wasm`
-   artifact whose `duckdb_library_version()` reports `2.0.0-dev`, matching
+   artifact whose `duckdb_library_version()` reports `2.0.0`, matching
    the vendored headers at upstream SHA `b6013f7`.
 2. **Persistence falsifier.** A committed write survives `Page.crash` plus
    reload via WAL replay through the OPFS layer. A clean tab close does not
@@ -230,10 +230,10 @@ falsifier list):
 
 - Divergence row: `KNOWN_DIVERGENCES.md` KD-05 — PARTIAL_ALIVE as of
   2026-10-19 (receipt:
-  `docs/sjira/v2.0.0-dev/receipts/KDC-05-wasm-min.md`: standalone slice
-  24.69 MiB < 25 MiB SLA, version gate `v2.0.0-dev88595` PASS under real
+  `docs/sjira/v2.0.0/receipts/KDC-05-wasm-min.md`: standalone slice
+  24.69 MiB < 25 MiB SLA, version gate `v2.0.0` PASS under real
   node instantiation with the 22-import shim).
 - Downstream: KD-11 browser courts stay blocked until KD-05 closes.
-- Window standing: `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md`
+- Window standing: `docs/sjira/v2.0.0/DEFINITION-OF-DONE.md`
   (DOD-16, known-open).
 - Design contract: `docs/design/wasm-opfs-architecture.md`.

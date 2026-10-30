@@ -11,7 +11,7 @@ set -uo pipefail
 
 TAG="${1:-}"
 if [[ -z "$TAG" ]]; then
-  echo "usage: $0 <TAG>   (e.g. v2.0.0-dev)" >&2
+  echo "usage: $0 <TAG>   (e.g. v2.0.0)" >&2
   exit 2
 fi
 
@@ -137,7 +137,7 @@ sha_report="$WORK/sha256.txt"
 : >"$sha_report"
 
 probe_engine() {
-  # $1 = dylib path, $2 = expected version (e.g. 2.0.0-dev), $3 = arch
+  # $1 = dylib path, $2 = expected version (e.g. 2.0.0), $3 = arch
   local lib="$1" want="$2" arch="$3" got=""
   if [[ "$arch" == "$(uname -m)" ]]; then
     # Native arch: real load via python ctypes duckdb_library_version.

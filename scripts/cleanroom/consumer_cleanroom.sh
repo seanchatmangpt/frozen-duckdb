@@ -10,7 +10,7 @@
 #   3. ZERO-compile asserted via:
 #        a. build-script log line "Using prebuilt DuckDB binary"
 #        b. link-only wall time (single-digit seconds, not minutes)
-#   4. run the quickstart program; assert version v2.0.0-dev* via query
+#   4. run the quickstart program; assert version v2.0.0* via query
 #
 # Modes:
 #   consumer_cleanroom.sh local   (macOS host — the ALIVE witness leg)
@@ -130,7 +130,7 @@ EOF
 #    Refuse the silent 30-minute compile fallback; fail fast, typed.
 # ---------------------------------------------------------------------------
 if [[ "$(uname -s)" != "Darwin" && "${CLEANROOM_BLOCK_ON_LINUX:-1}" == "1" ]]; then
-  CACHE_MOUNT="/cleanroom-home/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
+  CACHE_MOUNT="/cleanroom-home/.frozen-duckdb/cache/v2.0.0-${ARCH}"
   log "[BLOCKED_LINUX_PREBUILT_MISSING] no linux .so prebuilt exists \
 (KD: linux prebuilt absent); refusing silent compile fallback"
   write_receipt "BLOCKED_LINUX_PREBUILT_MISSING" \
@@ -142,13 +142,13 @@ fi
 # ---------------------------------------------------------------------------
 # 3. Pre-seed cache — the ZERO-COMPILE mechanism
 # ---------------------------------------------------------------------------
-CACHE_SRC="$HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
-CACHE_DST="$SCRATCH_HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
+CACHE_SRC="$HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}"
+CACHE_DST="$SCRATCH_HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}"
 CACHE_DST_PARENT="$(dirname "$CACHE_DST")"
 
 if [[ "$MODE" == "act" ]]; then
   # Inside the act container the cache arrives volume-mounted.
-  MOUNTED="/cleanroom-home/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
+  MOUNTED="/cleanroom-home/.frozen-duckdb/cache/v2.0.0-${ARCH}"
   [[ -d "$MOUNTED" ]] || fail "act cache volume missing: $MOUNTED"
   mkdir -p "$CACHE_DST_PARENT"
   cp -R "$MOUNTED/." "$CACHE_DST/"
@@ -191,7 +191,7 @@ log "cargo build exit=$BUILD_STATUS in ${BUILD_SECONDS}s (prebuilt log line pres
 [[ $BUILD_STATUS -eq 0 ]] || fail "cargo build exit=$BUILD_STATUS"
 
 # ---------------------------------------------------------------------------
-# 5. Run the quickstart program; assert version v2.0.0-dev*
+# 5. Run the quickstart program; assert version v2.0.0*
 #
 # Typed divergence (KD-CLEANROOM-RPATH, recorded in the receipt): cargo 1.97
 # forwards cargo:rustc-link-search from dependency build scripts but NOT

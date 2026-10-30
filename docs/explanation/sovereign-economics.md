@@ -26,8 +26,8 @@ with bytes shipped and active users, both forecastable.
 
 ## The measured physical quantities
 
-These are real, receipted measurements from the v2.0.0-dev campaign
-(`docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md`, final reconciliation
+These are real, receipted measurements from the v2.0.0 campaign
+(`docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md`, final reconciliation
 2026-10-19):
 
 - **Throughput: 12.16M rows/sec** (release build, ingest/throughput
@@ -128,4 +128,4 @@ that envelope — amended, not softened.
 `docs/design/disruption-scorecard.md` (measured 5x CLEAR table) -
 `docs/design/soc-valuation-model.md` -
 `warehouse-sim/economics/render_value_audit.ts` (renderer) -
-`docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md` (campaign standing)
+`docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md` (campaign standing)

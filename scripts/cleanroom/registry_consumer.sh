@@ -3,7 +3,7 @@
 # consumer_cleanroom.sh (ACT1, path-dep shape) to registry-shaped consumption.
 #
 # A downstream consumer whose Cargo.toml uses a registry req
-# (frozen-duckdb = "=2.0.0-dev") resolved from packaged .crate artifacts:
+# (frozen-duckdb = "=2.0.4") resolved from packaged .crate artifacts:
 #   1. one cargo vendor pass over the family's FULL external dep surface
 #      (staging consumer -> all three checkout crates), producing the externals
 #   2. `cargo package` the three crates in dependency order, with crates.io
@@ -12,19 +12,19 @@
 #      a generated .cargo-checksum.json (the registry checksum format). This is
 #      required because cargo package demands registry-only resolution of path
 #      deps and cargo vendor excludes path deps — neither alone suffices.
-#   3. the consumer then resolves frozen-duckdb = "=2.0.0-dev" ONLY through
+#   3. the consumer then resolves frozen-duckdb = "=2.0.4" ONLY through
 #      that same stitched directory registry (source replacement), builds
 #      against a pre-seeded cache with ZERO DuckDB compile (ACT1's proof:
 #      "Using prebuilt DuckDB binary" log line + link-time bound), and runs
-#      the quickstart asserting DUCKDB_VERSION=v2.0.0-dev* and SUM=42.
-#      cargo tree must show v2.0.0-dev with NO path into the repo checkout.
+#      the quickstart asserting DUCKDB_VERSION=v2.0.0* and SUM=42.
+#      cargo tree must show 2.0.4 with NO path into the repo checkout.
 #
-# Version fence (proven live, not assumed): the packaged version is 2.0.0-dev
-# (workspace version, prerelease). Cargo's semver rule: req "2.0.0" does NOT
-# match 2.0.0-dev. The court runs a negative-control resolution with req
-# "2.0.0" and REQUIRES failure — a court that resolves "2.0.0" against a -dev
-# package is vacuous. The literal task req "2.0.0" is unreachable until a real
-# 2.0.0 release cuts non-dev versions; the fence is asserted instead of faking.
+# Version fence (proven live, not assumed): the packaged version is 2.0.4
+# (workspace version, a normal release). The court runs a negative-control
+# resolution with req "2.0.5" (a version that was never packaged or served
+# here) and REQUIRES failure — a court that resolves an unpublished version
+# through the stitched registry is vacuous. Bumping the release line without
+# updating CRATE_VERSION and the negative-control req breaks this fence.
 #
 # Receipts: /tmp/pb17/registry-consumer-receipt-<ts>.json (+ .log, real output)
 # Exit codes: 0 PASS · 1 FAIL · 2 loud SKIP / typed divergence
@@ -48,7 +48,7 @@ REPO_HEAD="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
 ARCH="$(uname -m)"
 SCRATCH=""
 REGISTRY_MECHANISM="stitched-directory-source: cargo-vendor externals + packaged .crate extracts with generated .cargo-checksum.json (registry checksum format); crates.io source-replaced"
-CRATE_VERSION="2.0.0-dev"
+CRATE_VERSION="2.0.4"
 CARGO_PKG_EXIT=-1
 CARGO_VENDOR_EXIT=-1
 NEGCTL_RESOLVED=false
@@ -75,15 +75,15 @@ write_receipt() {
   "head": "$REPO_HEAD",
   "arch": "$ARCH",
   "scratch": "$SCRATCH",
-  "version_req_consumer": "=2.0.0-dev",
+  "version_req_consumer": "=2.0.4",
   "registry_mechanism": "$REGISTRY_MECHANISM",
   "vendor_mode": "$VENDOR_MODE",
   "cargo_vendor_exit": $CARGO_VENDOR_EXIT,
   "cargo_package_exit": $CARGO_PKG_EXIT,
   "crate_sha256": {$CRATE_SHA256
   },
-  "negative_control_req_2_0_0_resolved": $NEGCTL_RESOLVED,
-  "negative_control_verdict": "req 2.0.0 MUST NOT resolve against 2.0.0-dev packages (cargo semver prerelease rule); if it ever resolves, this court is vacuous",
+  "negative_control_req_2_0_5_resolved": $NEGCTL_RESOLVED,
+  "negative_control_verdict": "req 2.0.5 MUST NOT resolve through the stitched registry (no 2.0.5 package exists); if it ever resolves, this court is vacuous",
   "build_seconds": $BUILD_SECONDS,
   "prebuilt_log_line": $PREBUILT_LINE_SEEN,
   "cargo_tree": $CARGO_TREE_LINE,
@@ -96,7 +96,7 @@ write_receipt() {
     "checksum admission: cargo verifies downloaded .crate bytes against the index checksum; here checksums are generated locally from the same bytes being admitted — self-referential, so a corrupted .crate would NOT be caught",
     "publish-side laws: cargo publish ownership/duplicate-name/semver gates and crates.io limits never execute",
     "version selection: exactly one version per crate in the directory, so no multi-version resolution or YANK pressure is exercised",
-    "the literal req \"2.0.0\": proven unresolvable against 2.0.0-dev by the negative control; only a real 2.0.0 non-dev release can admit it",
+    "the literal req \"2.0.5\": proven unresolvable through the stitched registry by the negative control; only a real future 2.0.5 release can admit it",
     "lazy download: vendor materializes ahead of time; registry cache layout (~/.cargo/registry) and on-demand fetch are unproven"
   ],
   "started": "$TS",
@@ -113,8 +113,8 @@ skip() { log "[SKIP] $*"; write_receipt "SKIP" "$*" 2; exit 2; }
 # ---------------------------------------------------------------------------
 command -v cargo >/dev/null 2>&1 || skip "cargo not on PATH"
 [[ -d "$REPO/crates/frozen-duckdb" ]] || fail "repo crates missing under $REPO"
-[[ -d "$SCRATCH_REAL_HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}" ]] \
-  || skip "prebuilt cache missing: $SCRATCH_REAL_HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
+[[ -d "$SCRATCH_REAL_HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}" ]] \
+  || skip "prebuilt cache missing: $SCRATCH_REAL_HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}"
 
 log "registry cleanroom arch=$ARCH repo=$REPO"
 
@@ -275,7 +275,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-frozen-duckdb = "=2.0.0-dev"
+frozen-duckdb = "=2.0.4"
 
 [workspace]
 EOF
@@ -308,7 +308,8 @@ fn main() {
 EOF
 
 # ---------------------------------------------------------------------------
-# 4. Negative control: req "2.0.0" MUST NOT resolve against 2.0.0-dev
+# 4. Negative control: req "2.0.5" MUST NOT resolve through the stitched
+#    registry (no such package was served into it)
 # ---------------------------------------------------------------------------
 cat >"$SCRATCH/negctl/Cargo.toml" <<EOF
 [package]
@@ -317,7 +318,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-frozen-duckdb = "2.0.0"
+frozen-duckdb = "2.0.5"
 
 [workspace]
 EOF
@@ -332,15 +333,15 @@ set -e
 printf '%s\n' "$NEGCTL_OUT" >>"$LOG"
 if [[ $NEGCTL_STATUS -eq 0 ]]; then
   NEGCTL_RESOLVED=true
-  fail "negative control RESOLVED frozen-duckdb \"2.0.0\" against prerelease packages — resolution fence broken, court vacuous"
+  fail "negative control RESOLVED frozen-duckdb \"2.0.5\" through the stitched registry — resolution fence broken, court vacuous"
 fi
-log "negative control OK: req \"2.0.0\" refused (exit=$NEGCTL_STATUS) — prerelease fence live"
+log "negative control OK: req \"2.0.5\" refused (exit=$NEGCTL_STATUS) — version fence live"
 
 # ---------------------------------------------------------------------------
 # 5. Build the consumer — zero DuckDB compile (cache pre-seeded)
 # ---------------------------------------------------------------------------
-CACHE_SRC="$SCRATCH_REAL_HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
-CACHE_DST="$SCRATCH_HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
+CACHE_SRC="$SCRATCH_REAL_HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}"
+CACHE_DST="$SCRATCH_HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}"
 mkdir -p "$(dirname "$CACHE_DST")"
 cp -c "$CACHE_SRC/." "$CACHE_DST/" 2>/dev/null || cp -R "$CACHE_SRC/." "$CACHE_DST/"
 [[ -f "$CACHE_DST/ENGINE_VERSION" ]] || fail "cache pre-seed failed: ENGINE_VERSION missing at $CACHE_DST"
@@ -379,12 +380,12 @@ set -e
 printf '%s\n' "$TREE_OUT" >>"$LOG"
 [[ $CARGO_TREE_EXIT -eq 0 ]] || fail "cargo tree exit=$CARGO_TREE_EXIT"
 CARGO_TREE_LINE="$(printf '%s' "$TREE_OUT" | head -1 | python3 -c 'import sys,json; print(json.dumps(sys.stdin.readline().rstrip("\n")))')"
-grep -q 'frozen-duckdb v2.0.0-dev' <<<"$TREE_OUT" || fail "cargo tree lacks frozen-duckdb v2.0.0-dev"
-grep -q 'frozen-duckdb-sys v2.0.0-dev' <<<"$TREE_OUT" || fail "cargo tree lacks frozen-duckdb-sys v2.0.0-dev"
+grep -q 'frozen-duckdb v2.0.0' <<<"$TREE_OUT" || fail "cargo tree lacks frozen-duckdb v2.0.0"
+grep -q 'frozen-duckdb-sys v2.0.0' <<<"$TREE_OUT" || fail "cargo tree lacks frozen-duckdb-sys v2.0.0"
 if grep -q "$REPO/crates" <<<"$TREE_OUT"; then
   fail "cargo tree shows a path into the repo checkout — registry shape violated"
 fi
-log "cargo tree: registry-shaped edge confirmed (no repo path, v2.0.0-dev from stitched registry)"
+log "cargo tree: registry-shaped edge confirmed (no repo path, v2.0.0 from stitched registry)"
 
 # ---------------------------------------------------------------------------
 # 7. Run the quickstart; assert engine version
@@ -403,6 +404,6 @@ grep -q '^SUM=42$' <<<"$RUN_OUT" || fail "quickstart SUM=42 assertion failed"
 log "quickstart OK: $QUICKSTART_LINE · SUM=42"
 
 write_receipt "PASS" \
-  "3 crates packaged against stitched directory registry -> consumer resolved =2.0.0-dev registry-shaped (no repo path in cargo tree), cache-hit build ${BUILD_SECONDS}s, quickstart $QUICKSTART_LINE (zero compile); negctl req \"2.0.0\" refused as required" 0
+  "3 crates packaged against stitched directory registry -> consumer resolved =2.0.4 registry-shaped (no repo path in cargo tree), cache-hit build ${BUILD_SECONDS}s, quickstart $QUICKSTART_LINE (zero compile); negctl req \"2.0.5\" refused as required" 0
 log "PASS receipt: $RECEIPT"
 exit 0

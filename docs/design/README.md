@@ -1,10 +1,10 @@
 # README — Blueprint Design Index (BP16)
 
-Archived design record for the v2.0.0-dev campaign. Consumer documentation
-is [README.md](../../README.md). The published crate version is 2.0.3.
-The engine pin in these notes is still 2.0.0-dev.
+Archived design record for the v2.0.0 campaign. Consumer documentation
+is [README.md](../../README.md). The published crate version is 2.0.4.
+The engine pin in these notes is still 2.0.0.
 
-Index of the frozen-duckdb 2.0 blueprint layer (v2.0.0-dev campaign).
+Index of the frozen-duckdb 2.0 blueprint layer (v2.0.0 campaign).
 Status vocabulary per repo law: all items PROPOSED — no court has flipped
 for any item yet (no lane receipt claims otherwise as of 2026-10-19).
 
@@ -16,7 +16,7 @@ for any item yet (no lane receipt claims otherwise as of 2026-10-19).
 | chrome-burnin-court.md | Burn-in court over real chrome-headless-shell via CDP | PROPOSED |
 | ocel2-compression.md | OCEL 2.0 segment-vector compression over DuckDB | PROPOSED |
 | economic-model.md | Economics of the in-browser distribution (DESIGN, not measured) | PROPOSED |
-| dmadv-charter.md | DMADV charter for the v2.0.0-dev campaign (lane BP6) | PROPOSED |
+| dmadv-charter.md | DMADV charter for the v2.0.0 campaign (lane BP6) | PROPOSED |
 | storage-format-v2.md | Storage format v2 design notes, OPFS persistence layer | PROPOSED |
 | memory-bounds.md | <=256MB in-browser memory cap design, CDP RSS-polling court | PROPOSED |
 | verification-plan.md | Court battery (BP9); every court flips before ALIVE claims | PROPOSED |
@@ -33,7 +33,7 @@ for any item yet (no lane receipt claims otherwise as of 2026-10-19).
 
 ## See Also
 
-- docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md
+- docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md
 
 ## Revision 2 artifacts (R-wave, 2026-10-19)
 

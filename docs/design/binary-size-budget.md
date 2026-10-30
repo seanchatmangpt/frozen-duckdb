@@ -12,7 +12,7 @@ bytes). The court FAILS on any artifact over that bound.
 ## Native reference point (measured, not the wasm target)
 
 Measured on this machine, 2026-10-19, cached native arm64 dylib
-(`~/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib`):
+(`~/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb_arm64.dylib`):
 
 | measurement            | command                             | result        |
 |------------------------|-------------------------------------|---------------|

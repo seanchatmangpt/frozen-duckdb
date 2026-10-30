@@ -8,7 +8,7 @@ echo "🦆 Downloading Pre-compiled DuckDB Binaries (No Compilation Ever!)"
 echo "=================================================================="
 
 # Configuration
-DUCKDB_VERSION="2.0.0-dev"
+DUCKDB_VERSION="2.0.0"
 PREBUILT_DIR="target/duckdb-prebuilt"
 
 # Degradation doctrine: fail loudly when the pinned upstream tag does not

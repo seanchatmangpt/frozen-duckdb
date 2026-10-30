@@ -5,10 +5,14 @@ export: 1,177 `_duckdb_*` symbols, zero C++-mangled exports.
 
 ## Provenance
 
-Derived by lane X1/X1r from the built-and-fenced dylib
-(`libduckdb_arm64_fenced4.dylib`, sha256 `aab11996…93d2a5`); this copy is
-byte-identical to the original `/private/tmp/x1/exports.list`
-(sha256 `b764b4849525…9674`). It is embedded into the builder via
+Derived from the official upstream v2.0.0 release dylib
+(`duckdb-shared-libs-osx-arm64.tar.gz` → `libduckdb.dylib`,
+sha256 `72b50268165284d321ec0263b39fafa9551379e72558e443d4b4f1eeb4f4042c`,
+tag `v2.0.0` = `d54cbbe3df17e8e5ce68312f483b4155836112aa`); it replaces the
+dev-pin projection (sha256 `b764b4849525…9674`) after the v2.0.0 re-pin
+changed the surface by one symbol (`_duckdb_extension_local_extension_repository_describe`
+→ `_duckdb_extension_autocomplete_describe`, count unchanged at 1,177). It
+is embedded into the builder via
 `include_str!("../export_fence/exports.list")` and applied by
 `fence_exports` at the end of the local-compile path, so a local compile can
 no longer produce (or a poison-refusal restage silently revert to) the
@@ -17,7 +21,7 @@ no longer produce (or a poison-refusal restage silently revert to) the
 ## Refresh instructions
 
 The list is a projection of the upstream source at `SOURCE_PIN`
-(`b6013f7aa2f36caabb9466ce1791667ea8a280bb`). Refresh ONLY when the source
+(`d54cbbe3df17e8e5ce68312f483b4155836112aa`). Refresh ONLY when the source
 pin moves AND the C-ABI surface changes:
 
 1. Build or obtain a dylib from the new source (release download or local

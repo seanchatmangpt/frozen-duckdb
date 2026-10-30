@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # extension_watch.sh — KD-02 closure watcher (ADV12).
 #
-# One-shot poll of the DuckDB extension CDN at OUR dev pin (b6013f7aa2).
+# One-shot poll of the DuckDB extension CDN at OUR dev pin (d54cbbe3d).
 # Cron-able: no daemon, no state, one invocation = one probe.
 #
 # 200 on HEAD -> the extension now ships for the dev pin -> print
@@ -11,7 +11,7 @@
 
 set -u
 
-PIN="b6013f7aa2"
+PIN="d54cbbe3d"
 PLATFORM="osx_arm64"
 BASE="http://extensions.duckdb.org/${PIN}/${PLATFORM}"
 

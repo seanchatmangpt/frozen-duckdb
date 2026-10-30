@@ -5,7 +5,7 @@ contract instead of process kills, and avoid the spill fence trap.
 
 Grounded in `crates/frozen-duckdb/tests/oom_graceful_abort.rs` (GATE-V-03
 court; X9 receipt legs green this campaign —
-`docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md` line 323) and
+`docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md` line 323) and
 `crates/frozen-duckdb/src/duckdb/config.rs:129`.
 
 See Also: `docs/design/gate-v03-memory-ceiling.md`,

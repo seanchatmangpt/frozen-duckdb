@@ -1,7 +1,7 @@
-# CAMPAIGN-INDEX — frozen-duckdb v2.0.0-dev
+# CAMPAIGN-INDEX — frozen-duckdb v2.0.0
 
 One file a stranger reads to find everything. Status per
-`docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md` vocabulary:
+`docs/sjira/v2.0.0/DEFINITION-OF-DONE.md` vocabulary:
 ALIVE / PARTIAL_ALIVE / PROPOSED / BLOCKED.
 
 ## Engine & Courts
@@ -137,18 +137,18 @@ val003_snowflake.ts, rate_cards.ts, run_court.sh, run_scorecard.sh) | ALIVE |
 | `warehouse-sim/app/api/` | PARTIAL_ALIVE (Next.js surface) |
 | `warehouse-sim/client/`, `templates/` | PARTIAL_ALIVE |
 
-## Window (docs/sjira/v2.0.0-dev)
+## Window (docs/sjira/v2.0.0)
 
 | Path | Status |
 |---|---|
-| `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md` | ALIVE (DoD hub) |
-| `docs/sjira/v2.0.0-dev/PRD-WO.md` | ALIVE |
-| `docs/sjira/v2.0.0-dev/BLUEPRINT-WO.md` | ALIVE |
-| `docs/sjira/v2.0.0-dev/UPGRADE-WO.md` | ALIVE |
-| `docs/sjira/v2.0.0-dev/_LANES.md` | ALIVE (lane partition) |
-| `docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md` | ALIVE |
-| `docs/sjira/v2.0.0-dev/COMMIT-PLAN.md` | ALIVE |
-| `docs/sjira/v2.0.0-dev/receipts/` (fleet001-004 + metas) | ALIVE |
+| `docs/sjira/v2.0.0/DEFINITION-OF-DONE.md` | ALIVE (DoD hub) |
+| `docs/sjira/v2.0.0/PRD-WO.md` | ALIVE |
+| `docs/sjira/v2.0.0/BLUEPRINT-WO.md` | ALIVE |
+| `docs/sjira/v2.0.0/UPGRADE-WO.md` | ALIVE |
+| `docs/sjira/v2.0.0/_LANES.md` | ALIVE (lane partition) |
+| `docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md` | ALIVE |
+| `docs/sjira/v2.0.0/COMMIT-PLAN.md` | ALIVE |
+| `docs/sjira/v2.0.0/receipts/` (fleet001-004 + metas) | ALIVE |
 
 ## Value Audit
 

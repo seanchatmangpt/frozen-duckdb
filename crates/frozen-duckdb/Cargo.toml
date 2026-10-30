@@ -12,7 +12,7 @@ categories.workspace = true
 
 description = "Drop-in replacement for the duckdb (duckdb-rs) crate: same API, backed by pre-compiled DuckDB binaries for fast Rust builds"
 
-# AD8 package audit (docs/sjira/v2.0.0-dev/receipts/AD8-PACKAGE-AUDIT.md):
+# AD8 package audit (docs/sjira/v2.0.0/receipts/AD8-PACKAGE-AUDIT.md):
 # these are machine-local value-audit / fleet-court / rev-court fixtures —
 # they reference hard-coded operator-home absolute paths and /tmp lane
 # fixtures and are meaningless (and leaking) outside this checkout. They
@@ -78,7 +78,7 @@ rust_decimal = "1.14"
 strum = { version = "0.27", features = ["derive"] }
 
 # Use our FFI crate instead of duckdb-rs
-frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.3" }
+frozen-duckdb-sys = { path = "../frozen-duckdb-sys", version = "2.0.4" }
 
 [[test]]
 name = "host_vfs_local"

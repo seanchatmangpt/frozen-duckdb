@@ -2,7 +2,7 @@
 # WASM MVP slice (ADV1) — minimal lib-only duckdb.wasm build.
 # Spec: docs/design/wasm-mvp-slice.md
 # Reuses the PRESERVED pin-verified checkout at target/wasm-build/duckdb
-# (HEAD b6013f7aa2f…, KD-05 evidence). Builds in sibling build-min dir;
+# (HEAD d54cbbe3df…, KD-05 evidence). Builds in sibling build-min dir;
 # target/wasm-build/build (GAP1b full-build evidence) is never touched.
 set -euo pipefail
 
@@ -11,7 +11,7 @@ SRC="${REPO}/target/wasm-build/duckdb"
 BUILD="${REPO}/target/wasm-build/build-min"
 OUT="${REPO}/target/wasm-min"
 
-PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
+PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
 
 log() { printf '[wasm-mvp] %s\n' "$*"; }
 fail() { printf '[wasm-mvp] FAIL: %s\n' "$*" >&2; exit 1; }
@@ -158,8 +158,8 @@ EOF
 # --- pinned expected version (captured from git describe lineage) ----------
 DESCRIBE="$(git -C "${SRC}" describe --tags 2>/dev/null || true)"
 log "git describe: ${DESCRIBE}"
-# GAP1b witness measured v2.0.0-dev88595 for this tree; pin from witness if present.
-EXPECT="v2.0.0-dev88595"
+# GAP1b witness measured v2.0.0 for this tree; pin from witness if present.
+EXPECT="v2.0.0"
 if [ -f /tmp/gap1b/witness.out ]; then
   EXPECT="$(grep -o 'v2\.0\.0-dev[0-9]*' /tmp/gap1b/witness.out | head -1 || echo "${EXPECT}")"
 fi

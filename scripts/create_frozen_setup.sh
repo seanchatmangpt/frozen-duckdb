@@ -19,10 +19,10 @@ echo "=============================================="
 echo ""
 
 # Degradation doctrine: this script fetches BOTH this repo's release assets
-# (v2.0.0-dev) AND upstream tag assets. Fail loudly when the upstream tag
+# (v2.0.0) AND upstream tag assets. Fail loudly when the upstream tag
 # does not exist yet (pre-tag main pin) — never silently fetch an older
 # release. Local compile fallback: scripts/build_duckdb_optimized.sh
-DUCKDB_VERSION="2.0.0-dev"
+DUCKDB_VERSION="2.0.0"
 if ! git ls-remote --exit-code --tags https://github.com/duckdb/duckdb.git "refs/tags/v${DUCKDB_VERSION}" >/dev/null 2>&1; then
     echo "v${DUCKDB_VERSION} is pre-tag upstream; no release assets exist; use scripts/build_duckdb_optimized.sh (local compile)" >&2
     exit 2
@@ -163,12 +163,12 @@ fn create_frozen_binary() -> Result<(), Box<dyn std::error::Error>> {
         ```bash\n\
         # Download pre-compiled DuckDB binary from frozen-duckdb releases\n\
         curl -L -o prebuilt/libduckdb_{}.dylib \\\n\
-          https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v2.0.0-dev/libduckdb_{}.dylib\n\
+          https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v2.0.0/libduckdb_{}.dylib\n\
         ```\n\n\
         ## Option 2: Compile from source\n\
         ```bash\n\
-        # Clone and compile DuckDB (pinned to v2.0.0-dev)\n\
-        git clone --depth 1 --branch v2.0.0-dev https://github.com/duckdb/duckdb.git\n\
+        # Clone and compile DuckDB (pinned to v2.0.0)\n\
+        git clone --depth 1 --branch v2.0.0 https://github.com/duckdb/duckdb.git\n\
         cd duckdb\n\
         make -j$(nproc)\n\
         cp build/release/src/libduckdb.* ../prebuilt/\n\

@@ -81,7 +81,7 @@ and the wasm memory court does not exist.
   `docs/design/verification-plan.md`); 1M-event corpus not built
   (AC-4); `ocel_rehydration_equivalence` test file does not exist.
 
-## Honest column: what works TODAY (2.0.0-dev native engine)
+## Honest column: what works TODAY (2.0.0 native engine)
 
 | persona | real today (native only) | not today |
 |---|---|---|

@@ -3,7 +3,7 @@
 //
 // Proves on a REAL browser (chrome-headless-shell via CDP, ADV2 pattern):
 //   L1 crossOriginIsolated + SharedArrayBuffer under COOP/COEP (threading gate)
-//   L2 GAP1b duckdb.wasm (v2.0.0-dev88595) instantiates in a Worker
+//   L2 GAP1b duckdb.wasm (v2.0.0) instantiates in a Worker
 //   L3 work-product bytes written to OPFS from the court worker
 //   L4 Page.crash + SIGKILL -> relaunch (same profile) -> OPFS bytes survive
 //
@@ -15,7 +15,7 @@
 // missing wasm programmatic surface is documented in the receipt, never faked.
 //
 // Exit codes: 0 = PASS, 2 = SKIP-LOUD, 1 = FAIL (typed legs in receipt).
-// Lane-owned files: this script + docs/sjira/v2.0.0-dev/receipts/KDC-11-opfs.md.
+// Lane-owned files: this script + docs/sjira/v2.0.0/receipts/KDC-11-opfs.md.
 
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";

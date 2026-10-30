@@ -14,7 +14,7 @@
 # Usage: scripts/build_linux_prebuilt.sh [output-dir]   (default /tmp/rel6)
 set -euo pipefail
 
-PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
+PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
 EXTS="parquet;json;icu;tpch;tpcds;fts;inet;sqlsmith"   # full set minus httpfs
 OUT_DIR="${1:-/tmp/rel6}"
 IMG="rust:1-bookworm"   # rust:bookworm-slim no longer exists on Docker Hub (404)

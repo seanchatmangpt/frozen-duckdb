@@ -3,7 +3,7 @@
 // Real collaborator (node WebAssembly), assert on final state — no mocks.
 import { readFileSync } from 'node:fs';
 const WASM = process.argv[2];
-const EXPECT = process.argv[3] || 'v2.0.0-dev88595';
+const EXPECT = process.argv[3] || 'v2.0.0';
 if (!WASM) { console.error('[smoke] usage: smoke_stamped.mjs <wasm> [expected-version]'); process.exit(2); }
 
 const bytes = readFileSync(WASM);

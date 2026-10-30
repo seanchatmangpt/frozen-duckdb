@@ -49,7 +49,7 @@ Consumers need **no custom build script and no environment variables**. The real
 fn main() {
     // Ensure the frozen DuckDB mega-library is available
     // (cache hit -> local prebuilt dir -> GitHub Release download
-    //  -> local compile pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag))
+    //  -> local compile pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag))
     let binary_path = frozen_duckdb_builder::ensure_binary()
         .expect("Failed to get frozen DuckDB binary");
 
@@ -63,7 +63,7 @@ fn main() {
     // which frozen-duckdb's build script turns into a runtime @rpath entry
     println!("cargo:DUCKDB_LIB_DIR={}", lib_dir.display());
 
-    // Bindgen against the builder's vendored 2.0.0-dev headers
+    // Bindgen against the builder's vendored 2.0.0 headers
     build_linked::main(&out_dir, &out_path, lib_dir);
 }
 ```
@@ -157,12 +157,12 @@ where
 
 **Problem**: Universal binaries would double every asset's size and compile time for all users
 
-**Solution**: The 2.0.0-dev release workflow builds and publishes **one dylib per architecture** (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`); the builder downloads the asset matching `uname -m`
+**Solution**: The 2.0.0 release workflow builds and publishes **one dylib per architecture** (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`); the builder downloads the asset matching `uname -m`
 
 **Benefits**:
 - Each machine downloads only the slice it needs (~117MB)
 - Faster CI matrix builds (each arch compiles once, no `lipo` step)
-- The builder still caches under `v2.0.0-dev-{arch}` per `uname -m` for stable paths
+- The builder still caches under `v2.0.0-{arch}` per `uname -m` for stable paths
 
 ### 3. Smart Caching Strategy
 
@@ -309,10 +309,10 @@ cargo clean && cargo build
 
 #### 2. Wrong Architecture Binary
 ```bash
-# Check binary size and type — 2.0.0-dev released assets are single-architecture
+# Check binary size and type — 2.0.0 released assets are single-architecture
 # (cache entries may be universal binaries left by older dev acquisitions)
-ls -lah ~/.frozen-duckdb/cache/v2.0.0-dev-*/
-lipo -info ~/.frozen-duckdb/cache/v2.0.0-dev-*/libduckdb_*.dylib
+ls -lah ~/.frozen-duckdb/cache/v2.0.0-*/
+lipo -info ~/.frozen-duckdb/cache/v2.0.0-*/libduckdb_*.dylib
 ```
 
 #### 3. Fallback to Local Compilation
@@ -321,7 +321,7 @@ lipo -info ~/.frozen-duckdb/cache/v2.0.0-dev-*/libduckdb_*.dylib
 cargo build -v 2>&1 | grep -i duckdb
 
 # Should show linking to the cached prebuilt binary; a local compile
-# (pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag)) only happens when no release asset is reachable
+# (pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag)) only happens when no release asset is reachable
 ```
 
 ### Performance Debug Information
@@ -377,7 +377,7 @@ time cargo build --release
 ### For Developers
 
 1. **Zero setup**: just `cargo build` — the builder acquires the dylib and the emitted `@rpath` handles runtime loading (no `setup_env.sh` needed)
-2. **Architecture awareness**: each 2.0.0-dev released asset is single-architecture; the builder downloads the one matching `uname -m`
+2. **Architecture awareness**: each 2.0.0 released asset is single-architecture; the builder downloads the one matching `uname -m`
 3. **Environment consistency**: no environment variables to keep in sync across development and CI/CD
 4. **Performance monitoring**: Track build times and investigate anomalies
 

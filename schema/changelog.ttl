@@ -200,42 +200,154 @@ fd:changelog-f10 a rel:ChangeEntry ;
     rel:entryOrder 10 ;
     rel:description """**DuckDB 1.5 `TIME_NS` rows readable**: DuckDB >= 1.5 exports `TIME_NS` columns as arrow `Time64(Nanosecond)`; the vendored arrow row reader only knew `Microsecond` and hit `unreachable!()` on such rows. The symmetric `Time64(Nanosecond)` arm was added (commit 36b180f), so `TIME_NS` columns now read instead of panicking.""" .
 
-# Release 2.0.0-dev (DuckDB 2.0 upgrade wave, 2026-10-19; unreleased dev line)
+# Release 2.0.0 (DuckDB 2.0 upgrade wave, 2026-10-19; unreleased dev line)
 # Facts only; the CHANGELOG render is a consequence of ggen sync.
 
-fd:release-v2.0.0-dev a rel:Release ;
-    rel:version "2.0.0-dev" ;
+fd:release-v2.0.0 a rel:Release ;
+    rel:version "2.0.0" ;
     rel:date "2026-10-19"^^xsd:date .
 
 # Added
 fd:changelog-a9 a rel:ChangeEntry ;
-    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:inRelease fd:release-v2.0.0 ;
     rel:category rel:catAdded ;
     rel:entryOrder 1 ;
     rel:description """**VARIANT type surface**: `Type::Variant` and `LogicalTypeId::Variant` exposed on the main-crate type layer, with a `serde_json::Value` `FromSql` read arm so `VARIANT` columns round-trip into idiomatic Rust values.""" .
 
 # Changed
 fd:changelog-c4 a rel:ChangeEntry ;
-    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:inRelease fd:release-v2.0.0 ;
     rel:category rel:catChanged ;
     rel:entryOrder 1 ;
-    rel:description """**Bundled engine 1.5.5 -> 2.0.0-dev**: upstream pin moved to `duckdb/duckdb@b6013f7aa2f36caabb9466ce1791667ea8a280bb`; crate version tracks the bundled engine per `fd:duckdbVersionLaw` (workspace now 2.0.0-dev across `frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`), and `test-validation`'s version gate is dev-suffix-tolerant so `2.0.0-dev` passes the pinned-version FFI check.""" .
+    rel:description """**Bundled engine 1.5.5 -> 2.0.0**: upstream pin moved to `duckdb/duckdb@d54cbbe3df17e8e5ce68312f483b4155836112aa`; crate version tracks the bundled engine per `fd:duckdbVersionLaw` (workspace now 2.0.0 across `frozen-duckdb`, `frozen-duckdb-sys`, `frozen-duckdb-builder`), and `test-validation`'s version gate is dev-suffix-tolerant so `2.0.0` passes the pinned-version FFI check.""" .
 
 fd:changelog-c5 a rel:ChangeEntry ;
-    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:inRelease fd:release-v2.0.0 ;
     rel:category rel:catChanged ;
     rel:entryOrder 2 ;
-    rel:description """**Builder clone/tag split-brain fixed**: the local-compile fallback clones the pinned upstream SHA (`b6013f7aa2f36caabb9466ce1791667ea8a280bb`) instead of mixing a tag checkout with a SHA pin, so dev-line builds no longer straddle two upstream identities.""" .
+    rel:description """**Builder clone/tag split-brain fixed**: the local-compile fallback clones the pinned upstream SHA (`d54cbbe3df17e8e5ce68312f483b4155836112aa`) instead of mixing a tag checkout with a SHA pin, so dev-line builds no longer straddle two upstream identities.""" .
 
 # Fixed
 fd:changelog-f11 a rel:ChangeEntry ;
-    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:inRelease fd:release-v2.0.0 ;
     rel:category rel:catFixed ;
     rel:entryOrder 1 ;
     rel:description """**Dead bindgen snapshots removed**: stale generated bindings for superseded header states (`bindgen_bundled_version.rs`, `bindgen_bundled_version_loadable.rs`) dropped from `frozen-duckdb-sys`.""" .
 
 fd:changelog-f12 a rel:ChangeEntry ;
-    rel:inRelease fd:release-v2.0.0-dev ;
+    rel:inRelease fd:release-v2.0.0 ;
     rel:category rel:catFixed ;
     rel:entryOrder 2 ;
-    rel:description """**Vendored/prebuilt headers re-staged byte-identical**: `crates/frozen-duckdb-builder/vendored-headers/{duckdb.h,duckdb.hpp}` and `prebuilt/{duckdb.h,duckdb.hpp}` refreshed against the 2.0.0-dev upstream snapshot so every acquisition path compiles from the same API surface.""" .
+    rel:description """**Vendored/prebuilt headers re-staged byte-identical**: `crates/frozen-duckdb-builder/vendored-headers/{duckdb.h,duckdb.hpp}` and `prebuilt/{duckdb.h,duckdb.hpp}` refreshed against the 2.0.0 upstream snapshot so every acquisition path compiles from the same API surface.""" .
+
+# The 2026-10-22 fast-follow retitle (hand-written CHANGELOG block before the
+# render law was enforced): crate line becomes the default stable release.
+fd:changelog-c6 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.0 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 3 ;
+    rel:description """Crate version is **2.0.0** so crates.io treats this line as the default stable release. The bundled DuckDB engine stays `v2.0.0` at `d54cbbe3df17e8e5ce68312f483b4155836112aa`. `0.1.0` remains the previous stable crate. `2.0.0` remains a published prerelease.""" .
+
+#################################################################
+# Release 2.0.1 (2026-10-22)
+#################################################################
+
+fd:release-v2.0.1 a rel:Release ;
+    rel:version "2.0.1" ;
+    rel:date "2026-10-22"^^xsd:date .
+
+fd:changelog-f13 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.1 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 1 ;
+    rel:description """`wasm32-wasip1` links `static=duckdb` (`libduckdb.a` built with wasi-sdk) instead of the host dylib. The 2.0.0 build script always emitted `cargo:rustc-link-lib=dylib=duckdb`, so wasm-ld failed with `unable to find library -lduckdb`. The host dylib is not a substitute. Set `WASI_SDK_PATH` to compile the archive into `~/.frozen-duckdb/cache/v2.0.0-wasm32-wasip1/libduckdb.a`.""" .
+
+#################################################################
+# Release 2.0.2 (2026-10-22)
+#################################################################
+
+fd:release-v2.0.2 a rel:Release ;
+    rel:version "2.0.2" ;
+    rel:date "2026-10-22"^^xsd:date .
+
+fd:changelog-f14 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.2 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 1 ;
+    rel:description """The wasm32 archive probe reads past the ar symbol index. A full-engine `libduckdb.a` puts the first wasm object about 10.6 MB in, so a 256 KiB window rejected a real archive.""" .
+
+fd:changelog-f15 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.2 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 2 ;
+    rel:description """wasi-sdk 34's toolchain is `share/cmake/wasi-sdk-p1.cmake`, and its libc++ lives at `share/wasi-sysroot/lib/wasm32-wasip1/eh`. The wasip1 compile uses those paths and turns off `CMAKE_POSITION_INDEPENDENT_CODE` in the pinned DuckDB checkout.""" .
+
+fd:changelog-f16 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.2 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 3 ;
+    rel:description """wasm32-wasip1 links `libduckdb_wasi_posix` (`wasi_posix.c`). wasi-libc does not provide `mmap`, `mlock`, `getpid`, `kill`, `getrlimit`, or `sched_getcpu`. The stubs fail closed.""" .
+
+#################################################################
+# Release 2.0.3 (2026-10-29)
+#################################################################
+
+fd:release-v2.0.3 a rel:Release ;
+    rel:version "2.0.3" ;
+    rel:date "2026-10-29"^^xsd:date .
+
+fd:changelog-f17 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.3 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 1 ;
+    rel:description """Engine-level WASI virtual file system compatibility layer: eliminates advisory `fcntl` locking failures (`F_SETLK`/`F_GETLK`) and maps Linux `O_*` open flags to WASI preview1 bitmasks in DuckDB's `local_file_system.cpp` under `#if defined(__wasi__)`. Statically linking `libduckdb.a` into a `wasm32-wasip1` module achieves correct file semantics with zero consumer shims and zero `--wrap` link arguments.""" .
+
+fd:changelog-f18 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.3 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 2 ;
+    rel:description """Added a no-op `flock(fd, op)` stub to `wasi_posix.c` and aligned the `mmap` offset type (`long long`) so wasm-ld reports no signature mismatch.""" .
+
+fd:changelog-f19 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.3 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 3 ;
+    rel:description """`build_wasi_duckdb.sh` verify ladder gains a shim-less probe link gate and a live COPY egress court under wasmtime. The `--wrap=open,--wrap=openat` link args are gone from `frozen-duckdb-sys/build.rs`.""" .
+
+fd:changelog-f20 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.3 ;
+    rel:category rel:catFixed ;
+    rel:entryOrder 4 ;
+    rel:description """Clippy `-D warnings` lints (`manual_repeat_n`, `useless_conversion`) fixed so the publish gate battery is green.""" .
+
+#################################################################
+# Release 2.0.4 (2026-10-29) — engine re-pin to the upstream v2.0.0 LTS release
+#################################################################
+
+fd:release-v2.0.4 a rel:Release ;
+    rel:version "2.0.4" ;
+    rel:date "2026-10-29"^^xsd:date .
+
+fd:changelog-c7 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.4 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 1 ;
+    rel:description """**Engine re-pinned to the upstream v2.0.0 LTS release** ("Cinnamon Teal", *Spatula cyanoptera*, released 2026-10-21): the bundled engine moves from the pre-tag dev snapshot to the tagged release `v2.0.0` (`d54cbbe3df17e8e5ce68312f483b4155836112aa`). Cache entries re-key to `v2.0.0-{arch}`; the first build after upgrade compiles from the pinned tag (no release asset exists for the new key yet).""" .
+
+fd:changelog-c8 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.4 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 2 ;
+    rel:description """**KD-01 export fence refreshed** per its documented law (pin moved AND C-ABI surface changed): the 1,177-symbol allowlist now projects the official `v2.0.0` release dylib; one symbol swapped (`_duckdb_extension_local_extension_repository_describe` → `_duckdb_extension_autocomplete_describe`).""" .
+
+fd:changelog-c9 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.4 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 3 ;
+    rel:description """Vendored/prebuilt headers verified byte-identical at the new pin (`src/include` unchanged between the dev pin and the release tag; `duckdb.h` sha256 `8dbc9c71…`, `duckdb.hpp` sha256 `aab42f26…`) — no re-stage required.""" .
+
+fd:changelog-c10 a rel:ChangeEntry ;
+    rel:inRelease fd:release-v2.0.4 ;
+    rel:category rel:catChanged ;
+    rel:entryOrder 4 ;
+    rel:description """Tree-wide removal of dev-snapshot naming: engine witnesses and dev SHAs normalized to the release identities, and the milestone window `docs/sjira/v2.0.0/` (renamed from the dev-window name) now anchors standings.""" .

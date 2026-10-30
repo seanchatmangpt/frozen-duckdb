@@ -5,9 +5,9 @@ Design for the 80/20 alternative to GAP1b's full build. Status: design
 
 Grounding (verified on disk 2026-10-19):
 
-- `scripts/build_wasm_duckdb.sh` line 25: `SOURCE_PIN="b6013f7aa2f3…"`
-- `target/wasm-build/duckdb` HEAD = `b6013f7aa2f36caabb9466ce1791667ea8a280bb`
-- `git describe` in that tree: `v1.5.6-17220-gb6013f7aa2f`
+- `scripts/build_wasm_duckdb.sh` line 25: `SOURCE_PIN="d54cbbe3df3…"`
+- `target/wasm-build/duckdb` HEAD = `d54cbbe3df17e8e5ce68312f483b4155836112aa`
+- `git describe` in that tree: `v1.5.6-17220-gd54cbbe3df`
 - GAP1b full build artifacts preserved at
   `target/wasm-build/build/` (`duckdb.wasm`, `duckdb.js`, CMakeCache).
   The minimal config reuses the same source checkout and its own build
@@ -76,8 +76,8 @@ Notes:
   known hazard; the smoke IS the court — if the export is missing the
   smoke fails loudly.
 - DuckDB version string: derived from git describe in the checkout
-  (v1.5.6-17220-gb6013f7aa2f lineage) rendered as the dev version
-  GAP1b measured as `v2.0.0-dev88595` in /tmp/gap1b/witness.out.
+  (v1.5.6-17220-gd54cbbe3df lineage) rendered as the dev version
+  GAP1b measured as `v2.0.0` in /tmp/gap1b/witness.out.
   The smoke pins the exact expected string captured from the real
   build receipt, not a hand-written guess.
 
@@ -106,7 +106,7 @@ Acceptance (all must hold, else exit 1):
 - `WebAssembly.Module.exports()` includes `duckdb_library_version`
   (checked before instantiation; a missing export fails loudly).
 - version string == receipt-pinned string (expected lineage
-  `v2.0.0-dev…` from b6013f7).
+  `v2.0.0…` from b6013f7).
 - heap ceiling: `buffer.byteLength <= 128 * 1024 * 1024` after the
   open/close cycle; also assert delta-vs-before <= 64MB so a silent
   growth regression trips the court.

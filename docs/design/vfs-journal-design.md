@@ -50,7 +50,7 @@ Layer stack, top to bottom:
 - Design: pin the engine block size to 4096 via the config passthrough
   (`crates/frozen-duckdb/src/duckdb/config.rs`, `Config::with`,
   equivalent of `SET block_allocation_size`/`SET storage_block_size`).
-  UNVERIFIED: exact key spelling and whether DuckDB 2.0.0-dev accepts
+  UNVERIFIED: exact key spelling and whether DuckDB 2.0.0 accepts
   4096 (engine minimum supported block size is UNVERIFIED; upstream
   default is larger). If 4096 is refused, fall back: keep the engine's
   default block size and make the VFS issue 4KB-aligned sub-block I/O
@@ -203,7 +203,7 @@ a typed error, never a hang — that is F-lock2's reject-fast assertion.
 
 ## 8. UNVERIFIED register (consolidated)
 
-1. Engine acceptance of a 4096 block size on 2.0.0-dev; exact config key.
+1. Engine acceptance of a 4096 block size on 2.0.0; exact config key.
 2. Cross-worker strength of OPFS `in-place` handle exclusivity.
 3. `Page.crash` worker cleanup semantics (sentinel design assumes none).
 4. Explicit `CHECKPOINT` over OPFS at mid-size WALs.

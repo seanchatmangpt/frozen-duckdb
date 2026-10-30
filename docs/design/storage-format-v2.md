@@ -6,7 +6,7 @@ All runtime claims marked UNVERIFIED until the burn-in court (BP2) runs.
 ## Ground truth from the compiled dylib
 
 Source: `strings` over
-`~/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb.dylib`
+`~/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb.dylib`
 (arm64 dev build cached by frozen-duckdb-builder). Extracted 2026-10-19.
 These strings are in the shipped binary; they are compile-time ground
 truth for what the dev runtime gates, not runtime-proven behavior.

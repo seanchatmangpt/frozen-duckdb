@@ -45,8 +45,8 @@ message-port RPC surface (open/execute/fetch pairs, transferable
 - `crates/frozen-duckdb-sys/` — unchanged FFI layer, compiled for
   `wasm32-...` targets. The vendored C API headers
   (`crates/frozen-duckdb-builder/vendored-headers/duckdb.h`, `duckdb.hpp`,
-  staged from upstream v2.0-cyanoptera branch HEAD `b6013f7aa2f36caabb9466ce1791667ea8a280bb`,
-  DuckDB `2.0.0-dev`) are the compile contract; bindgen over the same
+  staged from upstream v2.0-cyanoptera branch HEAD `d54cbbe3df17e8e5ce68312f483b4155836112aa`,
+  DuckDB `2.0.0`) are the compile contract; bindgen over the same
   headers on wasm must yield a compatible bindings surface. UNVERIFIED.
 
 Crash containment contract: main-thread state is reconstructible from OPFS
@@ -90,7 +90,7 @@ DuckDB needs a `FileSystem` implementation over OPFS. The mapping:
 ## Build matrix
 
 The repo's native build knowledge (from `scripts/build_duckdb_optimized.sh`,
-which pins `DUCKDB_VERSION="2.0.0-dev"` and pre-compiles heavy dependencies)
+which pins `DUCKDB_VERSION="2.0.0"` and pre-compiles heavy dependencies)
 transfers to an Emscripten build:
 
 | Target | Toolchain | Key flags | Status |
@@ -127,7 +127,7 @@ deliberately kept open until a build proves one path.
    artifact that passes the same `duckdb_library_version` gate the native
    build passes. Concretely: link the artifact into the sys-crate for a wasm
    target, call `duckdb_library_version()` from a wasm-side test, assert it
-   reports the `2.0.0-dev` engine version matching the vendored `b6013f7`
+   reports the `2.0.0` engine version matching the vendored `b6013f7`
    headers. A build that compiles but fails the version gate is FAIL.
 2. **Persistence falsifier.** OPFS persistence must survive `Page.crash`
    plus reload via WAL replay. Concretely: via CDP (`Page.crash`), crash the

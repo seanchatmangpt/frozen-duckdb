@@ -52,13 +52,13 @@ jobs:
       # frozen_duckdb_builder::ensure_binary() looks FIRST in
       # ~/.frozen-duckdb/cache/v<version>-<arch>/libduckdb_<arch>.so. Its
       # fallbacks are unusable on CI (no vendored binary; release download
-      # 404s until the operator cuts the v2.0.0-dev release; post-TR7
+      # 404s until the operator cuts the v2.0.0 release; post-TR7
       # source-compile fallback is a full ~30-90 min DuckDB build). Keep
       # DUCKDB_VERSION in sync with crates/frozen-duckdb-builder/src/lib.rs.
       - name: Provision DuckDB library (pre-seed builder cache)
         run: |
           set -euo pipefail
-          DUCKDB_VERSION="2.0.0-dev"
+          DUCKDB_VERSION="2.0.0"
           ARCH="$(uname -m)"
           case "$ARCH" in
             x86_64)  ASSET="libduckdb-linux-amd64.zip"; ARCH_TAG="x86_64" ;;
@@ -68,8 +68,8 @@ jobs:
           CACHE_DIR="$HOME/.frozen-duckdb/cache/v${DUCKDB_VERSION}-${ARCH_TAG}"
           mkdir -p "$CACHE_DIR"
           TMP="$(mktemp -d)"
-          # Best-effort: upstream has no v2.0.0-dev release assets (dev pin,
-          # KD-registered). On 404 the builder's local-compile fallback from
+          # Best-effort: the legacy libduckdb-*.zip names 404 at upstream v2.0.0
+          # (assets renamed to duckdb-shared-libs-*.tar.gz). On 404 the builder's fenced local-compile fallback from
           # the pinned upstream source SHA supplies the library instead.
           if curl -fL --retry 5 --silent --show-error \
             "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/${ASSET}" \

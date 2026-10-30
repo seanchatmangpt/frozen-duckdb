@@ -17,7 +17,7 @@ logs its progress and only uses this panic when it fails.
 
 #### What if no cached binary is found?
 
-The builder downloads the matching per-arch release asset, or compiles the bundled DuckDB 2.0.0-dev source locally when the download fails (the supported Linux and pre-release
+The builder downloads the matching per-arch release asset, or compiles the bundled DuckDB 2.0.0 source locally when the download fails (the supported Linux and pre-release
 path). Check ~/.frozen-duckdb/cache/ afterwards; try cargo clean followed by a
 rebuild if the state looks stale.
 
@@ -34,7 +34,7 @@ prebuilt/setup_env.sh and the architecture helper module
 
 macOS uses prebuilt per-arch dylibs (arm64 and x86_64). Linux uses
 prebuilt `.so` files and needs glibc 2.38 or newer. Windows compiles the
-pinned DuckDB 2.0.0-dev source locally. `wasm32-wasip1` compiles a core-only static archive when `WASI_SDK_PATH` is set. The crate version is 2.0.3. File semantics (advisory locks, open flags) are handled inside the archive, so consumers need no shim or `--wrap` link args.
+pinned DuckDB 2.0.0 source locally. `wasm32-wasip1` compiles a core-only static archive when `WASI_SDK_PATH` is set. The crate version is 2.0.4. File semantics (advisory locks, open flags) are handled inside the archive, so consumers need no shim or `--wrap` link args.
 
 #### Why is it called frozen?
 

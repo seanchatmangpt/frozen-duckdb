@@ -9,7 +9,7 @@ echo "🚀 KCura Optimized DuckDB Build - Pre-compiling heavy dependencies..."
 # Configuration
 BUILD_DIR="target/duckdb-optimized"
 ARROW_VERSION="56.2.0"
-DUCKDB_VERSION="2.0.0-dev"
+DUCKDB_VERSION="2.0.0"
 # crates.io version of the `duckdb` crate that bundles DuckDB ${DUCKDB_VERSION};
 # duckdb-rs encodes the engine version as 1.MAJOR_MINOR_PATCH.x since v1.5.0
 DUCKDB_CRATE_VERSION="1.10505.0" # TODO(2.0): bump when duckdb-rs publishes a 2.0-compatible release

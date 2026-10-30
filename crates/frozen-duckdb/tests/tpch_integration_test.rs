@@ -18,7 +18,7 @@ fn lock_dbgen() -> MutexGuard<'static, ()> {
 }
 
 #[test]
-#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/b6013f7aa2/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
+#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/d54cbbe3d/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
 fn test_tpch_extension_available() -> Result<()> {
     let conn =
         Connection::open_in_memory_with_flags(Config::default().allow_unsigned_extensions()?)?;
@@ -39,7 +39,7 @@ fn test_tpch_extension_available() -> Result<()> {
 }
 
 #[test]
-#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/b6013f7aa2/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
+#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/d54cbbe3d/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
 fn test_tpch_data_generation() -> Result<()> {
     let conn =
         Connection::open_in_memory_with_flags(Config::default().allow_unsigned_extensions()?)?;
@@ -82,7 +82,7 @@ fn test_tpch_data_generation() -> Result<()> {
 }
 
 #[test]
-#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/b6013f7aa2/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
+#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/d54cbbe3d/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
 fn test_tpch_query_execution() -> Result<()> {
     let conn =
         Connection::open_in_memory_with_flags(Config::default().allow_unsigned_extensions()?)?;
@@ -137,7 +137,7 @@ fn test_tpch_query_execution() -> Result<()> {
 }
 
 #[test]
-#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/b6013f7aa2/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
+#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/d54cbbe3d/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
 fn test_tpch_expected_row_counts() -> Result<()> {
     let conn =
         Connection::open_in_memory_with_flags(Config::default().allow_unsigned_extensions()?)?;
@@ -192,7 +192,7 @@ fn test_tpch_expected_row_counts() -> Result<()> {
 }
 
 #[test]
-#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/b6013f7aa2/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
+#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/d54cbbe3d/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
 fn test_tpch_relationships() -> Result<()> {
     let conn =
         Connection::open_in_memory_with_flags(Config::default().allow_unsigned_extensions()?)?;
@@ -237,7 +237,7 @@ fn test_tpch_relationships() -> Result<()> {
 }
 
 #[test]
-#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/b6013f7aa2/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
+#[ignore = "OPT-IN: requires scripts/build_extensions_local.sh tpch (artifact at ~/.duckdb/extensions/d54cbbe3d/osx_arm64/) — upstream CDN 404s at the dev pin (KD-02); ADV4 witnessed LOAD-OK + dbgen with this harness"]
 fn test_tpch_performance_characteristics() -> Result<()> {
     let conn =
         Connection::open_in_memory_with_flags(Config::default().allow_unsigned_extensions()?)?;

@@ -11,7 +11,7 @@ WS_DIR="$(dirname "$COURT_DIR")"
 TTL="$WS_DIR/schema/warehouse_sim.ttl"
 EV_DIR="$COURT_DIR/.evidence"
 RECEIPT="$COURT_DIR/receipt.json"
-PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
+PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
 DATE_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 mkdir -p "$EV_DIR"
 log() { printf '%s\n' "$*"; }

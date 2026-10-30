@@ -1,8 +1,0 @@
-source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
-court: FLEET-004 native (compression + satellite digest)
-engine: v2.0.0-dev88595
-date: 2026-10-19T14:43:50-0700
-source_path: /tmp/value_audit/fleet004.json
-sha256: 33d67f6cfc13e478eeb36beddf83169456793029ad334fef71a2b85a0aae13a6
-lane: ERRC-C1
-receipt_format: verbatim JSON copy, no content edits

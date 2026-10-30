@@ -1,11 +1,11 @@
 # Migration: duckdb-rs to frozen-duckdb
 
-Crate version **2.0.3**. The bundled engine remains DuckDB `2.0.0-dev`
-(`b6013f7aa2f36caabb9466ce1791667ea8a280bb`).
+Crate version **2.0.4**. The bundled engine is DuckDB `v2.0.0`, the
+upstream v2.0.0 LTS release (`d54cbbe3df17e8e5ce68312f483b4155836112aa`).
 
-`0.1.0` and `2.0.0` are older generations. `2.0.0-dev` is a prerelease
+`0.1.0` and `2.0.0` are older generations. `2.0.0` is a prerelease
 already on crates.io; Cargo will not select it from `frozen-duckdb = "2"`.
-Depend on `2.0.3`.
+Depend on `2.0.4`.
 
 ## Quick migration
 
@@ -18,7 +18,7 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.3"
+frozen-duckdb = "2.0.4"
 ```
 
 ### Step 2: Update imports (if needed)
@@ -152,7 +152,7 @@ ls -la ~/.frozen-duckdb/cache/
 
 # On first build the builder downloads libduckdb_{arch}.dylib from
 # this repo's GitHub Releases; if no asset is reachable it falls back
-# to a local compile pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag)
+# to a local compile pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag)
 cargo clean && cargo build
 ```
 
@@ -164,8 +164,8 @@ grep "frozen-duckdb" Cargo.toml
 
 # Should show your path/git pin, e.g.:
 # frozen-duckdb = { path = ".../crates/frozen-duckdb" }
-# (the crate version is 2.0.3; the engine reports
-#  `SELECT version()` -> `v2.0.0-dev88595`, NOT 1.5.5)
+# (the crate version is 2.0.4; the engine reports
+#  `SELECT version()` -> `v2.0.0`, NOT 1.5.5)
 ```
 
 ### Issue: Import errors
@@ -187,16 +187,16 @@ If you were using specific duckdb-rs features:
 duckdb = { version = "1.10505.0", features = ["json", "parquet"] }  # duckdb-rs crate version; NOT the engine version (engine: 1.x line)
 
 # After (same core features, faster builds)
-frozen-duckdb = "2.0.0-dev"  # core features built in; `serde_json` is OPT-IN
+frozen-duckdb = "2.0.0"  # core features built in; `serde_json` is OPT-IN
 # (serde_json Value FromSql/ToSql — incl. VARIANT round-trip — needs
 #  `features = ["serde_json"]`)
 
-#### Behavior changes to know about (1.5.5 -> 2.0.0-dev)
+#### Behavior changes to know about (1.5.5 -> 2.0.0)
 
 - **BLOB round-trip**: `X'0102'` inserted and read back now yields raw bytes
   `[1, 2]`; DuckDB 1.x returned the text rendering `"x0102"`. If you parsed
   the text form, switch to `Vec<u8>`/`Value::Blob`.
-- **Extensions**: on this 2.0.0-dev pin, `INSTALL flock` (community) returns
+- **Extensions**: on this 2.0.0 pin, `INSTALL flock` (community) returns
   HTTP 404 and `LOAD tpch` fails signature/unsigned checks; the `tpch(1)`
   helper table function is also gone. Don't rely on community/tpch
   extensions until the final 2.0.0 extension builds publish.
@@ -236,8 +236,8 @@ cargo run
 ## Rollback Plan
 
 If you need to rollback (not recommended):
-> Storage caveat: databases created/written by the 2.0.0-dev engine carry a
-> `v2.0.0-dev88595` banner and are not guaranteed to open with a 1.x engine.
+> Storage caveat: databases created/written by the 2.0.0 engine carry a
+> `v2.0.0` banner and are not guaranteed to open with a 1.x engine.
 > Export to CSV/Parquet before rolling back.
 ```bash
 # Remove frozen-duckdb

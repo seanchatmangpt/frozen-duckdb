@@ -7,7 +7,7 @@ rehydrate losslessly back into per-event rows.
 Standing note: the SQL in this guide is grounded in
 `crates/frozen-duckdb/tests/doctor_ocel_tests.rs` (TEST-018/019/020), the
 doctor stage `07_ocel_compress` court that ran 94.93% compress / 97.01%
-query (receipt: `docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md` lines 319,
+query (receipt: `docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md` lines 319,
 373). The scalar DDL variant in `docs/design/rehydration-sql.md` is
 VERIFIED-SYNTAX only (v1.4.1 CLI, degraded collaborator); this guide
 follows the test file, which ran on the pinned engine.

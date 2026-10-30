@@ -3,7 +3,7 @@
 Information-oriented reference for the doctor stage-12 fleet hardware
 classes A-E. Spec and physical-reality audit:
 `docs/design/fleet-hardware-classes.md`; receipts:
-`docs/sjira/v2.0.0-dev/receipts/COURT-INDEX.md`. All measured numbers
+`docs/sjira/v2.0.0/receipts/COURT-INDEX.md`. All measured numbers
 are from the 2026-10-19 campaign runs.
 
 ## Matrix
@@ -50,7 +50,7 @@ sum(3n+7); compression ratio >= 0.95; satellite delta-sync vector
 <= 500 KB (per-segment MD5 x 10k segments). Non-vacuity: kill -9 ->
 kill -0 SHIM-COURT must flip the leg to VACUOUS-GATE. Measured: 99.76%
 compression; chaos 2 kill legs + no-op-kill flip DETECTED. Receipt:
-docs/sjira/v2.0.0-dev/receipts/fleet004.json (native, v2.0.0-dev88595); chaos court: receipts/fleet004_chaos.json (t2writer leg, engine v1.5.5 disclosed).
+docs/sjira/v2.0.0/receipts/fleet004.json (native, v2.0.0); chaos court: receipts/fleet004_chaos.json (t2writer leg, engine v1.5.5 disclosed).
 
 ## Class E — telco
 
@@ -67,7 +67,7 @@ smalt, KD-10). Measured: 11.6 ms/batch. Receipt:
 | A | 2.588 ms | median-of-30 < 20 ms | `/tmp/value_audit/fleet001.json` |
 | B | 80.5 MiB | post-warmup RSS <= 110 MB (proxy) | `/tmp/value_audit/fleet002_proxy.json` |
 | C | 54.77 ms | falsifier set (zero-imbalance, digests, <=4KB) | `/tmp/value_audit/fleet003.json` |
-| D | 99.76% | compression ratio >= 0.95 | docs/sjira/v2.0.0-dev/receipts/fleet004.json (native, v2.0.0-dev88595); chaos court: receipts/fleet004_chaos.json (t2writer leg, engine v1.5.5 disclosed) |
+| D | 99.76% | compression ratio >= 0.95 | docs/sjira/v2.0.0/receipts/fleet004.json (native, v2.0.0); chaos court: receipts/fleet004_chaos.json (t2writer leg, engine v1.5.5 disclosed) |
 | E | 11.6 ms | < 45 ms/batch median | `/tmp/value_audit/fleet005.json` |
 
 ## Stage-12 exit contract
@@ -81,5 +81,5 @@ PASS and every blocked leg echoed loud; 1 = FAIL; 3 = NOT-IMPLEMENTED
 ## See Also
 
 `docs/design/fleet-hardware-classes.md` ·
-`docs/sjira/v2.0.0-dev/receipts/COURT-INDEX.md` ·
+`docs/sjira/v2.0.0/receipts/COURT-INDEX.md` ·
 `benchmarking.md`

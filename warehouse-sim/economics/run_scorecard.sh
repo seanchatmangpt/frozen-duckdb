@@ -21,7 +21,7 @@ command -v curl  >/dev/null || { say "[SKIP] curl not found"; exit 2; }
 [ -d node_modules ]          || { say "[SKIP] npm install not done"; exit 2; }
 
 # ---- 1. Sovereign leg (Path B receipt from the real probe, --full 5-class) -
-LIBDIR=$(ls -d "$HOME"/.frozen-duckdb/cache/v2.0.0-dev-arm64 2>/dev/null | head -1)
+LIBDIR=$(ls -d "$HOME"/.frozen-duckdb/cache/v2.0.0-arm64 2>/dev/null | head -1)
 [ -n "$LIBDIR" ] || LIBDIR=$(find "$HOME/.frozen-duckdb/cache" -name 'libduckdb.dylib' 2>/dev/null | head -1 | xargs dirname)
 [ -n "$LIBDIR" ] || { say "[SKIP] no cached libduckdb (run builder once)"; exit 2; }
 

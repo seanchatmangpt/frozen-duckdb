@@ -1,0 +1,8 @@
+source_command: /tmp/value_audit court run (lane ERRC-C1, value-audit wave)
+court: TEST-REV-001 (10M-row debit/credit reconciliation, blake3 digest)
+engine: v2.0.0
+date: 2026-10-19T14:39:42-0700
+source_path: /tmp/value_audit/rev001.json
+sha256: 762d1510a9501a0aca9915d55e6875f5f2178b797946e03e6d0bd1a1448fe224
+lane: ERRC-C1
+receipt_format: verbatim JSON copy, no content edits

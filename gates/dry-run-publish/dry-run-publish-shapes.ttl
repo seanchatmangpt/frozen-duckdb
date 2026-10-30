@@ -1,4 +1,4 @@
-# dry-run-publish-shapes.ttl — frozen-duckdb v2.0.0-dev SHACL shapes for a filled
+# dry-run-publish-shapes.ttl — frozen-duckdb v2.0.0 SHACL shapes for a filled
 # dry-run publish evidence graph (RENDERED CONSEQUENCE). Adapted from
 # packs/dry-run-publish-pack/templates/dry-run-publish-shapes.ttl.tmpl (same
 # generic shape queries as the pack family: sh:targetClass + sh:path +

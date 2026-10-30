@@ -129,7 +129,7 @@ never PASS.
 **Procedure**: after worker boot, call the version entry point exposed by
 the WASM build inside the worker context (`Runtime.evaluate` against the
 worker session) and assert it returns the exact crate-pinned DuckDB version
-(2.0.0-dev, dev-suffix tolerant). The gate runs at the start of every burn-in iteration; a
+(2.0.0, dev-suffix tolerant). The gate runs at the start of every burn-in iteration; a
 mismatch aborts the iteration before any workload runs.
 
 **Falsifier**: ship a mismatched `duckdb.wasm` artifact to the harness

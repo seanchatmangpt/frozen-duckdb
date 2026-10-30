@@ -11,10 +11,10 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.3"
+frozen-duckdb = "2.0.4"
 ```
 
-`0.1.0` is the previous stable crate. `2.0.0-dev` is published as a
+`0.1.0` is the previous stable crate. `2.0.0` is published as a
 prerelease and is not what `cargo add` selects.
 
 ## The program
@@ -51,12 +51,12 @@ project, any project on this machine) reuses it. On this machine the warm
 cache is:
 
 ```text
-$ ls -lh ~/.frozen-duckdb/cache/v2.0.0-dev-arm64/
+$ ls -lh ~/.frozen-duckdb/cache/v2.0.0-arm64/
 total 128720
 drwxr-xr-x@ 4 sac  staff   128B Oct 19 13:22 duckdb
 -rwxr-xr-x@ 1 sac  staff    63M Oct 19 14:05 libduckdb_arm64.dylib
 lrwxr-xr-x@ 1 sac  staff    70B Oct 19 13:40 libduckdb.dylib ->
-  /Users/sac/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib
+  /Users/sac/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb_arm64.dylib
   (symlink target shown wrapped)
 ```
 
@@ -73,7 +73,7 @@ listing above):
 ```text
 $ cargo run -q            # compiled the dep tree; first exec hit the rpath
                           # caveat below, then fixed and re-run:
-$ install_name_tool -add_rpath ~/.frozen-duckdb/cache/v2.0.0-dev-arm64 \
+$ install_name_tool -add_rpath ~/.frozen-duckdb/cache/v2.0.0-arm64 \
     target/debug/fd-qs-native
 $ ./target/debug/fd-qs-native; echo "exit=$?"
 User: Alice
@@ -95,12 +95,12 @@ Earlier builds of the cached engine dylib carried a Mach-O install ID of
 `Library not loaded: @rpath/libduckdb.dylib` and needed a manual
 `install_name_tool -add_rpath` workaround. That defect is **fixed** at the
 cache persist layer (install-ID stamp; see
-`docs/sjira/v2.0.0-dev/receipts/ADV9-rpath.md`). A fresh out-of-tree path-dep
+`docs/sjira/v2.0.0/receipts/ADV9-rpath.md`). A fresh out-of-tree path-dep
 consumer (lane U2, 2026-10-19, warm cache) now runs bare, no rpath, no env:
 
 ```text
 $ otool -L target/debug/u2-probe | grep duckdb
-	/Users/sac/.frozen-duckdb/cache/v2.0.0-dev-arm64/libduckdb_arm64.dylib
+	/Users/sac/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb_arm64.dylib
   (absolute-path LC_LOAD_DYLIB, zero LC_RPATH entries; run exit=0)
 $ ./target/debug/u2-probe
 User: Alice
@@ -112,7 +112,7 @@ persisted before the fix, self-heal restamps it on the next builder run; the
 one-shot manual workaround remains:
 
 ```bash
-install_name_tool -add_rpath ~/.frozen-duckdb/cache/v2.0.0-dev-arm64 \
+install_name_tool -add_rpath ~/.frozen-duckdb/cache/v2.0.0-arm64 \
     target/debug/<your-binary>
 ```
 

@@ -3,7 +3,7 @@
 # Spec: the marine container-telemetry 1M-event fleet class D battery.
 #
 # Subject: /tmp/t2writer (cargo fixture, frozen-duckdb path dep, rpath to the
-# cached v2.0.0-dev-arm64 dylib). Schema: D8 `ocel_conforming_segments` RLE
+# cached v2.0.0-arm64 dylib). Schema: D8 `ocel_conforming_segments` RLE
 # (segment_id, oid, action, channel, t_start, t_end, transition_count) plus a
 # per-block chksum column carrying the closed form sum_{n}(3n+7), so any torn
 # transaction is detectable by checksum alone.
@@ -174,7 +174,7 @@ crash_leg() {
 # ---- prerequisites -------------------------------------------------------
 if [ ! -x "$T2_BIN" ]; then
   echo "[SKIP] no t2writer fixture binary: $T2_BIN"
-  echo "[SKIP] build: cd /tmp/t2writer && RUSTFLAGS='-C link-arg=-Wl,-rpath,$HOME/.frozen-duckdb/cache/v2.0.0-dev-arm64' cargo build --release"
+  echo "[SKIP] build: cd /tmp/t2writer && RUSTFLAGS='-C link-arg=-Wl,-rpath,$HOME/.frozen-duckdb/cache/v2.0.0-arm64' cargo build --release"
   exit 1
 fi
 

@@ -134,12 +134,12 @@ invocation prints nothing and exits 0):
 ```bash
 $ frozen-duckdb-cli -v info
 INFO frozen_duckdb::cli::dataset_manager: 🦆 Frozen DuckDB Information
-INFO ... Version: 2.0.0-dev
+INFO ... Version: 2.0.0
 INFO ... Build Type: Pre-compiled binary
 INFO ... Architecture: aarch64        # std::env::consts::ARCH ("aarch64", not "arm64")
 INFO ... Target: macos
 INFO ... Available Extensions: autocomplete, avro, aws, ... (the full
-       duckdb_extensions() list — 31 entries on the 2.0.0-dev dylib, incl. flock)
+       duckdb_extensions() list — 31 entries on the 2.0.0 dylib, incl. flock)
 ```
 
 ## LLM Integration Commands
@@ -625,7 +625,7 @@ fi
 
 # Solution: check the builder-managed cache, then rebuild to retry
 # acquisition (cache -> local prebuilt dir -> GitHub Release download
-# -> local compile pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag))
+# -> local compile pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag))
 ls -la ~/.frozen-duckdb/cache/
 cargo clean && cargo build
 ```

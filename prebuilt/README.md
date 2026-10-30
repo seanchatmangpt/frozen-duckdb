@@ -1,15 +1,15 @@
 # Prebuilt DuckDB Binaries
 
-This directory supports the **manual prebuilt workflow** of the frozen-duckdb project: it carries the DuckDB 2.0.0-dev headers and the environment setup script. The dylibs themselves are **not committed to the repository** — they are published as GitHub Release assets (`libduckdb_{arch}.dylib`) and downloaded automatically by `frozen-duckdb-builder::ensure_binary()` on first build.
+This directory supports the **manual prebuilt workflow** of the frozen-duckdb project: it carries the DuckDB 2.0.0 headers and the environment setup script. The dylibs themselves are **not committed to the repository** — they are published as GitHub Release assets (`libduckdb_{arch}.dylib`) and downloaded automatically by `frozen-duckdb-builder::ensure_binary()` on first build.
 
 ## Contents
 
-Sizes below are **measured on this tree at DuckDB 2.0.0-dev** (2026-10-19),
+Sizes below are **measured on this tree at DuckDB 2.0.0** (2026-10-19),
 not claimed from upstream.
 
 | File | Size (measured) | Description |
 |------|------|-------------|
-| `duckdb.h` | 284KB (290,195 bytes) | C header file for DuckDB 2.0.0-dev API |
+| `duckdb.h` | 284KB (290,195 bytes) | C header file for DuckDB 2.0.0 API |
 | `duckdb.hpp` | 431B | Thin umbrella C++ header (includes `duckdb/main/*.hpp`; the full upstream `duckdb.hpp` is ~2.0MB, but this tree ships the umbrella form) |
 | `setup_env.sh` | 3.4KB | Environment setup script (legacy manual workflow) |
 
@@ -17,7 +17,7 @@ The same headers are vendored inside `crates/frozen-duckdb-builder/vendored-head
 
 ## Release Assets (downloaded, not stored here)
 
-Sizes measured on DuckDB 2.0.0-dev (2026-10-19). Per-arch thin dylibs; a
+Sizes measured on DuckDB 2.0.0 (2026-10-19). Per-arch thin dylibs; a
 stripped arm64 dylib comes out at 52.4MB.
 
 | Asset | Size (measured) | Contains |

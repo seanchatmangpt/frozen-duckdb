@@ -3,10 +3,10 @@
 #
 # Local closure attempt for the tpch/flock extension 404s (KD-02-adjacent):
 # builds loadable extensions NATIVELY (osx_arm64, release) from the pinned dev
-# engine commit and LOAD-tests them against the cached v2.0.0-dev engine.
+# engine commit and LOAD-tests them against the cached v2.0.0 engine.
 #
-# Pin: duckdb b6013f7aa2f36caabb9466ce1791667ea8a280bb (engine reports
-#      v2.0.0-dev88595)
+# Pin: duckdb d54cbbe3df17e8e5ce68312f483b4155836112aa (engine reports
+#      v2.0.0)
 #
 # Usage:
 #   scripts/build_extensions_local.sh            # tpch + flock attempt
@@ -26,16 +26,16 @@
 # Artifacts:
 #   target/adv4/native-duckdb/build/extension/tpch/tpch.duckdb_extension
 #   Install dir so `INSTALL tpch` resolves without the network:
-#   ~/.duckdb/extensions/b6013f7aa2/osx_arm64/tpch.duckdb_extension
-#   (version dir = the SHORT SHA from the registry URL, not v2.0.0-dev88595)
+#   ~/.duckdb/extensions/d54cbbe3d/osx_arm64/tpch.duckdb_extension
+#   (version dir = the SHORT SHA from the registry URL, not v2.0.0)
 #
-# Receipt: docs/sjira/v2.0.0-dev/receipts/ADV4-extensions.md
+# Receipt: docs/sjira/v2.0.0/receipts/ADV4-extensions.md
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
-PIN_SHORT="b6013f7aa2"
+PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
+PIN_SHORT="d54cbbe3d"
 SCRATCH="${REPO_ROOT}/target/adv4"
 NATIVE_TREE="${SCRATCH}/native-duckdb"
 FLOCK_TREE="${SCRATCH}/flock"
@@ -106,7 +106,7 @@ build_flock() {
   fi
   git -C "$FLOCK_TREE" submodule update --init --depth 1
   # Re-point flock's duckdb submodule at OUR engine pin so any produced
-  # loadable would carry the b6013f7aa2 version stamp.
+  # loadable would carry the d54cbbe3d version stamp.
   git -C "${FLOCK_TREE}/duckdb" fetch --depth 1 origin "$PIN" || true
   git -C "${FLOCK_TREE}/duckdb" checkout --detach FETCH_HEAD || true
   log "flock duckdb submodule at: $(git -C "${FLOCK_TREE}/duckdb" rev-parse HEAD 2>/dev/null || echo n/a)"

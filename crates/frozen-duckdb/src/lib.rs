@@ -19,7 +19,7 @@
 //! duckdb = "1.20000"
 //!
 //! # After (99% faster builds)
-//! frozen-duckdb = "2.0.0-dev"
+//! frozen-duckdb = "2.0.0"
 //! ```
 //!
 //! **No code changes needed** - same API, same functionality, 99% faster builds!

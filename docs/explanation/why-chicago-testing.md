@@ -29,17 +29,17 @@ is exactly what this campaign kept catching.
 
 ### The cache-poison catch
 
-Mid-window, v1.5.5 library bytes were staged into the v2.0.0-dev cache
+Mid-window, v1.5.5 library bytes were staged into the v2.0.0 cache
 slot by an unidentified lane build path (~13:22). Everything that had
 "passed" against that slot was void for engine identity — a test suite
 run against the wrong binary is a mock-adjacent error: the collaborator
 under test was not the collaborator claimed. The campaign's response
 was physical, not procedural: quarantine, rebuild from the pinned
 `v2.0-cyanoptera b6013f7` source, and a strings-level identity probe
-(`v2.0.0-dev88595` self-report witnessed; stale `v2.1.0-dev89402`
+(`v2.0.0` self-report witnessed; stale `v2.1.0-dev89402`
 self-report absent). Post-13:22 receipts were re-witnessed or remain
 marked as such — never silently upgraded. (Record:
-`docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md`, incident record.)
+`docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md`, incident record.)
 
 ### The vacuity flips
 
@@ -93,4 +93,4 @@ WITNESSED.
 `docs/design/verification-plan.md` (court battery) -
 `docs/design/economic-model.md` (fail-closed economics, same
 discipline applied to dollars) -
-`docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md` (the incidents cited)
+`docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md` (the incidents cited)

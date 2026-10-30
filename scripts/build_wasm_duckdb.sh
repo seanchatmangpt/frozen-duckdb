@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-SOURCE_PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
+SOURCE_PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
 DUCKDB_REPO="https://github.com/duckdb/duckdb.git"
 BUILD_ROOT="${BUILD_ROOT:-target/wasm-build}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-target/wasm}"

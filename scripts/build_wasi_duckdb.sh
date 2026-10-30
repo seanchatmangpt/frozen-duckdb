@@ -13,8 +13,8 @@ set -u
 
 EMSDK="${EMSDK:-/Users/sac/emsdk}"
 DUCKDB_SRC="${DUCKDB_SRC:-/Users/sac/rel4r/duckdb-src}"
-DUCKDB_PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
-STAGING="${STAGING:-$HOME/.frozen-duckdb/cache/v2.0.0-dev-wasm32-wasip1}"
+DUCKDB_PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
+STAGING="${STAGING:-$HOME/.frozen-duckdb/cache/v2.0.0-wasm32-wasip1}"
 COMPAT_SRC="${COMPAT_SRC:-/Users/sac/frozen-duckdb/crates/frozen-duckdb-sys/wasi_posix.c}"
 PATCH_SRC="${PATCH_SRC:-/Users/sac/frozen-duckdb/patches/wasi-file-semantics.patch}"
 # wasi libc for standalone clang links (rust ships a wasi-sdk-compatible libc.a

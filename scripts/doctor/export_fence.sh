@@ -83,5 +83,5 @@ if command -v objcopy >/dev/null 2>&1; then
 else
     echo "objcopy: NOT PRESENT on darwin (no --localize-symbol route)"
 fi
-echo "== export_fence: evidence complete (verdict: see docs/sjira/v2.0.0-dev/receipts/ADV3-export-fence.md) =="
+echo "== export_fence: evidence complete (verdict: see docs/sjira/v2.0.0/receipts/ADV3-export-fence.md) =="
 exit 0

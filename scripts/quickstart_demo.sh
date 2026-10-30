@@ -31,7 +31,7 @@ command -v cargo >/dev/null || die "[SKIP] cargo not on PATH — cannot run"
 STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 HEAD="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
 ARCH="$(uname -m)"
-CACHE_ENTRY="$HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
+CACHE_ENTRY="$HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}"
 
 log "== frozen-duckdb one-shot onboarding probe =="
 receipt "repo=$REPO"
@@ -115,7 +115,7 @@ receipt "phase2_legA_bare_run_wall_s=$(echo "$T3 - $T2" | bc)"
 
 # Leg B (workaround + assert): the current one-shot reality requires pointing
 # dyld at the cache. Receipted as a divergence, fixed by the rpath proposal.
-LIB_DIR="$HOME/.frozen-duckdb/cache/v2.0.0-dev-${ARCH}"
+LIB_DIR="$HOME/.frozen-duckdb/cache/v2.0.0-${ARCH}"
 T4=$(date +%s.%N)
 OUT="$(DYLD_LIBRARY_PATH="$LIB_DIR" "$BIN")" || die "demo binary failed even with DYLD_LIBRARY_PATH"
 T5=$(date +%s.%N)

@@ -9,7 +9,7 @@
 # sentinel), NEVER a third (a torn txn).
 #
 # Fixture: /tmp/z2writer (cargo, frozen-duckdb path dep, cached
-# v2.0.0-dev88595 dylib). Writer/checker subcommands, z2-suffixed
+# v2.0.0 dylib). Writer/checker subcommands, z2-suffixed
 # names per lane Z2 ownership.
 #
 # BASELINE -> BEFORE -> SHIM -> AFTER -> RESTORE shape.
@@ -154,7 +154,7 @@ crash_leg() {
 # ---- prerequisites -------------------------------------------------------
 if [ ! -x "$Z2_BIN" ]; then
   echo "[SKIP] no z2writer fixture binary: $Z2_BIN"
-  echo "[SKIP] build: cd /tmp/z2writer && RUSTFLAGS='-C link-arg=-Wl,-rpath,$HOME/.frozen-duckdb/cache/v2.0.0-dev-arm64' cargo build --release"
+  echo "[SKIP] build: cd /tmp/z2writer && RUSTFLAGS='-C link-arg=-Wl,-rpath,$HOME/.frozen-duckdb/cache/v2.0.0-arm64' cargo build --release"
   exit 1
 fi
 
@@ -162,7 +162,7 @@ fi
 mkdir -p "$WORK"
 ID=$("$Z2_BIN" checker "$WORK/identity.db" /dev/null 2>&1 | awk -F'|' '/^ENGINE\|/{print $2}')
 case "$ID" in
-  v2.0.0-dev88595) say "engine-identity OK: $ID (cached dylib)";;
+  v2.0.0) say "engine-identity OK: $ID (cached dylib)";;
   *) say "VERDICT FAIL: engine identity mismatch: got '$ID'"; rm -rf "$WORK"; exit 1;;
 esac
 

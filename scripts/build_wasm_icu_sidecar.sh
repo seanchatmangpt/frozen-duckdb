@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build_wasm_icu_sidecar.sh — SP4 lane: build DuckDB's ICU extension as a
 # standalone loadable wasm module against the pinned source
-# b6013f7aa2f36caabb9466ce1791667ea8a280bb.
+# d54cbbe3df17e8e5ce68312f483b4155836112aa.
 #
 # Recipe (operator spec):
 #   - source: existing verified checkout target/wasm-build/duckdb at the pin
@@ -21,11 +21,11 @@
 #   3. smoke-load attempt (LOAD 'icu') against the core — recorded honestly;
 #      a missing dynamic-loading seam is a typed BLOCKED, not hidden.
 #
-# Receipt: docs/sjira/v2.0.0-dev/receipts/SP4-icu-sidecar.md
+# Receipt: docs/sjira/v2.0.0/receipts/SP4-icu-sidecar.md
 
 set -euo pipefail
 
-SOURCE_PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
+SOURCE_PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
 DUCKDB_REPO="https://github.com/duckdb/duckdb.git"
 LANE_ROOT="${LANE_ROOT:-/Users/sac/frozen-duckdb/target/wasm-icu-sidecar}"
 BUILD_ROOT="${LANE_ROOT}/build"

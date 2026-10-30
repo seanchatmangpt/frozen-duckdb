@@ -22,10 +22,10 @@ surface is DuckDB's own C API, consumed in two ways:
   `BUILD_JEMALLOC=ON` and `BUILD_AUTOLOAD=ON`
   (`crates/frozen-duckdb-builder/src/lib.rs:576-581`).
 
-Pinned upstream source: **DuckDB 2.0.0-dev** (`const VERSION = "2.0.0-dev"`,
+Pinned upstream source: **DuckDB 2.0.0** (`const VERSION = "2.0.0"`,
 `crates/frozen-duckdb-builder/src/lib.rs:15`; the workspace crate version is
-also 2.0.0-dev). The source is staged from upstream main at SHA
-`b6013f7aa2f36caabb9466ce1791667ea8a280bb` — no `v2.0.0` tag exists yet, so
+also 2.0.0). The source is staged from upstream main at SHA
+`d54cbbe3df17e8e5ce68312f483b4155836112aa` — no `v2.0.0` tag exists yet, so
 the local-compile fallback clones and checks out that SHA rather than a tag.
 The crates.io version-encoding law (`1.MAJOR*10000 + MINOR*100 + PATCH`)
 still applies only to the upstream-compat pin, which remains `duckdb-rs =
@@ -38,7 +38,7 @@ still applies only to the upstream-compat pin, which remains `duckdb-rs =
 `crates/frozen-duckdb-sys/build.rs` calls
 `frozen_duckdb_builder::ensure_binary()`, which resolves in this order:
 
-1. **Versioned cache** `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/libduckdb_{arch}.{dylib,so}`
+1. **Versioned cache** `~/.frozen-duckdb/cache/v2.0.0-{arch}/libduckdb_{arch}.{dylib,so}`
    — if present, it is slice-verified (`lipo -archs`) before use; a stale
    pre-TR7 cache holding the wrong slice fails the build with a remove-and-
    rebuild instruction.
@@ -47,7 +47,7 @@ still applies only to the upstream-compat pin, which remains `duckdb-rs =
    cache with the vendored headers.
 3. **GitHub Release download** — asset
    `libduckdb_{arch}.dylib` (macOS) / `libduckdb_{arch}.so` (Linux) from
-   `releases/download/v2.0.0-dev/`. As of this writing **no release/tag has been
+   `releases/download/v2.0.0/`. As of this writing **no release/tag has been
    published**, so downloads return HTTP 404 on every platform and the
    fallback runs (`release_asset_name_for`, lib.rs:66-76).
 4. **Local compile fallback** — the operative path today (see below).
@@ -90,7 +90,7 @@ UNVERIFIED (logged), never a silent pass.
 
 ```
 git clone --depth 1 https://github.com/duckdb/duckdb.git
-cd duckdb && git checkout b6013f7aa2f36caabb9466ce1791667ea8a280bb
+cd duckdb && git checkout d54cbbe3df17e8e5ce68312f483b4155836112aa
 cmake .. -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_EXTENSIONS=parquet;json;icu;httpfs;tpch;tpcds;fts;inet;sqlsmith \
   -DBUILD_JEMALLOC=ON -DBUILD_AUTOLOAD=ON \
@@ -140,11 +140,11 @@ linking directives** — no library needed (build.rs:85-138).
 ## Release-artifact layout
 
 ```
-GitHub Release v2.0.0-dev
-├── libduckdb_x86_64.dylib      # DuckDB 2.0.0-dev + bundled extension set
+GitHub Release v2.0.0
+├── libduckdb_x86_64.dylib      # DuckDB 2.0.0 + bundled extension set
 └── libduckdb_arm64.dylib
 
-~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/
+~/.frozen-duckdb/cache/v2.0.0-{arch}/
 ├── libduckdb_{arch}.dylib      # cached copy of the release asset
 ├── libduckdb.dylib -> ...      # -lduckdb / @rpath link name
 └── duckdb/

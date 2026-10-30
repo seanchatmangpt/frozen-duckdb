@@ -39,7 +39,7 @@ ROOT="${4:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 [[ "$NEW_SHA" =~ ^[0-9a-f]{40}$ ]] || {
   echo "FATAL: NEW_SHA must be a 40-hex upstream commit (got: $NEW_SHA)" >&2; exit 2; }
 
-OLD_PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"   # duckdb v2.0-cyanoptera b6013f7
+OLD_PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"   # duckdb v2.0.0 LTS tag d54cbbe
 old_if() { [ -f "$ROOT/$1" ] || { echo "FATAL: missing $ROOT/$1" >&2; exit 2; }; }
 
 # ---------------------------------------------------------------- edit set ---

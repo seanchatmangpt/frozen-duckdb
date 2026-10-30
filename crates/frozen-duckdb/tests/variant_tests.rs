@@ -1,6 +1,6 @@
 //! VARIANT round-trip integration tests (real DuckDB, no mocks).
 //!
-//! Working form on this build (v2.0.0-dev cached dylib), verified by running:
+//! Working form on this build (v2.0.0 cached dylib), verified by running:
 //! - `CREATE TABLE t(v VARIANT)` DDL and `'{...}'::VARIANT` casts are accepted.
 //! - Inserting a JSON payload through a varchar bind is implicitly cast
 //!   varchar -> VARIANT on insert.

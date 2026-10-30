@@ -1,6 +1,6 @@
 //! TEST-VAL-001: 500k-event semi-structured storage audit (lane A1).
 //!
-//! Real engine (v2.0.0-dev cached dylib), no mocks. Two measured legs:
+//! Real engine (v2.0.0 cached dylib), no mocks. Two measured legs:
 //!
 //! Leg 1 (workload): 500k Datadog-log-shaped payloads ingested through the
 //! VARIANT pipeline; selective filter latency on the payload error-code

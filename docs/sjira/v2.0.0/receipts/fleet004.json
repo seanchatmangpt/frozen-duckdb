@@ -1,0 +1,13 @@
+{
+  "receipt": "FLEET-004 (native)",
+  "lane": "T2",
+  "gate": "TEST-FLEET-004",
+  "engine": "v2.0.0",
+  "events": 1000000,
+  "segments": 10000,
+  "leg2_compression": {"raw_jsonl_bytes": 221033690, "db_bytes": 536576, "ratio": 0.9976, "pass_line": 0.95},
+  "leg3_satellite": {"digest_bytes": 320000, "header_bytes": 72, "total_bytes": 320072, "budget": 512000},
+  "leg1_chaos": "see /tmp/value_audit/fleet004_chaos.json (court receipt)",
+  "db_sha256": "235b6d424782a6e3c685e05aefe6e09968a07337c0e08c51284cdf244f3e4013",
+  "standing": "ALIVE"
+}

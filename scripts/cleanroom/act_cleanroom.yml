@@ -19,7 +19,7 @@ repo:
 cache:
   host_path: ~/.frozen-duckdb
   container_path: /cleanroom-home/.frozen-duckdb
-  versioned_entry: v2.0.0-dev-arm64   # macOS-arm64 entry only; linux entry ABSENT (the finding)
+  versioned_entry: v2.0.0-arm64   # macOS-arm64 entry only; linux entry ABSENT (the finding)
 
 court:
   script: scripts/cleanroom/consumer_cleanroom.sh

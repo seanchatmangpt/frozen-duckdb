@@ -65,10 +65,10 @@ EXTRA=$(echo "$DIFF_OUT" | grep -v -e 'vendored-headers/duckdb\.h$' -e 'vendored
 echo "  EXPECTED-STAGED: 4 headers + wave companions prebuilt/README.md, prebuilt/setup_env.sh differ from HEAD (uncommitted wave staging), not a failure"
 
 echo "[6] GENESIS.md cross-check"
-grep -q "upstream:duckdb/duckdb@v2.0.0-dev" "$ROOT/docs/GENESIS.md" \
-  || fail "GENESIS.md rows do not reference @v2.0.0-dev"
+grep -q "upstream:duckdb/duckdb@v2.0.0" "$ROOT/docs/GENESIS.md" \
+  || fail "GENESIS.md rows do not reference @v2.0.0"
 grep -q "$PIN" "$ROOT/docs/GENESIS.md" \
   || fail "GENESIS.md does not carry SOURCE_PIN $PIN"
-echo "  OK rows reference @v2.0.0-dev and pin $PIN"
+echo "  OK rows reference @v2.0.0 and pin $PIN"
 
 echo "PASS: attested (pin $PIN, 4 headers pairwise-identical, upstream-matched, EXPECTED-STAGED diff)"

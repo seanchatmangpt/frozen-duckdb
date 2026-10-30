@@ -44,8 +44,8 @@ IO Error: Could not set lock on file "<db>": Conflicting lock is held in
 https://duckdb.org/docs/current/connect/concurrency
 ```
 
-Witnessed against the frozen 2.0.0-dev engine with two real OS processes
-(receipt: `docs/sjira/v2.0.0-dev/receipts/USER-FINDINGS-U10.md`): a
+Witnessed against the frozen 2.0.0 engine with two real OS processes
+(receipt: `docs/sjira/v2.0.0/receipts/USER-FINDINGS-U10.md`): a
 READ_ONLY open is rejected while a writer holds the file, two READ_ONLY
 processes with no writer open fine concurrently, `kill -9` mid-transaction
 recovers cleanly on next open (WAL replay, uncommitted work lost, no stale

@@ -27,13 +27,13 @@ The Frozen DuckDB project is designed as a **drop-in replacement** for bundled D
 
 #### 1. Fast Builds Only
 - **Pre-compiled binaries**: No DuckDB compilation during builds
-- **Universal dylibs**: each 2.0.0-dev release asset contains arm64 + x86_64 slices
+- **Universal dylibs**: each 2.0.0 release asset contains arm64 + x86_64 slices
 - **Minimal dependencies**: Reduce build complexity and download size
 
 #### 2. Drop-in Compatibility
 - **Zero breaking changes**: Seamless integration with existing projects
 - **Zero configuration**: the builder acquires the binary automatically; `DUCKDB_LIB_DIR`/`DUCKDB_INCLUDE_DIR` are only used by the legacy prebuilt workflow
-- **Fallback handling**: local compile pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag) if no release asset is reachable
+- **Fallback handling**: local compile pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag) if no release asset is reachable
 
 #### 3. Smart Architecture Detection
 - **Automatic detection**: `uname -m` in the builder (`x86_64`, or `arm64`/`aarch64` → `arm64`); the `ARCH` override applies only to `prebuilt/setup_env.sh` and the `architecture` helper module
@@ -72,9 +72,9 @@ The binary is `frozen-duckdb-cli` (`[[bin]]` in `crates/frozen-duckdb/Cargo.toml
 
 ### Build Integration (`frozen-duckdb-sys/build.rs`)
 
-- **Binary acquisition**: calls `frozen-duckdb-builder::ensure_binary()` (cache → local prebuilt dir → GitHub Release download → local compile pinned at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag))
+- **Binary acquisition**: calls `frozen-duckdb-builder::ensure_binary()` (cache → local prebuilt dir → GitHub Release download → local compile pinned at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag))
 - **Library linking**: `cargo:rustc-link-lib=dylib=duckdb` against the cached `libduckdb.dylib` link name
-- **Header inclusion**: bindgen against the builder's headers (vendored 2.0.0-dev headers copied into the cache `duckdb/` subdir)
+- **Header inclusion**: bindgen against the builder's headers (vendored 2.0.0 headers copied into the cache `duckdb/` subdir)
 - **Runtime rpath**: `frozen-duckdb`'s build script consumes `DEP_DUCKDB_DUCKDB_LIB_DIR` and emits `-Wl,-rpath,{lib_dir}` for bins/tests/examples
 
 ## Data Flow Architecture
@@ -82,10 +82,10 @@ The binary is `frozen-duckdb-cli` (`[[bin]]` in `crates/frozen-duckdb/Cargo.toml
 ### Build Time
 ```
 1. Binary Acquisition (ensure_binary)
-   ├── Check cache: ~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/libduckdb_{arch}.dylib
+   ├── Check cache: ~/.frozen-duckdb/cache/v2.0.0-{arch}/libduckdb_{arch}.dylib
    ├── Else copy local prebuilt/libduckdb_{arch}.dylib if present
    ├── Else download from GitHub Releases (libduckdb_{arch}.dylib)
-   ├── Else clone upstream DuckDB at upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag) and compile
+   ├── Else clone upstream DuckDB at upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag) and compile
    └── Normalize cache: duckdb/ headers + plain libduckdb.dylib link name
 
 2. Build Integration

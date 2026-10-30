@@ -13,7 +13,7 @@
 #
 # Output: /out/ (mounted host dir). Exit 0 only if all phases pass.
 set -euo pipefail
-PIN="b6013f7aa2f36caabb9466ce1791667ea8a280bb"
+PIN="d54cbbe3df17e8e5ce68312f483b4155836112aa"
 OUT=/out
 mkdir -p "$OUT"
 

@@ -1,10 +1,10 @@
 # dmadv-charter
 
-DMADV Charter — frozen-duckdb v2.0.0-dev Campaign (Blueprint Lane BP6)
+DMADV Charter — frozen-duckdb v2.0.0 Campaign (Blueprint Lane BP6)
 
-Status: DESIGN-TARGET (charter authored during the v2.0.0-dev wave; Measure and
+Status: DESIGN-TARGET (charter authored during the v2.0.0 wave; Measure and
 Verify sections cite real commands and this wave's audited findings —
-execution receipts live in `docs/sjira/v2.0.0-dev/receipts/`, not here).
+execution receipts live in `docs/sjira/v2.0.0/receipts/`, not here).
 
 ## Define
 
@@ -17,17 +17,17 @@ designed alongside the upgrade.
 
 **Scope**:
 
-- Upstream pin: `b6013f7aa2f36caabb9466ce1791667ea8a280bb` (v2.0-cyanoptera
+- Upstream pin: `d54cbbe3df17e8e5ce68312f483b4155836112aa` (v2.0-cyanoptera
   line; no `v2.0*` tags existed upstream as of 2026-10-19, so the compile
   fallback clones the pinned SHA, not a tag).
-- Crate version mirrors the bundled engine: `2.0.0-dev` (dev-suffix
+- Crate version mirrors the bundled engine: `2.0.0` (dev-suffix
   prerelease, never published to crates.io — permanent-publish risk).
 - Blueprint layers: `crates/frozen-duckdb-sys` (FFI pin + vendored headers),
   `crates/frozen-duckdb-builder` (acquire/cache, cache dir labeled
-  `v2.0.0-dev`), `crates/frozen-duckdb` (public surface), `test-dependency` /
+  `v2.0.0`), `crates/frozen-duckdb` (public surface), `test-dependency` /
   `test-validation` (consumer probes with `upstream-compat` feature),
   `ggen.toml` + generated surface (Makefile, verify-evidence.ttl), and the
-  milestone window `docs/sjira/v2.0.0-dev/`.
+  milestone window `docs/sjira/v2.0.0/`.
 
 **Out of scope**: crates.io publish of the prerelease; new typed `Config`
 options (deferred until the runtime probe is possible); dual-engine linking
@@ -44,10 +44,10 @@ Real baselines, all re-runnable today:
   `scripts/verify-evidence.ttl`, bound to the subject head/tree and the ggen
   graph hash. Summary line format: `verify-gates: N/5 gates green`.
 - **Dylib version gate**: `duckdb_library_version()` must return a
-  `2.0.0-dev*` string consistent with the builder pin (dev-suffix tolerance:
-  `2.0.0-dev` followed by anything, or bare `2.0.0-dev`). This is V2's
+  `2.0.0*` string consistent with the builder pin (dev-suffix tolerance:
+  `2.0.0` followed by anything, or bare `2.0.0`). This is V2's
   receipt obligation and falsifier 2 in
-  `docs/sjira/v2.0.0-dev/UPGRADE-WO.md`.
+  `docs/sjira/v2.0.0/UPGRADE-WO.md`.
 - **Build times**: the Builder pattern's compile fallback clones pinned
   source `b6013f73…` and compiles DuckDB locally; baseline = wall-clock of
   `cargo build --workspace` with a cold `~/.frozen-duckdb/cache/` vs warm
@@ -59,16 +59,16 @@ Real baselines, all re-runnable today:
 **Root cause: version skew between the pin and the self-reported library
 version.** The main branch self-reports `v2.1.0-dev` via
 `duckdb_library_version()` while the campaign pin is the v2.0-cyanoptera
-commit `b6013f7aa2f36caabb9466ce1791667ea8a280bb`. Left unpinned, a cache or
+commit `d54cbbe3df17e8e5ce68312f483b4155836112aa`. Left unpinned, a cache or
 dylib built from a moving `main` self-identifies as a version the crates
 cannot truthfully mirror, and the cache version gate would pass on a library
 that is not the pinned one.
 
 **Resolution**: pin to `b6013f7…` (v2.0-cyanoptera). The compile fallback
-clones the exact SHA; the cache dir label (`v2.0.0-dev`), the crate version
-(`2.0.0-dev`), and the dylib self-report must all agree within dev-suffix
+clones the exact SHA; the cache dir label (`v2.0.0`), the crate version
+(`2.0.0`), and the dylib self-report must all agree within dev-suffix
 tolerance. Falsifier 3 (cache-poison): a stale 1.5.5 dylib satisfying a
-`v2.0.0-dev` cache label, or a version probe passing on a mismatched library,
+`v2.0.0` cache label, or a version probe passing on a mismatched library,
 proves the cache versioning vacuous and fails the work order.
 
 **Defect accounting for this wave** (audited findings, 6 found / 6 repaired
@@ -106,10 +106,10 @@ tooling:
   `make genesis-check` detects generated-surface drift, and auditor
   falsifier A4 fails the work order on any hand-edited generated file.
 - **Receipt chain**: verifier lanes (V1–V5) drop receipts with real
-  command + exit + output into `docs/sjira/v2.0.0-dev/receipts/`; auditor
+  command + exit + output into `docs/sjira/v2.0.0/receipts/`; auditor
   lanes (A1–A4, extended A15–A28) grade them. A receipt asserting without
   output is SUSPECT per the standing vocabulary.
-- **Cache identity design**: cache dir labeled `v2.0.0-dev` must contain a
+- **Cache identity design**: cache dir labeled `v2.0.0` must contain a
   dylib whose `duckdb_library_version()` self-report matches the label
   within dev-suffix tolerance (falsifier 3 above) — cache versioning is
   falsified by poison, not by assertion.
@@ -124,7 +124,7 @@ The tollgate is the existing repo machinery, nothing invented:
 2. `make genesis-check` GREEN — generated-surface drift check passes
    (Makefile and `generated/` outputs match the ggen graph).
 3. Receipt chain complete — every V-lane receipt in
-   `docs/sjira/v2.0.0-dev/receipts/` carries real command + exit code +
+   `docs/sjira/v2.0.0/receipts/` carries real command + exit code +
    output; falsifiers 2 (dylib version) and 3 (cache poison) witnessed
    passing; zero unresolved A-lane findings.
 4. `scripts/verify_publish_receipt.py` GREEN — publish dry-run receipt
@@ -133,7 +133,7 @@ The tollgate is the existing repo machinery, nothing invented:
    proves the surface is publish-shaped.)
 
 Exit criterion: all four tollgates green on the same subject SHA, recorded
-in the campaign receipt `docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md`.
+in the campaign receipt `docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md`.
 
 ## DPMO / Gage R&R (DESIGN-TARGET)
 
@@ -142,7 +142,7 @@ current defect accounting is this wave's audited findings only, not a
 capable long-run baseline. Do not cite these as process capability.
 
 - **Unit of work**: one wave-lane deliverable (per
-  `docs/sjira/v2.0.0-dev/_LANES.md`).
+  `docs/sjira/v2.0.0/_LANES.md`).
 - **Defect**: any audited finding requiring coordinator repair or a
   receipt correction (the six listed under Analyze).
 - **DPMO (wave-2 observed)**: 6 defects over the wave's 19 lanes
@@ -162,8 +162,8 @@ capable long-run baseline. Do not cite these as process capability.
 
 ## See Also
 
-- `docs/sjira/v2.0.0-dev/UPGRADE-WO.md` — work order, probe facts, falsifiers
-- `docs/sjira/v2.0.0-dev/_LANES.md` — lane partition and ownership
-- `docs/sjira/v2.0.0-dev/CAMPAIGN-RECEIPT.md` — campaign receipt
+- `docs/sjira/v2.0.0/UPGRADE-WO.md` — work order, probe facts, falsifiers
+- `docs/sjira/v2.0.0/_LANES.md` — lane partition and ownership
+- `docs/sjira/v2.0.0/CAMPAIGN-RECEIPT.md` — campaign receipt
 - `scripts/verify-gates.sh`, `scripts/verify-evidence.ttl` — generated gate
   battery and its evidence graph

@@ -5,7 +5,7 @@
 //! declared, documented bounds. The full 100k-iteration + ASan tier is a
 //! CI-tier job; this is the practical local core.
 //!
-//! Tolerance model (measured 2026-10-19, DuckDB v2.0.0-dev prebuilt arm64
+//! Tolerance model (measured 2026-10-19, DuckDB v2.0.0 prebuilt arm64
 //! dylib, macOS; probe receipts in this session):
 //! - The engine's aggregate/buffer path fills a BOUNDED pool: RSS growth per
 //!   5,000-iteration window decelerates (measured: +18.6, +10.2, +9.6,

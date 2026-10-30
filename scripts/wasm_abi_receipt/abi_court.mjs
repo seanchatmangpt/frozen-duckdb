@@ -21,9 +21,9 @@ const TOOL = join(HERE, 'abi_receipt.mjs');
 const ROOT = '/Users/sac/frozen-duckdb';
 const SUBJECT = process.argv[2] ?? join(ROOT, 'target/wasm-min/kdc05-min.wasm');
 const STAMPED = process.argv[3] ?? join(ROOT, 'target/wasm-min/kdc05-min.stamped.wasm');
-const PIN = 'b6013f7aa2f36caabb9466ce1791667ea8a280bb';
+const PIN = 'd54cbbe3df17e8e5ce68312f483b4155836112aa';
 const WRONG_PIN = '0'.repeat(40);
-const ENGINE = 'v2.0.0-dev88595';
+const ENGINE = 'v2.0.0';
 const sha256hex = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
 const tmp = mkdtempSync(join(tmpdir(), 'abi-court-'));

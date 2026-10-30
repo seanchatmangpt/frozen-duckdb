@@ -1,5 +1,5 @@
 //! TEST-REV-001: 10M-row journal trial-balance compliance against the real
-//! engine (v2.0.0-dev88595, cached). Physical db file, appender bulk ingest,
+//! engine (v2.0.0, cached). Physical db file, appender bulk ingest,
 //! DECIMAL(18,4) multi-account multi-currency journal, trial balance must
 //! clear (variance 0) by construction. Receipt: /tmp/value_audit/rev001.json.
 

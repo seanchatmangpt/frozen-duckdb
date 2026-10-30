@@ -97,9 +97,9 @@ Traceability note (KD-12 spec amendment, 2026-10-19): the REV-004 /
 TEST-REV-004 anomaly detection assertion (edge-autonomy court,
 `crates/frozen-duckdb/tests/test_rev_edge_autonomy.rs`) is governed by
 the amended contract in
-`docs/sjira/v2.0.0-dev/KD-12-SPEC-AMENDMENT.md` — recall >= 0.98 plus
+`docs/sjira/v2.0.0/KD-12-SPEC-AMENDMENT.md` — recall >= 0.98 plus
 false-positive ceiling <= 2x injected, NOT exact set match. Witnessed
-receipt: docs/sjira/v2.0.0-dev/receipts/rev004.json (recall 1.0000,
+receipt: docs/sjira/v2.0.0/receipts/rev004.json (recall 1.0000,
 148 extras vs 10,000 injected).
 
 ## Stage-12 exit contract

@@ -2,7 +2,7 @@
 
 Status: requirements source of truth for the frozen-duckdb v2.0 blueprint,
 transcribed from the operator's PRD/ARD (2026-10-19). Every FR/NFR starts
-standing PROPOSED. The only landed substrate today is the NATIVE 2.0.0-dev
+standing PROPOSED. The only landed substrate today is the NATIVE 2.0.0
 engine (bundled from upstream v2.0-cyanoptera b6013f7) — all
 WASM/OPFS/25MB/trap-boundary items are unstarted. Traceability:
 docs/design/requirements-traceability.md.
@@ -342,7 +342,7 @@ host_read_range(ctx: *mut u8, path: *const u8, path_len: usize,
   IDs only; the old IDs are read-only aliases.
 - Standing: PRD-FR-02 (Host-VFS), the SLA-2 wasm envelope, and the dual-topology
   are PROPOSED until a gate receipt lands; PRD-FR-01/03/04/05 inherit the
-  Revision-1 substrate state (native 2.0.0-dev engine landed; WASM/OPFS
+  Revision-1 substrate state (native 2.0.0 engine landed; WASM/OPFS
   unstarted). Gates GATE-V-01..05 are the admission courts — a requirement
   flips standing only on a passing gate run, never on prose.
 - Generated artifacts (gates/, generated/) are never hand-edited; gate

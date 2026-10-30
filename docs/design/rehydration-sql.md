@@ -13,10 +13,10 @@ scratch script `/tmp/bp12_rehydrate.sql`. That CLI is a **degraded
 collaborator**, not the repo subject: the pinned frozen-dylib path
 (`cargo run -p test-validation`, `CARGO_TARGET_DIR=target-laneBP12`) FAILED
 this session with `version mismatch: staged dylib reports 'v2.1.0-dev89402'
-but builder expects 'v2.0.0-dev'` — the dylib cache is mid-rebuild. Per the
+but builder expects 'v2.0.0'` — the dylib cache is mid-rebuild. Per the
 loud-skip law this is recorded, not papered over: **all queries below are
 VERIFIED-SYNTAX on duckdb v1.4.1 CLI; UNVERIFIED against the pinned
-v1.5.5/2.0.0-dev engine** until the same script runs through
+v1.5.5/2.0.0 engine** until the same script runs through
 `test-validation`. No query is claimed ALIVE on the repo subject.
 
 ## Metamodel recap

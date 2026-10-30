@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Must match the builder pin (const VERSION in crates/frozen-duckdb-builder/src/lib.rs, e.g. v2.0.0-dev); any other value fails the run"
+        description: "Must match the builder pin (const VERSION in crates/frozen-duckdb-builder/src/lib.rs, e.g. v2.0.0); any other value fails the run"
         required: true
-        default: "v2.0.0-dev"
+        default: "v2.0.0"
 
 jobs:
   build-binaries:
@@ -110,7 +110,7 @@ jobs:
           # clang emits. TR7 CLOSED (v26.9.26): the builder now derives
           # detection AND cache placement from CMAKE_OSX_ARCHITECTURES/ARCH
           # (falling back to uname -m), so the x86_64 leg lands under
-          # v2.0.0-dev-x86_64/libduckdb_x86_64.dylib and the find step below
+          # v2.0.0-x86_64/libduckdb_x86_64.dylib and the find step below
           # resolves. Both env vars are exported here per leg.
           echo "CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}" >> "$GITHUB_ENV"
 
@@ -121,10 +121,10 @@ jobs:
           # crates/frozen-duckdb-builder/src/lib.rs); before this guard a
           # dispatch for any other version silently built the pinned one.
           # Fail loudly instead (証: the input must not lie about capability).
-          # GH6 audit: the guard was dispatch-only — a v2.0.0-dev tag push
+          # GH6 audit: the guard was dispatch-only — a v2.0.0 tag push
           # built and released fully unguarded. Both admission paths now pass
           # through the same check (fail-closed kept).
-          BUILDER_VERSION="2.0.0-dev"
+          BUILDER_VERSION="2.0.0"
           WANT="v${BUILDER_VERSION}"
           case "${{ github.event_name }}" in
             workflow_dispatch) GOT="${{ inputs.version }}" ;;
@@ -173,7 +173,7 @@ jobs:
                   Err(e) => {
                       // {:#}, not {}: the anyhow chain carries the captured
                       // cmake/make stderr — the v1.5.5 tag run died with only
-                      // (HISTORICAL: pre-2.0.0-dev; kept as evidence)
+                      // (HISTORICAL: pre-2.0.0; kept as evidence)
                       // "Failed to compile DuckDB locally" and no diagnostic.
                       eprintln!("Failed to build mega-library: {:#}", e);
                       std::process::exit(1);
@@ -259,7 +259,7 @@ jobs:
           set -euo pipefail
           # Same admission guard as the macOS legs (GH6 audit): both dispatch
           # and tag-push paths must match the builder pin.
-          BUILDER_VERSION="2.0.0-dev"
+          BUILDER_VERSION="2.0.0"
           WANT="v${BUILDER_VERSION}"
           case "${{ github.event_name }}" in
             workflow_dispatch) GOT="${{ inputs.version }}" ;;
@@ -362,7 +362,7 @@ jobs:
             No manual installation required.
 
             ## Features Included
-            - DuckDB v2.0.0-dev with the bundled extension set
+            - DuckDB v2.0.0 with the bundled extension set
               (parquet, json, icu, httpfs, tpch, tpcds, fts, inet, sqlsmith;
               jemalloc + autoload enabled)
             - Apache Arrow integration

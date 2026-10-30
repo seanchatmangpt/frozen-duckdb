@@ -137,7 +137,7 @@ This directory contains a pre-compiled, fully-featured DuckDB binary that can be
 
 ## Maintenance
 
-This frozen binary should work with DuckDB 2.0.0-dev. For newer versions, rebuild using:
+This frozen binary should work with DuckDB 2.0.0. For newer versions, rebuild using:
 ```bash
 ./scripts/build_frozen_duckdb.sh
 ```
@@ -560,7 +560,7 @@ echo "  - Test build: cargo check -p kcura-duck"
 echo ""
 
 echo "💡 MAINTENANCE:"
-echo "  - This binary works with DuckDB 2.0.0-dev"
+echo "  - This binary works with DuckDB 2.0.0"
 echo "  - For updates: ./scripts/build_frozen_duckdb.sh"
 echo "  - Version info in: $PREBUILT_DIR/README.md"
 echo ""

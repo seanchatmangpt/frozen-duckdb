@@ -1,9 +1,9 @@
 # KNOWN_DIVERGENCES
 
 Registered divergences between claimed and witnessed behavior.
-The published crate version is **2.0.3**. These rows are the v2.0.0-dev
+The published crate version is **2.0.4**. These rows are the v2.0.0
 engine campaign and still apply to that engine pin
-(`b6013f7aa2f36caabb9466ce1791667ea8a280bb`).
+(`d54cbbe3df17e8e5ce68312f483b4155836112aa`).
 
 Every row has a surface, a divergence, an evidence path, and a close
 condition. A row with no evidence path is invalid. A closed row without
@@ -43,7 +43,7 @@ persisted, so a local recompile keeps the fence. Linux ELF has no
 Mach-O export trie; that path is a typed skip.
 
 **Evidence:** `crates/frozen-duckdb-builder/src/lib.rs` (`fence_exports_for`,
-`compile_duckdb_locally`); `docs/sjira/v2.0.0-dev/receipts/X1r-kd01-fence.md`.
+`compile_duckdb_locally`); `docs/sjira/v2.0.0/receipts/X1r-kd01-fence.md`.
 
 **Close:** none for this crate. Upstream may still ship an unfenced dylib;
 this builder fences before cache persist.
@@ -53,7 +53,7 @@ this builder fences before cache persist.
 **Status:** OPEN (upstream).
 
 `flock` has no community-extension build for this pin (HTTP 404 at
-`community-extensions.duckdb.org` for `b6013f7aa2`). Two `flock_tests`
+`community-extensions.duckdb.org` for `d54cbbe3d`). Two `flock_tests`
 are `#[ignore]`d with that 404.
 
 The TPC-H harness timer used to include `lock_dbgen()` wait. Isolated
@@ -101,7 +101,7 @@ MiB), loads in Node V8, and passes smoke. Full and threaded builds are
 Gzip wire size is 6.67–9.46 MiB. Threaded and Enterprise tiers are
 `UNSUPPORTED` inside the 25 MiB budget.
 
-**Evidence:** `docs/sjira/v2.0.0-dev/receipts/KDC-05-wasm-min.md`,
+**Evidence:** `docs/sjira/v2.0.0/receipts/KDC-05-wasm-min.md`,
 `MAX7-converge.md`, `MAX6-wasm-spec-flags.md`, `CL4b-icu-free.md`.
 
 **Close:** the full-build size target stays dropped. Browser
@@ -142,7 +142,7 @@ re-measure is under 2.5s.
 DuckDB does not expose allocator stats. The standing witness is the D6
 RSS-deceleration proxy.
 
-**Evidence:** `docs/sjira/v2.0.0-dev/KD-CLOSURE-PLAN.md`;
+**Evidence:** `docs/sjira/v2.0.0/KD-CLOSURE-PLAN.md`;
 `tests/gate_v01_latency.rs`.
 
 **Close:** upstream exposes allocator stats, or the D6 proxy remains the
@@ -157,7 +157,7 @@ The cgroup leg needs Linux and root. The container court held RSS at
 with in-container kernel counters (`memory.max=33554432`, oom 0→1).
 The kernel was a Colima VM, not bare metal.
 
-**Evidence:** `docs/sjira/v2.0.0-dev/receipts/KDC-09-linux-witness.md`;
+**Evidence:** `docs/sjira/v2.0.0/receipts/KDC-09-linux-witness.md`;
 `scripts/doctor/docker_low_ram_runner.sh`.
 
 **Close:** none. The container leg witnessed the kernel limit.
@@ -182,7 +182,7 @@ marker write, and crash plus SIGKILL with a byte-identical OPFS
 read-back. L2 (a 41 MB wasm instantiating in a Worker) was observed
 without a programmatic API.
 
-**Evidence:** `docs/sjira/v2.0.0-dev/receipts/KDC11r-opfs-persistence.md`;
+**Evidence:** `docs/sjira/v2.0.0/receipts/KDC11r-opfs-persistence.md`;
 `scripts/doctor/opfs_persistence_court.mjs`.
 
 **Close:** a wasm-in-worker instantiation API for L2.
@@ -195,8 +195,8 @@ The exact-set-match clause is retired. The contract is recall ≥ 0.98
 and a false-positive ceiling ≤ 2× injected. Observed recall 1.0000
 with 148 extras against 10,000 injected.
 
-**Evidence:** `docs/sjira/v2.0.0-dev/KD-12-SPEC-AMENDMENT.md`;
-`docs/sjira/v2.0.0-dev/receipts/rev004.json`.
+**Evidence:** `docs/sjira/v2.0.0/KD-12-SPEC-AMENDMENT.md`;
+`docs/sjira/v2.0.0/receipts/rev004.json`.
 
 **Close:** none. The amended contract is witnessed.
 
@@ -234,7 +234,7 @@ Linux the same function sets `DT_SONAME` to that absolute path with
 or `readelf` warns and leaves the file unchanged.
 
 **Evidence:** `crates/frozen-duckdb-builder/src/lib.rs` (`ensure_install_id`);
-`docs/sjira/v2.0.0-dev/receipts/ADV9-rpath.md`.
+`docs/sjira/v2.0.0/receipts/ADV9-rpath.md`.
 
 **Close:** none. A Linux host without `patchelf` still needs
 `LD_LIBRARY_PATH` until the stamp can run.
@@ -248,10 +248,10 @@ The release `.so` needs glibc ≥ 2.38 (`__isoc23_*@GLIBC_2.38`,
 download path itself matches sha256 of the published asset. README
 states Ubuntu 24.04+ or Debian trixie.
 
-**Evidence:** `docs/sjira/v2.0.0-dev/receipts/DG4-download-court.md`
+**Evidence:** `docs/sjira/v2.0.0/receipts/DG4-download-court.md`
 (runs 7–8).
 
 **Close:** none unless a bookworm-class consumer requires a glibc 2.36
 baseline rebuild.
 
-Campaign roll-up: `docs/sjira/v2.0.0-dev/DEFINITION-OF-DONE.md`.
+Campaign roll-up: `docs/sjira/v2.0.0/DEFINITION-OF-DONE.md`.

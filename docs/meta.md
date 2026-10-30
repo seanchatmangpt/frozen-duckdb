@@ -9,7 +9,7 @@ explanation content, kept out of the four Diataxis quadrants on purpose.
 ## Features
 
 - Drop-in duckdb-rs replacement — same API, no code changes
-- DuckDB 2.0.0-dev bundled with extensions built in: Parquet, JSON, ICU, HTTPFS, TPC-H, TPC-DS, FTS, INET, SQLSmith, plus Jemalloc; further extensions (e.g. Excel, Visualizer, TPC-E) load on demand via DuckDB autoload
+- DuckDB 2.0.0 bundled with extensions built in: Parquet, JSON, ICU, HTTPFS, TPC-H, TPC-DS, FTS, INET, SQLSmith, plus Jemalloc; further extensions (e.g. Excel, Visualizer, TPC-E) load on demand via DuckDB autoload
 - Integration features: Apache Arrow, Serde, Chrono
 - Prebuilt macOS dylibs per architecture (arm64, x86_64) downloaded automatically on first build and cached under ~/.frozen-duckdb/cache/
 - Offline-capable builds via vendored DuckDB headers (duckdb.h, duckdb.hpp) in crates/frozen-duckdb-builder/vendored-headers/
@@ -17,7 +17,7 @@ explanation content, kept out of the four Diataxis quadrants on purpose.
 
 ## Roadmap
 
-- Prebuilt Linux .so release assets (Linux currently builds via the pinned local-compile fallback of DuckDB 2.0.0-dev source; same is true of Windows today)
+- Prebuilt Linux .so release assets (Linux currently builds via the pinned local-compile fallback of DuckDB 2.0.0 source; same is true of Windows today)
 
 ## License
 

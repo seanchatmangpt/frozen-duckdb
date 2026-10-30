@@ -123,7 +123,7 @@ The test validates:
 🦆 Frozen DuckDB FFI Smoke Test
 ============================================================
 ✅ PASS Library Version (2.1ms)
-   DuckDB Version: 2.0.0-dev   (suffix-tolerant: accept any 2.0.0-dev* string)
+   DuckDB Version: 2.0.0   (suffix-tolerant: accept any 2.0.0* string)
 ✅ PASS Architecture Detection (0.5ms)
    Detected Architecture: arm64
 ✅ PASS Database Lifecycle (15.2ms)
@@ -213,7 +213,7 @@ export CGO_LDFLAGS="-L$DUCKDB_LIB_DIR -lduckdb"
 #### Library Not Found
 ```bash
 # The builder caches binaries here (no DUCKDB_LIB_DIR involved)
-ls -la ~/.frozen-duckdb/cache/v2.0.0-dev-*/
+ls -la ~/.frozen-duckdb/cache/v2.0.0-*/
 # For the legacy CGO/Go path only, prebuilt/setup_env.sh can still be sourced
 # manually — it is not part of the cargo build path
 ```

@@ -4,11 +4,11 @@ Drop-in replacement for the [`duckdb`](https://crates.io/crates/duckdb) crate.
 Same Rust API. The DuckDB engine is a prebuilt library, cached after the
 first build, so later builds link instead of compiling C++.
 
-Crate version **2.0.3**. The bundled engine is DuckDB `v2.0.0-dev88595`,
-upstream commit `b6013f7aa2f36caabb9466ce1791667ea8a280bb`.
+Crate version **2.0.4**. The bundled engine is DuckDB `v2.0.0`,
+upstream commit `d54cbbe3df17e8e5ce68312f483b4155836112aa`.
 
-`frozen-duckdb` **0.1.0**, **2.0.0**, **2.0.1**, and **2.0.2** on crates.io are older generations. Depend on
-`2.0.3`.
+`frozen-duckdb` **0.1.0**, **2.0.0**, **2.0.1**, **2.0.2**, and **2.0.3** on crates.io are older generations. Depend on
+`2.0.4`.
 
 ## Install
 
@@ -18,7 +18,7 @@ cargo add frozen-duckdb
 
 ```toml
 [dependencies]
-frozen-duckdb = "2.0.3"
+frozen-duckdb = "2.0.4"
 ```
 
 Rust 1.88 or newer.
@@ -57,7 +57,7 @@ It cannot be linked into the same binary as `libduckdb-sys` / `duckdb`.
 
 First build: the builder looks for a cached library under
 `~/.frozen-duckdb/cache/`, then a GitHub Release asset for tag
-`v2.0.0-dev.3` (`libduckdb_{arm64,x86_64}.dylib` and
+`v2.0.0` (`libduckdb_{arm64,x86_64}.dylib` and
 `libduckdb_{arm64,x86_64}.so`), then compiles the pinned upstream source.
 Later builds reuse the cache. macOS binaries use `@rpath` and do not need
 `DYLD_LIBRARY_PATH`.
@@ -73,7 +73,7 @@ Optional features (off by default): `serde_json`, `chrono`, `vtab`,
   2.38 or newer (Ubuntu 24.04+, Debian trixie). The cached `.so` must be
   on the loader path at runtime.
 - **Windows**: local compile from the pinned source. No release asset.
-- **wasm32-wasip1**: static `libduckdb.a`. The build script compiles it with wasi-sdk (`WASI_SDK_PATH`) into `~/.frozen-duckdb/cache/v2.0.0-dev-wasm32-wasip1/libduckdb.a`. That archive is the core library (`BUILD_EXTENSIONS` empty, threads off). It is not a GitHub Release asset and it is not the host dylib. File semantics are handled inside the archive: `fcntl` advisory locks are a no-op and Linux `O_*` open flags are translated to WASI, so consumers need no shim and no `--wrap` link args. No-op locking is correct for single-process modules and does not detect multi-writer contention.
+- **wasm32-wasip1**: static `libduckdb.a`. The build script compiles it with wasi-sdk (`WASI_SDK_PATH`) into `~/.frozen-duckdb/cache/v2.0.0-wasm32-wasip1/libduckdb.a`. That archive is the core library (`BUILD_EXTENSIONS` empty, threads off). It is not a GitHub Release asset and it is not the host dylib. File semantics are handled inside the archive: `fcntl` advisory locks are a no-op and Linux `O_*` open flags are translated to WASI, so consumers need no shim and no `--wrap` link args. No-op locking is correct for single-process modules and does not detect multi-writer contention.
 
 ## Limits
 

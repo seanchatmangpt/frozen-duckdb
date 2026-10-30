@@ -2,7 +2,7 @@
 
 ## Release Asset Strategy
 
-Frozen DuckDB ships **prebuilt macOS dylibs as GitHub Release assets** and downloads them automatically on first build. As of DuckDB 2.0.0-dev, the release workflow publishes **one dylib per architecture** — `libduckdb_arm64.dylib` for Apple Silicon, `libduckdb_x86_64.dylib` for Intel — and the builder downloads the asset matching the machine. (The development cache currently carries universal binaries; released assets are per-architecture.)
+Frozen DuckDB ships **prebuilt macOS dylibs as GitHub Release assets** and downloads them automatically on first build. As of DuckDB 2.0.0, the release workflow publishes **one dylib per architecture** — `libduckdb_arm64.dylib` for Apple Silicon, `libduckdb_x86_64.dylib` for Intel — and the builder downloads the asset matching the machine. (The development cache currently carries universal binaries; released assets are per-architecture.)
 
 ### Released Assets
 
@@ -15,10 +15,10 @@ Frozen DuckDB ships **prebuilt macOS dylibs as GitHub Release assets** and downl
 
 `frozen-duckdb-builder::ensure_binary()` resolves the binary through a fixed sequence:
 
-1. **Cache hit**: `~/.frozen-duckdb/cache/v2.0.0-dev-{arch}/libduckdb_{arch}.dylib` (arch from `CMAKE_OSX_ARCHITECTURES`/`ARCH` or `uname -m`)
+1. **Cache hit**: `~/.frozen-duckdb/cache/v2.0.0-{arch}/libduckdb_{arch}.dylib` (arch from `CMAKE_OSX_ARCHITECTURES`/`ARCH` or `uname -m`)
 2. **Local prebuilt dir**: copies `prebuilt/libduckdb_{arch}.dylib` into the cache if present
-3. **GitHub Release download**: fetches `https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v2.0.0-dev/libduckdb_{arch}.dylib`
-4. **Local-compile fallback**: clones upstream DuckDB at the pinned upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag) and builds with CMake
+3. **GitHub Release download**: fetches `https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v2.0.0/libduckdb_{arch}.dylib`
+4. **Local-compile fallback**: clones upstream DuckDB at the pinned upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag) and builds with CMake
 
 Every library that enters the cache — cached, prebuilt, downloaded, or locally compiled — is
 verified with `lipo -archs` against its label before use, and a mismatch fails closed:
@@ -30,7 +30,7 @@ verified with `lipo -archs` against its label before use, and a mismatch fails c
 (On non-macOS hosts, or where `lipo` is unavailable, the check is logged as unverified rather than admitted.)
 
 On **every** acquisition path, the builder then normalizes the cache layout: headers are
-materialized under `duckdb/` (copied from the vendored 2.0.0-dev headers inside
+materialized under `duckdb/` (copied from the vendored 2.0.0 headers inside
 `crates/frozen-duckdb-builder/vendored-headers/` when the asset carries none) and a plain
 `libduckdb.dylib` symlink is created so `-lduckdb` resolves.
 
@@ -47,7 +47,7 @@ mislabeled).
 
 ### Runtime Loading
 
-The 2.0.0-dev dylibs carry the neutral install name `@rpath/libduckdb.dylib`. The
+The 2.0.0 dylibs carry the neutral install name `@rpath/libduckdb.dylib`. The
 `frozen-duckdb` build script (consuming `DEP_DUCKDB_DUCKDB_LIB_DIR` metadata exposed by
 `frozen-duckdb-sys`) emits `-Wl,-rpath,{cache_dir}` for binaries, tests, and examples, so
 they run with **no `DYLD_LIBRARY_PATH` / `DYLD_FALLBACK_LIBRARY_PATH` configuration**.
@@ -80,7 +80,7 @@ ensure_link_name(&versioned_cache, &arch)?; // plain libduckdb.dylib for -lduckd
 
 ### Normalization Guarantees
 
-1. **Headers**: `duckdb/duckdb.h` and `duckdb/duckdb.hpp` exist in the versioned cache; when the acquisition path carried no headers (release downloads ship only the dylib), they are copied from the vendored 2.0.0-dev headers inside `crates/frozen-duckdb-builder/vendored-headers/`
+1. **Headers**: `duckdb/duckdb.h` and `duckdb/duckdb.hpp` exist in the versioned cache; when the acquisition path carried no headers (release downloads ship only the dylib), they are copied from the vendored 2.0.0 headers inside `crates/frozen-duckdb-builder/vendored-headers/`
 2. **Link name**: `libduckdb.dylib` resolves (symlink on Unix) to the cached `libduckdb_{arch}.dylib`
 3. **Idempotent**: existing artifacts are left untouched, so repeated builds do no extra work
 
@@ -92,7 +92,7 @@ Prebuilt dylibs are distributed as **GitHub Release assets**, not committed to t
 
 ```bash
 # Asset URL scheme consumed by frozen-duckdb-builder::ensure_binary()
-https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v2.0.0-dev/libduckdb_{arch}.dylib
+https://github.com/seanchatmangpt/frozen-duckdb/releases/download/v2.0.0/libduckdb_{arch}.dylib
 ```
 
 The `build-binaries.yml` workflow builds the dylibs on tag pushes (`v*`), stages them under the exact canonical download names, and attaches `libduckdb_x86_64.dylib` and `libduckdb_arm64.dylib` to the release.
@@ -106,7 +106,7 @@ The crate version mirrors the bundled upstream DuckDB version (SemVer with that 
 ```toml
 # Cargo.toml (workspace)
 [workspace.package]
-version = "2.0.0-dev"   # frozen-duckdb 2.0.0-dev bundles DuckDB 2.0.0-dev
+version = "2.0.0"   # frozen-duckdb 2.0.0 bundles DuckDB 2.0.0
 ```
 
 ### Version Update Process
@@ -123,8 +123,8 @@ version = "2.0.0-dev"   # frozen-duckdb 2.0.0-dev bundles DuckDB 2.0.0-dev
 
 ```bash
 # Tag-driven: pushing a v* tag triggers build-binaries.yml
-git tag v2.0.0-dev
-git push origin v2.0.0-dev
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
 ### Manual Update Process
@@ -173,9 +173,9 @@ cargo clean && cargo build
 uname -m
 
 # Detection order: explicit single-slice CMAKE_OSX_ARCHITECTURES -> ARCH -> uname -m;
-# each 2.0.0-dev released asset is single-architecture
+# each 2.0.0 released asset is single-architecture
 # (the dev cache may hold universal binaries from an older acquisition path)
-lipo -info ~/.frozen-duckdb/cache/v2.0.0-dev-*/libduckdb_*.dylib
+lipo -info ~/.frozen-duckdb/cache/v2.0.0-*/libduckdb_*.dylib
 
 # A cache entry whose Mach-O slice does not match its label fails closed:
 #   stale cached binary does not match its label; remove <cache-dir> and rebuild
@@ -201,7 +201,7 @@ frozen-duckdb-cli -v info
 
 # Show cached binary details
 ls -lah ~/.frozen-duckdb/cache/v*/
-lipo -info ~/.frozen-duckdb/cache/v2.0.0-dev-*/libduckdb_*.dylib
+lipo -info ~/.frozen-duckdb/cache/v2.0.0-*/libduckdb_*.dylib
 
 # Verbose build output (cargo's own flag — RUST_LOG is not read by the
 # builder or the CLI)
@@ -239,7 +239,7 @@ cargo build -v
 1. **Linux binaries**: Add support for Linux architectures (prebuilt assets are currently macOS-only; Linux builds use the local-compile fallback)
 2. **Windows binaries**: Add Windows DLL support
 3. **Cross-compilation**: Build binaries for multiple platforms
-4. ~~**Universal binaries**~~: NOT shipped as of the 2.0.0-dev line — the release workflow publishes one single-architecture dylib per matrix arch (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`); universal binaries exist only in the development cache
+4. ~~**Universal binaries**~~: NOT shipped as of the 2.0.0 line — the release workflow publishes one single-architecture dylib per matrix arch (`libduckdb_arm64.dylib`, `libduckdb_x86_64.dylib`); universal binaries exist only in the development cache
 
 ## Summary
 

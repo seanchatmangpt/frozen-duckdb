@@ -35,7 +35,7 @@ cat > "$OUT" <<EOF
   "engine": "${ENGINE}",
   "platform": "linux/arm64 container (colima virtualized ARM on darwin/arm64 host)",
   "caveat": "kernel-enforced cgroup limit is real, but the kernel itself is virtualized (colima VM), not bare metal",
-  "pinned_duckdb_sha": "b6013f7aa2f36caabb9466ce1791667ea8a280bb",
+  "pinned_duckdb_sha": "d54cbbe3df17e8e5ce68312f483b4155836112aa",
   "mem_limit_mb": ${MEM_MB},
   "mem_swap_mb": ${MEM_MB},
   "container_exit": ${EXIT},

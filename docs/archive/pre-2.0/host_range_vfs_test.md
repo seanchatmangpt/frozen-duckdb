@@ -93,4 +93,4 @@ compiles GREEN. File hashes at receipt time:
 - `docs/design/host-range-vfs-contract.md` (contract)
 - `docs/design/host-call-vfs.md` (architecture)
 - `docs/design/gate-v05-hostvfs-transfer.md` (acceptance court)
-- `docs/sjira/v2.0.0-dev/KD-CLOSURE-PLAN.md` (KD-06 row)
+- `docs/sjira/v2.0.0/KD-CLOSURE-PLAN.md` (KD-06 row)

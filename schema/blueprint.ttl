@@ -2,7 +2,7 @@
 # PROPOSED architecture layers for frozen-duckdb 2.0. Status vocabulary is
 # deliberate: every concept here is bp:status "PROPOSED" — no execution has
 # been observed for any layer. The current repo reality is frozen-duckdb
-# 1.5.5 (zero-compilation DuckDB via Builder Sub-Crate Pattern); the 2.0.0-dev
+# 1.5.5 (zero-compilation DuckDB via Builder Sub-Crate Pattern); the 2.0.0
 # upgrade landed in-tree, but the layers below remain proposals, not receipts.
 
 @prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
@@ -14,7 +14,7 @@ fd:blueprint a skos:ConceptScheme ;
     dcterms:title "frozen-duckdb 2.0 blueprint layers"@en ;
     dcterms:description
         "Concept scheme organizing the PROPOSED frozen-duckdb 2.0 architecture " ,
-        "into five layers. Grounded in current repo reality: the 2.0.0-dev " ,
+        "into five layers. Grounded in current repo reality: the 2.0.0 " ,
         "upgrade has landed in this tree, but each layer is PROPOSED — none " ,
         "carries an execution receipt. Wiring into ggen.toml is a separate " ,
         "admitted transition and is intentionally not done here."@en ;

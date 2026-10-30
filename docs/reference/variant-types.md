@@ -39,7 +39,7 @@ never a panic.
   `row.get::<Option<serde_json::Value>>` fails with a typed
   `FromSqlConversionFailure` whose message names the shredded
   `Struct(metadata, value)` projection and the `::VARCHAR` workaround
-  (U5 probe receipt: `docs/sjira/v2.0.0-dev/receipts/USER-FINDINGS-U5.md`).
+  (U5 probe receipt: `docs/sjira/v2.0.0/receipts/USER-FINDINGS-U5.md`).
   A NULL variant read through `Option<serde_json::Value>` is
   `Ok(None)` (DT3 guard holds on both the raw and cast paths).
 - Arrow bridge (`src/duckdb/vtab/arrow.rs`, `LogicalTypeId::Variant`

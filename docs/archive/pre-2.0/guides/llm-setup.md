@@ -443,7 +443,7 @@ RUN ollama pull qwen3-embedding:8b
 # Build application — no environment setup: the builder acquires the dylib
 # during cargo build (inside a Linux container there are no prebuilt macOS
 # assets, so the builder falls back to a local DuckDB compile pinned at
-# upstream SHA b6013f7aa2f36caabb9466ce1791667ea8a280bb (DuckDB 2.0.0-dev, pre-tag)). DUCKDB_LIB_DIR/DUCKDB_INCLUDE_DIR are only consumed
+# upstream SHA d54cbbe3df17e8e5ce68312f483b4155836112aa (DuckDB 2.0.0, pre-tag)). DUCKDB_LIB_DIR/DUCKDB_INCLUDE_DIR are only consumed
 # by the legacy manual-prebuilt workflow and are not needed here.
 WORKDIR /app
 COPY . .

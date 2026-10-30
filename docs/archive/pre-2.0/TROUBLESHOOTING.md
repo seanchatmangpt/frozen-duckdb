@@ -223,8 +223,8 @@ SELECT llm_complete({'model_name': 'test_coder'}, {'prompt_name': 'hello'});
 ## 📞 Support Information
 
 **Project:** frozen-duckdb
-**Version:** 2.0.0-dev
-**DuckDB Version:** 2.0.0-dev (bundled, staged from upstream main SHA b6013f7a)
+**Version:** 2.0.0
+**DuckDB Version:** 2.0.0 (bundled, staged from upstream main SHA d54cbbe3d)
 **Ollama Version:** 0.12.3
 **Models:** qwen3-coder:30b, qwen3-embedding:8b
 
@@ -232,7 +232,7 @@ SELECT llm_complete({'model_name': 'test_coder'}, {'prompt_name': 'hello'});
 - `tests/flock_tests.rs` - Flock extension tests (i.e. `crates/frozen-duckdb/tests/flock_tests.rs`)
 - `README.md` - Project documentation
 
-**Report Generated:** 2026-09-21 (v1.5.5 support-block pass, commit 1b41188; audited 2026-09-22; version stamps updated 2026-10-19 for the 2.0.0-dev staging)
+**Report Generated:** 2026-09-21 (v1.5.5 support-block pass, commit 1b41188; audited 2026-09-22; version stamps updated 2026-10-19 for the 2.0.0 staging)
 **Health Score:** 84% ✅
 
 ---

@@ -3,9 +3,9 @@
 //! KD-02 verification criterion: "run cargo test --test extension_tests and
 //! assert 0 unhandled failures". The tpch half is opt-in (`#[ignore]`-gated,
 //! same pattern as `tpch_integration_test.rs`) because upstream DuckDB's
-//! extension CDN 404s at the dev pin `b6013f7aa2` — the artifact must come
+//! extension CDN 404s at the dev pin `d54cbbe3d` — the artifact must come
 //! from ADV4's locally-built extension
-//! (`~/.duckdb/extensions/b6013f7aa2/osx_arm64/tpch.duckdb_extension`),
+//! (`~/.duckdb/extensions/d54cbbe3d/osx_arm64/tpch.duckdb_extension`),
 //! loaded via `allow_unsigned_extensions`.
 //!
 //! Opt-in run: `cargo test -p frozen-duckdb --test extension_tests -- --ignored`
@@ -23,7 +23,7 @@ fn lock_dbgen() -> MutexGuard<'static, ()> {
 }
 
 #[test]
-#[ignore = "OPT-IN: requires ADV4's locally-built tpch extension at ~/.duckdb/extensions/b6013f7aa2/osx_arm64/ (upstream CDN 404s at the dev pin) — run with `-- --ignored` (KD-02, lane X2)"]
+#[ignore = "OPT-IN: requires ADV4's locally-built tpch extension at ~/.duckdb/extensions/d54cbbe3d/osx_arm64/ (upstream CDN 404s at the dev pin) — run with `-- --ignored` (KD-02, lane X2)"]
 fn test_tpch_load_and_dbgen_smoke() -> Result<()> {
     let conn =
         Connection::open_in_memory_with_flags(Config::default().allow_unsigned_extensions()?)?;

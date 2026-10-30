@@ -20,12 +20,12 @@ Out-of-repo consumers face, in order:
 ```
 QUICKSTART-RECEIPT: subject_head=67200feb06be6e81bfa34d9520428989bc652434
 QUICKSTART-RECEIPT: arch=arm64
-QUICKSTART-RECEIPT: cache_before=HIT /Users/sac/.frozen-duckdb/cache/v2.0.0-dev-arm64
+QUICKSTART-RECEIPT: cache_before=HIT /Users/sac/.frozen-duckdb/cache/v2.0.0-arm64
 QUICKSTART-RECEIPT: phase1_dep_tree_compile_wall_s=22.906483000   # 857.5 s on the cold first run
 QUICKSTART-RECEIPT: rpath_gap_probe=CONFIRMED (dyld: Library not loaded @rpath/libduckdb.dylib, no LC_RPATH)
 QUICKSTART-OK: SELECT 42 -> 42
 QUICKSTART-RECEIPT: assert=PASS (QUICKSTART-OK: SELECT 42 -> 42)
-QUICKSTART-RECEIPT: dyld_workaround=DYLD_LIBRARY_PATH=/Users/sac/.frozen-duckdb/cache/v2.0.0-dev-arm64
+QUICKSTART-RECEIPT: dyld_workaround=DYLD_LIBRARY_PATH=/Users/sac/.frozen-duckdb/cache/v2.0.0-arm64
 PASS: one-shot onboarding probe complete.
 ```
 2. **Cache acquisition (usually a non-event locally).** The builder resolves
@@ -45,7 +45,7 @@ PASS: one-shot onboarding probe complete.
    (2026-10-19, subject 79e803e):
    `dyld: Library not loaded: @rpath/libduckdb.dylib ... Reason: no LC_RPATH's found`
    with `DYLD_LIBRARY_PATH` unset. Today's workaround, and what the probe's
-   leg B does: `DYLD_LIBRARY_PATH=~/.frozen-duckdb/cache/v2.0.0-dev-<arch>`.
+   leg B does: `DYLD_LIBRARY_PATH=~/.frozen-duckdb/cache/v2.0.0-<arch>`.
 
 ## The one-shot
 
@@ -104,7 +104,7 @@ Pick ONE, prefer (a):
   consumer binary carries no `LC_RPATH` and fails to load bare; the probe
   proves both directions (bare run fails, cache-dir `DYLD_LIBRARY_PATH` run
   passes `SELECT 42`).
-- NOT claimed: fresh-machine cold floor (GitHub Release assets for 2.0.0-dev
+- NOT claimed: fresh-machine cold floor (GitHub Release assets for 2.0.0
   are unpublished, so a fresh machine hits the local-compile fallback —
   measured separately, not here), Windows/Linux consumer surfaces, released
   crates.io consumption (path dep only), the rpath fix itself (proposal only,
