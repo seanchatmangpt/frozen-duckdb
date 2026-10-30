@@ -100,12 +100,27 @@
   ctutils 0.4.3→0.4.4 (RustSec), both minimal `cargo update -p` bumps.
 - dry-run-publish fence tripwire: **OK** (dry-run posture intact, 5
   `dry-run-verified` markers, zero published/release-complete terms)
-- publish_gate.sh + publish chain builder→sys→main + crates.io close-out:
-  APPENDED BELOW after execution.
+- publish_gate.sh: **GREEN — standing PUBLISH_READY** (8 gates exit 0:
+  tree-clean, versions-aligned, build, fmt, clippy, tests, publish-dry-run,
+  wasm-ceiling loud-UNSUPPORTED), receipt `target/publish-gate-receipt.txt`,
+  subject_head=`ee7bef1`
+- publish chain (DRYRUN=0 PUBLISH_CONFIRM=yes, 2026-10-30T00:15Z):
+  **GREEN, exit 0** — `cargo publish` executed ×3 (each preceded by its own
+  dry-run, exit 0); "Published frozen-duckdb v2.0.4 at registry `crates-io`"
+  (and sys/builder); all three index-visible at 2.0.4 within the 300s poll
+  windows; `verify_publish_receipt` GREEN (chain `215caf55…`, 1499 records,
+  valid=true, signed=true); sparse-index verified ×3
+- close-out curls (2026-10-30): crates.io `max_version`=`newest_version`=
+  **2.0.4** for frozen-duckdb-builder / frozen-duckdb-sys / frozen-duckdb;
+  `index.crates.io/fr/oz/{frozen-duckdb,frozen-duckdb-sys,frozen-duckdb-builder}`
+  → HTTP 200 ×3
 
 ## Sweep census (close-out receipt)
 
-`git ls-files -z | xargs -0 grep -l -E '2\.0\.0-dev|b6013f7a'` → **zero
-files** (exit 1 = no matches), witnessed pre-commit and re-checkable at any
-head. Patterns covered: `2.0.0-dev`, `v2.0.0-dev88595`, 40-hex
-`b6013f7aa2f36caabb9466ce1791667ea8a280bb`, short `b6013f7aa2`.
+`git ls-files` piped through `grep -l -E` for the dev-version string, the
+dev engine-witness suffix form, and the dev source-SHA (40-hex and short
+forms) → **zero files** (grep exit 1 = no matches), witnessed pre-commit
+and re-witnessed at the published head after the close-out. The exact
+patterns are intentionally not reproduced here — this receipt is itself
+subject to the operator law that the dev-snapshot naming is referenced
+nowhere; see the session transcript for the literal grep.
