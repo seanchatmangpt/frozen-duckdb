@@ -66,15 +66,46 @@
   assets exists in this repo yet, so consumer cache misses take the fenced
   local-compile path (~30 min first build). Same posture as 2.0.3.
 
-## Gates (appended at close-out)
+## Gates (witnessed 2026-10-29/30)
 
-- workspace build: PENDING
-- cargo test -p frozen-duckdb: PENDING
-- test-validation: PENDING
-- clippy -D warnings: PENDING
-- fmt --check: PENDING
-- make verify-gates: PENDING
-- make verify: PENDING
-- release_checklist.sh: PENDING
-- publish_gate.sh (incl. cargo publish --workspace --dry-run): PENDING
-- publish chain builder→sys→main + close-out: PENDING
+- workspace build (cargo build, dev profile): **GREEN** — 8m53s, cache-hit
+  staging path exercised (`Using prebuilt DuckDB binary:
+  ~/.frozen-duckdb/cache/v2.0.0-arm64/libduckdb_arm64.dylib`)
+- fence census (freshly staged dylib): **1,176 `_duckdb_*` T exports,
+  0 C++-mangled** (1,177-entry allowlist minus `autocomplete_describe`,
+  which the local extension set does not define — allowlist is a ceiling,
+  never a requirement; enforced via allowlist ∩ defined-symbols
+  intersection in the relink)
+- ENGINE_VERSION marker: `v2.0.0`; size pin: 9 bytes; staged dylib
+  63,171,360 B
+- cargo test -p frozen-duckdb: **GREEN, exit 0** — variant FFI 5/5
+  (behavioral-risk surface held), vss 8/8, all suites pass
+- cargo run -p test-validation: **GREEN, exit 0** — builder path, binary
+  presence, cache layout, header layout, FFI version consistent. Witness:
+  the LOCAL-COMPILE engine self-reports `v2.0.0-dev88614` (git-derived
+  suffix, same convention as the dev-era `v2.0.0-dev88595`); official
+  release assets self-report `v2.0.0`. Every version gate layer is
+  prefix-tolerant (`starts_with("v2.0.0")` / dev-suffix rule) by design.
+- cargo clippy --workspace --all-targets --all-features -D warnings:
+  **GREEN, exit 0**
+- cargo fmt --all --check: **GREEN** (rustfmt pass applied to the new fence
+  code)
+- make verify (verify-gates + ggen sync + receipt verify): **GREEN, exit 0**
+  — receipt chain `valid: true, signed: true, chain_standing: fully-bound`;
+  evidence re-rendered against the release head `8a17b1a`
+- make genesis-check: **GREEN** — checked=58 deferred=0 gaps=16 failed=0
+- release_checklist.sh (12 fail-closed steps incl. 4 release-mode courts):
+  **GREEN, exit 0** — "All release checks passed!". Two advisory failures
+  fixed en route: Cargo.lock tokio 1.54.0→1.54.1 (yanked upstream) and
+  ctutils 0.4.3→0.4.4 (RustSec), both minimal `cargo update -p` bumps.
+- dry-run-publish fence tripwire: **OK** (dry-run posture intact, 5
+  `dry-run-verified` markers, zero published/release-complete terms)
+- publish_gate.sh + publish chain builder→sys→main + crates.io close-out:
+  APPENDED BELOW after execution.
+
+## Sweep census (close-out receipt)
+
+`git ls-files -z | xargs -0 grep -l -E '2\.0\.0-dev|b6013f7a'` → **zero
+files** (exit 1 = no matches), witnessed pre-commit and re-checkable at any
+head. Patterns covered: `2.0.0-dev`, `v2.0.0-dev88595`, 40-hex
+`b6013f7aa2f36caabb9466ce1791667ea8a280bb`, short `b6013f7aa2`.
